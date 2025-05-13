@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -33,7 +32,7 @@ import {
 import { useStudents } from '@/hooks/use-students';
 import { useTeachers } from '@/hooks/use-teachers';
 import { useSessionPacks } from '@/hooks/use-packs';
-import { useCreateSession } from '@/hooks/use-sessions';
+import { useSessions } from '@/hooks/use-sessions';
 
 interface SessionSchedulerProps {
   onScheduleSession?: (session: Session) => void;
@@ -46,7 +45,7 @@ const SessionScheduler = ({ onScheduleSession }: SessionSchedulerProps) => {
   const { data: students, isLoading: studentsLoading, error: studentsError } = useStudents();
   const { data: teachers, isLoading: teachersLoading, error: teachersError } = useTeachers();
   const { data: sessionPacks, isLoading: packsLoading, error: packsError } = useSessionPacks();
-  const createSessionMutation = useCreateSession();
+  const { createSessions, isPendingCreate } = useSessions();
   
   // Form state
   const [selectedStudent, setSelectedStudent] = useState<string>('');
@@ -143,10 +142,10 @@ const SessionScheduler = ({ onScheduleSession }: SessionSchedulerProps) => {
     sessionDateTime.setHours(hours, minutes, 0, 0);
     
     // Create the session using the mutation
-    createSessionMutation.mutate({
+    createSessions([{
       packId: selectedPack,
       teacherId: selectedTeacher,
-      studentIds: pack.sessionType === 'Duo' ? [selectedStudent] : [selectedStudent],
+      studentIds: [selectedStudent],
       subject: pack.subject,
       sessionType: pack.sessionType,
       location: pack.location,
@@ -154,12 +153,12 @@ const SessionScheduler = ({ onScheduleSession }: SessionSchedulerProps) => {
       duration: pack.sessionType === 'Focus' ? 45 : 60,
       status: 'Scheduled',
       notes: ''
-    }, {
+    }], {
       onSuccess: (data) => {
         // Call the callback if provided
-        if (onScheduleSession) {
+        if (onScheduleSession && data && data.length > 0) {
           const newSession: Session = {
-            id: data.id,
+            id: data[0].id,
             packId: selectedPack,
             teacherId: selectedTeacher,
             studentIds: [selectedStudent],
@@ -425,16 +424,22 @@ const SessionScheduler = ({ onScheduleSession }: SessionSchedulerProps) => {
             <Button 
               className="w-full mt-2" 
               onClick={handleScheduleSession}
-              disabled={!selectedStudent || !selectedPack || !selectedTeacher || !selectedDate || !selectedTime || createSessionMutation.isPending}
+              disabled={!selectedStudent || !selectedPack || !selectedTeacher || !selectedDate || !selectedTime || isPendingCreate}
             >
-              {createSessionMutation.isPending 
+              {isPendingCreate 
                 ? 'Scheduling...' 
                 : 'Schedule Session'}
             </Button>
             
-            {createSessionMutation.isError && (
+            {isPendingCreate && (
+              <p className="text-sm text-muted-foreground mt-2">
+                Creating session...
+              </p>
+            )}
+            
+            {createSessions.isError && (
               <p className="text-sm text-destructive mt-2">
-                {(createSessionMutation.error as Error)?.message || 'Failed to schedule session'}
+                {(createSessions.error as Error)?.message || 'Failed to schedule session'}
               </p>
             )}
           </CardContent>

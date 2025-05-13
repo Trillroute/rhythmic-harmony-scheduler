@@ -131,14 +131,28 @@ export const useSessions = (filters?: FilterOptions) => {
       duration: number;
       status: AttendanceStatus;
       notes: string;
+      studentIds?: string[];
     }>) => {
       // Transform the array of session data to ensure dates are properly formatted
       const formattedSessions = sessionsData.map(session => {
+        // Make sure required fields are present
+        if (!session.pack_id || !session.teacher_id || !session.subject || 
+            !session.session_type || !session.location || !session.date_time) {
+          throw new Error("Missing required session fields");
+        }
+
         return {
-          ...session,
+          pack_id: session.pack_id,
+          teacher_id: session.teacher_id,
+          subject: session.subject,
+          session_type: session.session_type,
+          location: session.location,
           date_time: typeof session.date_time === 'object' && 'getTime' in session.date_time 
             ? session.date_time.toISOString()
-            : session.date_time
+            : session.date_time,
+          duration: session.duration,
+          status: session.status,
+          notes: session.notes || ''
         };
       });
       
@@ -264,14 +278,106 @@ export const useSessions = (filters?: FilterOptions) => {
     },
   });
 
+  const updateSessionStatus = useMutation({
+    mutationFn: async ({ id, status }: { id: string; status: AttendanceStatus }) => {
+      const { error } = await supabase
+        .from("sessions")
+        .update({ status })
+        .eq("id", id);
+
+      if (error) {
+        throw new Error(error.message);
+      }
+
+      return { id, status };
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["sessions"] });
+      toast.success("Session status updated successfully");
+    },
+    onError: (error: Error) => {
+      toast.error(`Failed to update session status: ${error.message}`);
+    }
+  });
+
+  const rescheduleSession = useMutation({
+    mutationFn: async ({ id, dateTime }: { id: string; dateTime: Date }) => {
+      const formattedDateTime = typeof dateTime === 'object' && 'getTime' in dateTime
+        ? dateTime.toISOString()
+        : dateTime;
+
+      const { error } = await supabase
+        .from("sessions")
+        .update({ 
+          date_time: formattedDateTime,
+          status: 'Scheduled' 
+        })
+        .eq("id", id);
+
+      if (error) {
+        throw new Error(error.message);
+      }
+
+      return { id };
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["sessions"] });
+      toast.success("Session rescheduled successfully");
+    },
+    onError: (error: Error) => {
+      toast.error(`Failed to reschedule session: ${error.message}`);
+    }
+  });
+
   return {
     sessions,
     isLoading,
     error,
     createSessions: createSessions.mutateAsync,
     updateSession: updateSession.mutateAsync,
+    updateSessionStatus: updateSessionStatus.mutateAsync,
+    rescheduleSession: rescheduleSession.mutateAsync,
     isPendingCreate: createSessions.isPending,
     isPendingUpdate: updateSession.isPending,
+    isPendingStatusUpdate: updateSessionStatus.isPending,
+    isPendingReschedule: rescheduleSession.isPending,
+  };
+};
+
+// Export functions that match what components are expecting
+export const useCreateSession = () => {
+  const { createSessions, isPendingCreate } = useSessions();
+  return {
+    mutate: async (sessionData, options) => createSessions([sessionData], options),
+    mutateAsync: async (sessionData, options) => createSessions([sessionData], options),
+    isPending: isPendingCreate
+  };
+};
+
+export const useUpdateSession = () => {
+  const { updateSession, isPendingUpdate } = useSessions();
+  return {
+    mutate: updateSession,
+    mutateAsync: updateSession,
+    isPending: isPendingUpdate
+  };
+};
+
+export const useUpdateSessionStatus = () => {
+  const { updateSessionStatus, isPendingStatusUpdate } = useSessions();
+  return {
+    mutate: updateSessionStatus,
+    mutateAsync: updateSessionStatus,
+    isPending: isPendingStatusUpdate
+  };
+};
+
+export const useRescheduleSession = () => {
+  const { rescheduleSession, isPendingReschedule } = useSessions();
+  return {
+    mutate: rescheduleSession,
+    mutateAsync: rescheduleSession,
+    isPending: isPendingReschedule
   };
 };
 
@@ -307,11 +413,13 @@ export const useSessionById = (sessionId?: string) => {
         `
         )
         .eq("id", sessionId)
-        .single();
+        .maybeSingle();
 
       if (error) {
         throw new Error(error.message);
       }
+      
+      if (!data) return null;
 
       const teacherName = data.teachers?.profiles?.name || "Unknown Teacher";
       const studentIds =
