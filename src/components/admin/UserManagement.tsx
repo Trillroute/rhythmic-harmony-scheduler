@@ -41,7 +41,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { Badge } from "@/components/ui/badge";
 import { useUsers } from "@/hooks/use-users";
-import { UserRole } from "@/lib/types";
+import { UserRole, UserWithRole } from "@/lib/types";
 import { format } from "date-fns";
 import { toast } from "sonner";
 
@@ -58,7 +58,7 @@ const formSchema = z.object({
 
 const UserManagement = () => {
   const [open, setOpen] = useState(false);
-  const [editingUser, setEditingUser] = useState<any | null>(null);
+  const [editingUser, setEditingUser] = useState<UserWithRole | null>(null);
   const [filters, setFilters] = useState<{ role?: UserRole; email?: string }>({});
   const [searchQuery, setSearchQuery] = useState("");
   const [roleFilter, setRoleFilter] = useState<UserRole | undefined>(undefined);
@@ -121,7 +121,7 @@ const UserManagement = () => {
         ...values,
         studentData: values.role === "student" ? {
           preferredSubjects: editingUser.studentData?.preferredSubjects || [],
-          packs: [],
+          preferredTeachers: editingUser.studentData?.preferredTeachers || [],
           notes: values.notes
         } : undefined
       });
@@ -133,12 +133,12 @@ const UserManagement = () => {
     setEditingUser(null);
   }
   
-  const handleEditUser = (user: any) => {
+  const handleEditUser = (user: UserWithRole) => {
     setEditingUser(user);
     setOpen(true);
   };
   
-  const handleDeleteUser = (user: any) => {
+  const handleDeleteUser = (user: UserWithRole) => {
     if (window.confirm(`Are you sure you want to delete ${user.name}?`)) {
       deleteUser(user.id);
     }
@@ -299,7 +299,11 @@ const UserManagement = () => {
                           {user.role}
                         </Badge>
                       </TableCell>
-                      <TableCell>{format(user.createdAt, "MMM d, yyyy")}</TableCell>
+                      <TableCell>
+                        {typeof user.createdAt === 'string' 
+                          ? format(new Date(user.createdAt), "MMM d, yyyy")
+                          : format(user.createdAt, "MMM d, yyyy")}
+                      </TableCell>
                       <TableCell className="space-x-2">
                         <Button variant="outline" size="sm" onClick={() => handleEditUser(user)}>Edit</Button>
                         <Button variant="outline" size="sm" className="text-destructive hover:bg-destructive/10" onClick={() => handleDeleteUser(user)}>Delete</Button>

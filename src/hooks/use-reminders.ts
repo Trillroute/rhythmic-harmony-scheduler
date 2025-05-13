@@ -66,7 +66,9 @@ export const useReminders = (recipientId?: string) => {
       const formattedData: Record<string, any> = {};
       
       Object.entries(reminderData).forEach(([key, value]) => {
-        formattedData[key] = value instanceof Date ? value.toISOString() : value;
+        formattedData[key] = typeof value === 'object' && value !== null && 'getTime' in value 
+          ? value.toISOString() 
+          : value;
       });
       
       const { data, error } = await supabase
@@ -97,7 +99,9 @@ export const useReminders = (recipientId?: string) => {
       const formattedFields: Record<string, any> = {};
       
       Object.entries(updateFields).forEach(([key, value]) => {
-        formattedFields[key] = value instanceof Date ? value.toISOString() : value;
+        formattedFields[key] = typeof value === 'object' && value !== null && 'getTime' in value 
+          ? value.toISOString() 
+          : value;
       });
       
       const { error } = await supabase

@@ -39,15 +39,15 @@ export interface Session {
   subject: SubjectType;
   sessionType: SessionType;
   location: LocationType;
-  dateTime: Date;
+  dateTime: string | Date;
   duration: number;
   status: AttendanceStatus;
   notes?: string;
   rescheduleCount: number;
   studentIds: string[];
   studentNames?: string[];
-  createdAt: Date;
-  updatedAt: Date;
+  createdAt: string | Date;
+  updatedAt: string | Date;
 }
 
 export interface SessionPack {
@@ -57,14 +57,14 @@ export interface SessionPack {
   subject: SubjectType;
   sessionType: SessionType;
   location: LocationType;
-  purchasedDate: Date;
-  expiryDate?: Date;
+  purchasedDate: string | Date;
+  expiryDate?: string | Date;
   remainingSessions: number;
   isActive: boolean;
   weeklyFrequency: WeeklyFrequency;
   sessions?: Session[];
-  createdAt: Date;
-  updatedAt: Date;
+  createdAt: string | Date;
+  updatedAt: string | Date;
 }
 
 export interface AttendanceEvent {
@@ -72,33 +72,28 @@ export interface AttendanceEvent {
   sessionId: string;
   status: AttendanceStatus;
   markedByUserId: string;
-  markedAt: Date;
+  markedAt: string | Date;
   notes?: string;
-  createdAt: Date;
-  updatedAt: Date;
+  createdAt: string | Date;
+  updatedAt: string | Date;
 }
 
+// Merged FilterOptions with ExtendedFilterOptions to ensure consistency
 export interface FilterOptions {
   teacherId?: string;
   studentId?: string;
   subject?: SubjectType;
   sessionType?: SessionType;
   location?: LocationType;
-  startDate?: Date;
-  endDate?: Date;
-  status?: AttendanceStatus;
+  startDate?: string | Date;
+  endDate?: string | Date;
+  status?: AttendanceStatus | AttendanceStatus[];
   searchTerm?: string;
-}
-
-export interface ExtendedFilterOptions {
   teachers?: string[];
   students?: string[];
   subjects?: SubjectType[];
   sessionTypes?: SessionType[];
   locations?: LocationType[];
-  startDate?: Date;
-  endDate?: Date;
-  status?: AttendanceStatus[];
   courseIds?: string[];
   planIds?: string[];
   paymentStatus?: string[];
@@ -109,7 +104,12 @@ export interface UserWithRole {
   name: string;
   email: string;
   role: UserRole;
-  createdAt: Date;
+  createdAt: string | Date;
+  studentData?: {
+    preferredSubjects?: SubjectType[];
+    notes?: string;
+    preferredTeachers?: string[];
+  };
 }
 
 export interface Reminder {
@@ -118,9 +118,9 @@ export interface Reminder {
   recipient_id: string;
   related_id?: string;
   message: string;
-  send_at: string;
-  sent_at?: string;
+  send_at: string | Date;
+  sent_at?: string | Date;
   status: "pending" | "sent" | "failed" | "cancelled";
   channel: "email" | "in_app" | "sms" | "push";
-  created_at: string;
+  created_at: string | Date;
 }

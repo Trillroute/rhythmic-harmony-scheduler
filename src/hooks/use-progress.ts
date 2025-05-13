@@ -66,8 +66,8 @@ export const useProgress = (enrollmentId?: string) => {
         teacher_notes: data[0].teacher_notes,
         student_notes: data[0].student_notes,
         last_updated_by: data[0].last_updated_by,
-        created_at: new Date(data[0].created_at),
-        updated_at: new Date(data[0].updated_at),
+        created_at: data[0].created_at,
+        updated_at: data[0].updated_at,
         enrollment: data[0].enrollments ? {
           id: data[0].enrollments.id,
           student_id: data[0].enrollments.student_id,
@@ -91,7 +91,9 @@ export const useProgress = (enrollmentId?: string) => {
       
       // Fix: Convert Date objects to ISO strings if present
       const formattedFields = Object.entries(updateFields).reduce((acc, [key, value]) => {
-        acc[key] = value instanceof Date ? value.toISOString() : value;
+        acc[key] = typeof value === 'object' && value !== null && 'getTime' in value 
+          ? value.toISOString() 
+          : value;
         return acc;
       }, {} as Record<string, any>);
       
@@ -121,7 +123,9 @@ export const useProgress = (enrollmentId?: string) => {
     mutationFn: async (progressData: Partial<StudentProgress>) => {
       // Fix: Convert Date objects to ISO strings if present
       const formattedData = Object.entries(progressData).reduce((acc, [key, value]) => {
-        acc[key] = value instanceof Date ? value.toISOString() : value;
+        acc[key] = typeof value === 'object' && value !== null && 'getTime' in value 
+          ? value.toISOString() 
+          : value;
         return acc;
       }, {} as Record<string, any>);
       
@@ -188,7 +192,7 @@ export const useStudentProgress = (studentId?: string) => {
           courseId: enrollment.course_id,
           courseName: enrollment.courses?.name,
           progress: data && data.length > 0 ? data[0].completion_percentage : 0,
-          lastUpdated: data && data.length > 0 ? new Date(data[0].updated_at) : null
+          lastUpdated: data && data.length > 0 ? data[0].updated_at : null
         };
       });
       
