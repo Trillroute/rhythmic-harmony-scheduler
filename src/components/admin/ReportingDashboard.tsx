@@ -1,15 +1,15 @@
 
 import React, { useState } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { DatePickerWithRange } from "@/components/ui/date-range-picker";
-import { Button } from "@/components/ui/button";
-import { format, subDays, startOfMonth, endOfMonth } from "date-fns";
+import { format, subDays } from "date-fns";
 import { useReports } from "@/hooks/use-reports";
-import { Chart } from "@/components/ui/chart";
 import { SubjectType, AttendanceStatus } from "@/lib/types";
 import { DateRange } from "react-day-picker";
+
+// Import refactored components
+import DashboardFilters from "./reporting/DashboardFilters";
+import StatisticsCards from "./reporting/StatisticsCards";
+import ReportChart from "./reporting/ReportChart";
 
 const ReportingDashboard = () => {
   const [dateRange, setDateRange] = useState<DateRange>({
@@ -37,263 +37,25 @@ const ReportingDashboard = () => {
     status: selectedStatuses
   });
 
-  const handleSubjectChange = (value: string) => {
-    // Filter out if already selected
-    if (selectedSubjects.includes(value as SubjectType)) {
-      setSelectedSubjects(selectedSubjects.filter(subject => subject !== value));
-    } else {
-      setSelectedSubjects([...selectedSubjects, value as SubjectType]);
-    }
-  };
-
-  const handleStatusChange = (value: string) => {
-    // Filter out if already selected
-    if (selectedStatuses.includes(value as AttendanceStatus)) {
-      setSelectedStatuses(selectedStatuses.filter(status => status !== value));
-    } else {
-      setSelectedStatuses([...selectedStatuses, value as AttendanceStatus]);
-    }
-  };
-  
-  // Predefined date range options
-  const handleRangeSelect = (range: string) => {
-    const today = new Date();
-    
-    switch (range) {
-      case "last7days":
-        setDateRange({
-          from: subDays(today, 7),
-          to: today
-        });
-        break;
-      case "last30days":
-        setDateRange({
-          from: subDays(today, 30),
-          to: today
-        });
-        break;
-      case "thisMonth":
-        setDateRange({
-          from: startOfMonth(today),
-          to: today
-        });
-        break;
-      case "lastMonth":
-        const lastMonth = subDays(startOfMonth(today), 1);
-        setDateRange({
-          from: startOfMonth(lastMonth),
-          to: endOfMonth(lastMonth)
-        });
-        break;
-      default:
-        break;
-    }
-  };
-
-  // Transform the chart data to match Chart.js requirements
-  const getChartData = () => {
-    if (selectedChart === "attendance" && attendanceData?.chartData) {
-      return {
-        labels: attendanceData.chartData.map(d => d.date),
-        datasets: [
-          {
-            label: 'Present',
-            data: attendanceData.chartData.map(d => d.present),
-            backgroundColor: 'rgba(34, 197, 94, 0.5)',
-            borderColor: 'rgb(34, 197, 94)',
-            borderWidth: 1
-          },
-          {
-            label: 'Total',
-            data: attendanceData.chartData.map(d => d.total),
-            backgroundColor: 'rgba(59, 130, 246, 0.5)',
-            borderColor: 'rgb(59, 130, 246)',
-            borderWidth: 1
-          }
-        ]
-      };
-    }
-    else if (selectedChart === "sessions" && sessionsData?.chartData) {
-      return {
-        labels: sessionsData.chartData.map(d => d.subject),
-        datasets: [
-          {
-            label: 'Sessions',
-            data: sessionsData.chartData.map(d => d.count),
-            backgroundColor: [
-              'rgba(255, 99, 132, 0.5)',
-              'rgba(54, 162, 235, 0.5)',
-              'rgba(255, 206, 86, 0.5)',
-              'rgba(75, 192, 192, 0.5)',
-              'rgba(153, 102, 255, 0.5)'
-            ],
-            borderColor: [
-              'rgba(255, 99, 132, 1)',
-              'rgba(54, 162, 235, 1)',
-              'rgba(255, 206, 86, 1)',
-              'rgba(75, 192, 192, 1)',
-              'rgba(153, 102, 255, 1)'
-            ],
-            borderWidth: 1
-          }
-        ]
-      };
-    }
-    else if (selectedChart === "students" && studentProgressData?.chartData) {
-      return {
-        labels: studentProgressData.chartData.map(d => d.name),
-        datasets: [
-          {
-            label: 'Students',
-            data: studentProgressData.chartData.map(d => d.value),
-            backgroundColor: [
-              'rgba(255, 99, 132, 0.5)',
-              'rgba(54, 162, 235, 0.5)',
-              'rgba(255, 206, 86, 0.5)',
-              'rgba(75, 192, 192, 0.5)'
-            ],
-            borderColor: [
-              'rgba(255, 99, 132, 1)',
-              'rgba(54, 162, 235, 1)',
-              'rgba(255, 206, 86, 1)',
-              'rgba(75, 192, 192, 1)'
-            ],
-            borderWidth: 1
-          }
-        ]
-      };
-    }
-    
-    return {
-      labels: [],
-      datasets: []
-    };
-  };
-
   return (
     <div className="p-4 md:p-8">
       <h1 className="text-2xl font-bold mb-6">Reporting Dashboard</h1>
       
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base">Sessions</CardTitle>
-            <CardDescription>Total sessions scheduled</CardDescription>
-          </CardHeader>
-          <CardContent className="text-3xl font-bold">
-            {isLoading ? "..." : sessionsData?.totalSessions || 0}
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base">Attendance Rate</CardTitle>
-            <CardDescription>Present vs total sessions</CardDescription>
-          </CardHeader>
-          <CardContent className="text-3xl font-bold">
-            {isLoading ? "..." : `${attendanceData?.attendanceRate || 0}%`}
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base">Active Students</CardTitle>
-            <CardDescription>Students with active plans</CardDescription>
-          </CardHeader>
-          <CardContent className="text-3xl font-bold">
-            {isLoading ? "..." : studentProgressData?.activeStudents || 0}
-          </CardContent>
-        </Card>
-      </div>
+      <StatisticsCards 
+        sessionsData={sessionsData} 
+        attendanceData={attendanceData} 
+        studentProgressData={studentProgressData} 
+        isLoading={isLoading} 
+      />
       
-      <div className="mb-6 flex flex-col md:flex-row gap-4 items-start md:items-end">
-        <div className="w-full md:w-auto">
-          <p className="text-sm font-medium mb-2">Date Range</p>
-          <DatePickerWithRange
-            date={dateRange}
-            setDate={(newDate) => setDateRange(newDate)}
-          />
-        </div>
-        
-        <div className="flex gap-2">
-          <Button 
-            variant="outline" 
-            size="sm" 
-            onClick={() => handleRangeSelect("last7days")}
-          >
-            Last 7 Days
-          </Button>
-          <Button 
-            variant="outline" 
-            size="sm" 
-            onClick={() => handleRangeSelect("last30days")}
-          >
-            Last 30 Days
-          </Button>
-          <Button 
-            variant="outline" 
-            size="sm" 
-            onClick={() => handleRangeSelect("thisMonth")}
-          >
-            This Month
-          </Button>
-          <Button 
-            variant="outline" 
-            size="sm" 
-            onClick={() => handleRangeSelect("lastMonth")}
-          >
-            Last Month
-          </Button>
-        </div>
-      </div>
-      
-      <div className="mb-6 flex flex-col md:flex-row gap-4">
-        <div className="w-full md:w-1/2 lg:w-1/3">
-          <p className="text-sm font-medium mb-2">Filter by Instrument</p>
-          <Select>
-            <SelectTrigger>
-              <SelectValue placeholder="Select instruments" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectGroup>
-                <SelectLabel>Instruments</SelectLabel>
-                {["Guitar", "Piano", "Drums", "Ukulele", "Vocal"].map((subject) => (
-                  <SelectItem 
-                    key={subject} 
-                    value={subject}
-                    onSelect={() => handleSubjectChange(subject)}
-                  >
-                    {subject} {selectedSubjects.includes(subject as SubjectType) ? "✓" : ""}
-                  </SelectItem>
-                ))}
-              </SelectGroup>
-            </SelectContent>
-          </Select>
-        </div>
-        
-        <div className="w-full md:w-1/2 lg:w-1/3">
-          <p className="text-sm font-medium mb-2">Filter by Status</p>
-          <Select>
-            <SelectTrigger>
-              <SelectValue placeholder="Select statuses" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectGroup>
-                <SelectLabel>Status</SelectLabel>
-                {["Present", "Cancelled by Student", "Cancelled by Teacher", "Cancelled by School", "Scheduled"].map((status) => (
-                  <SelectItem 
-                    key={status} 
-                    value={status}
-                    onSelect={() => handleStatusChange(status)}
-                  >
-                    {status} {selectedStatuses.includes(status as AttendanceStatus) ? "✓" : ""}
-                  </SelectItem>
-                ))}
-              </SelectGroup>
-            </SelectContent>
-          </Select>
-        </div>
-      </div>
+      <DashboardFilters 
+        dateRange={dateRange}
+        setDateRange={setDateRange}
+        selectedSubjects={selectedSubjects}
+        setSelectedSubjects={setSelectedSubjects}
+        selectedStatuses={selectedStatuses}
+        setSelectedStatuses={setSelectedStatuses}
+      />
       
       <Tabs value={selectedChart} onValueChange={(v) => setSelectedChart(v as any)}>
         <TabsList className="mb-4">
@@ -302,51 +64,14 @@ const ReportingDashboard = () => {
           <TabsTrigger value="students">Student Progress</TabsTrigger>
         </TabsList>
         
-        <Card>
-          <CardHeader>
-            <CardTitle>
-              {selectedChart === "attendance" && "Attendance Trends"}
-              {selectedChart === "sessions" && "Sessions by Instrument"}
-              {selectedChart === "students" && "Student Progress"}
-            </CardTitle>
-            <CardDescription>
-              {selectedChart === "attendance" && dateRange.from && dateRange.to && `Data from ${format(dateRange.from, 'MMM d, yyyy')} to ${format(dateRange.to, 'MMM d, yyyy')}`}
-              {selectedChart === "sessions" && `Distribution of sessions across instruments and types`}
-              {selectedChart === "students" && `Course completion rates and active students`}
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="h-[400px]">
-            {isLoading ? (
-              <div className="h-full flex items-center justify-center">
-                <p>Loading chart data...</p>
-              </div>
-            ) : (
-              <Chart 
-                type={
-                  selectedChart === "attendance" ? "line" : 
-                  selectedChart === "sessions" ? "bar" : "pie"
-                }
-                data={getChartData()}
-                options={{
-                  responsive: true,
-                  maintainAspectRatio: false,
-                  plugins: {
-                    legend: {
-                      position: 'top',
-                    },
-                    title: {
-                      display: true,
-                      text: 
-                        selectedChart === "attendance" ? "Attendance Over Time" : 
-                        selectedChart === "sessions" ? "Sessions by Instrument Type" :
-                        "Student Progress Distribution"
-                    },
-                  },
-                }}
-              />
-            )}
-          </CardContent>
-        </Card>
+        <ReportChart
+          selectedChart={selectedChart}
+          attendanceData={attendanceData}
+          sessionsData={sessionsData}
+          studentProgressData={studentProgressData}
+          isLoading={isLoading}
+          dateRange={dateRange}
+        />
       </Tabs>
     </div>
   );
