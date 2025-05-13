@@ -2,7 +2,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { Reminder } from "@/lib/models";
+import { Reminder } from "@/lib/types";
 
 export interface ReminderWithRelations extends Reminder {
   recipient?: {
@@ -45,11 +45,11 @@ export const useReminders = (recipientId?: string) => {
         recipient_id: reminder.recipient_id,
         related_id: reminder.related_id,
         message: reminder.message,
-        send_at: new Date(reminder.send_at),
-        sent_at: reminder.sent_at ? new Date(reminder.sent_at) : undefined,
+        send_at: reminder.send_at,
+        sent_at: reminder.sent_at,
         status: reminder.status,
         channel: reminder.channel,
-        created_at: new Date(reminder.created_at),
+        created_at: reminder.created_at,
         recipient: reminder.profiles ? {
           id: reminder.profiles.id,
           name: reminder.profiles.name,
@@ -62,9 +62,16 @@ export const useReminders = (recipientId?: string) => {
   // Create a new reminder
   const createReminder = useMutation({
     mutationFn: async (reminderData: Partial<Reminder>) => {
+      // Convert Date objects to ISO strings if present
+      const formattedData: Record<string, any> = {};
+      
+      Object.entries(reminderData).forEach(([key, value]) => {
+        formattedData[key] = value instanceof Date ? value.toISOString() : value;
+      });
+      
       const { data, error } = await supabase
         .from('reminders')
-        .insert([reminderData])
+        .insert(formattedData)
         .select('id')
         .single();
       
@@ -86,9 +93,16 @@ export const useReminders = (recipientId?: string) => {
     mutationFn: async (reminderData: Partial<Reminder> & { id: string }) => {
       const { id, ...updateFields } = reminderData;
       
+      // Convert Date objects to ISO strings if present
+      const formattedFields: Record<string, any> = {};
+      
+      Object.entries(updateFields).forEach(([key, value]) => {
+        formattedFields[key] = value instanceof Date ? value.toISOString() : value;
+      });
+      
       const { error } = await supabase
         .from('reminders')
-        .update(updateFields)
+        .update(formattedFields)
         .eq('id', id);
       
       if (error) throw error;
@@ -191,10 +205,10 @@ export const usePendingReminders = () => {
         recipient_id: reminder.recipient_id,
         related_id: reminder.related_id,
         message: reminder.message,
-        send_at: new Date(reminder.send_at),
+        send_at: reminder.send_at,
         status: reminder.status,
         channel: reminder.channel,
-        created_at: new Date(reminder.created_at),
+        created_at: reminder.created_at,
         recipient: reminder.profiles ? {
           id: reminder.profiles.id,
           name: reminder.profiles.name,

@@ -1,11 +1,10 @@
 
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { FilterOptions } from '@/lib/types';
+import { FilterOptions, ExtendedFilterOptions, SubjectType, AttendanceStatus } from "@/lib/types";
 import { format, subDays, eachDayOfInterval, parseISO } from 'date-fns';
-import { SubjectType, AttendanceStatus } from '@/lib/types';
 
-export const useReports = (filters: FilterOptions = {}) => {
+export const useReports = (filters: FilterOptions | ExtendedFilterOptions = {}) => {
   // For attendance trends
   const { data: attendanceData, isLoading: attendanceLoading } = useQuery({
     queryKey: ['reports', 'attendance', filters],
@@ -20,12 +19,26 @@ export const useReports = (filters: FilterOptions = {}) => {
         .gte('date_time', startDate.toISOString())
         .lte('date_time', endDate.toISOString());
       
-      if (filters.subjects && filters.subjects.length > 0) {
+      // Check if we're dealing with ExtendedFilterOptions (which has subjects array)
+      if ('subjects' in filters && filters.subjects && filters.subjects.length > 0) {
         query = query.in('subject', filters.subjects as SubjectType[]);
+      } else if ('subject' in filters && filters.subject) {
+        query = query.eq('subject', filters.subject);
       }
       
-      if (filters.status && filters.status.length > 0) {
-        query = query.in('status', filters.status as AttendanceStatus[]);
+      // Similar check for status
+      if ('status' in filters && Array.isArray(filters.status) && filters.status.length > 0) {
+        // Filter out any statuses that aren't valid for our DB schema
+        const validStatuses = filters.status.filter(s => 
+          s !== 'No Show') as ('Present' | 'Scheduled' | 'Cancelled by Student' | 'Cancelled by Teacher' | 'Cancelled by School')[];
+        
+        if (validStatuses.length > 0) {
+          query = query.in('status', validStatuses);
+        }
+      } else if ('status' in filters && filters.status) {
+        if (filters.status !== 'No Show') {
+          query = query.eq('status', filters.status);
+        }
       }
       
       const { data, error } = await query;
@@ -115,12 +128,26 @@ export const useReports = (filters: FilterOptions = {}) => {
         .gte('date_time', startDate.toISOString())
         .lte('date_time', endDate.toISOString());
       
-      if (filters.subjects && filters.subjects.length > 0) {
+      // Check if we're dealing with ExtendedFilterOptions (which has subjects array)
+      if ('subjects' in filters && filters.subjects && filters.subjects.length > 0) {
         query = query.in('subject', filters.subjects as SubjectType[]);
+      } else if ('subject' in filters && filters.subject) {
+        query = query.eq('subject', filters.subject);
       }
       
-      if (filters.status && filters.status.length > 0) {
-        query = query.in('status', filters.status as AttendanceStatus[]);
+      // Similar check for status
+      if ('status' in filters && Array.isArray(filters.status) && filters.status.length > 0) {
+        // Filter out any statuses that aren't valid for our DB schema
+        const validStatuses = filters.status.filter(s => 
+          s !== 'No Show') as ('Present' | 'Scheduled' | 'Cancelled by Student' | 'Cancelled by Teacher' | 'Cancelled by School')[];
+          
+        if (validStatuses.length > 0) {
+          query = query.in('status', validStatuses);
+        }
+      } else if ('status' in filters && filters.status) {
+        if (filters.status !== 'No Show') {
+          query = query.eq('status', filters.status);
+        }
       }
       
       const { data, error } = await query;

@@ -89,9 +89,18 @@ export const useProgress = (enrollmentId?: string) => {
     mutationFn: async (progressData: Partial<StudentProgress> & { id: string }) => {
       const { id, ...updateFields } = progressData;
       
+      // Fix: Convert Date objects to ISO strings if present
+      const formattedFields = Object.entries(updateFields).reduce((acc, [key, value]) => {
+        acc[key] = value instanceof Date ? value.toISOString() : value;
+        return acc;
+      }, {} as Record<string, any>);
+      
       const { error } = await supabase
         .from('student_progress')
-        .update({ ...updateFields, updated_at: new Date().toISOString() })
+        .update({ 
+          ...formattedFields, 
+          updated_at: new Date().toISOString() 
+        })
         .eq('id', id);
       
       if (error) throw error;
@@ -110,9 +119,15 @@ export const useProgress = (enrollmentId?: string) => {
   // Create new progress entry
   const createProgress = useMutation({
     mutationFn: async (progressData: Partial<StudentProgress>) => {
+      // Fix: Convert Date objects to ISO strings if present
+      const formattedData = Object.entries(progressData).reduce((acc, [key, value]) => {
+        acc[key] = value instanceof Date ? value.toISOString() : value;
+        return acc;
+      }, {} as Record<string, any>);
+      
       const { data, error } = await supabase
         .from('student_progress')
-        .insert([progressData])
+        .insert(formattedData)
         .select('id')
         .single();
       

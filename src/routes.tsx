@@ -16,14 +16,12 @@ import Dashboard from '@/components/Dashboard';
 import SessionScheduler from '@/components/SessionScheduler';
 import AttendanceTracker from '@/components/AttendanceTracker';
 import StudentPacks from '@/components/StudentPacks';
-
-// Create placeholder components for missing components until they're implemented
-const CourseManagement = () => <div>Course Management Component</div>;
-const SessionPlans = () => <div>Session Plans Component</div>;
-const InvoiceManagement = () => <div>Invoice Management Component</div>;
-const CourseMaterials = () => <div>Course Materials Component</div>;
-const AdvancedScheduler = () => <div>Advanced Scheduler Component</div>;
-const StudentManagement = () => <div>Student Management Component</div>;
+import CourseManagement from '@/components/admin/CourseManagement';
+import SessionPlans from '@/components/admin/SessionPlans';
+import InvoiceManagement from '@/components/admin/InvoiceManagement';
+import CourseMaterials from '@/components/admin/CourseMaterials';
+import AdvancedScheduler from '@/components/admin/AdvancedScheduler';
+import StudentManagement from '@/components/admin/StudentManagement';
 
 const routes = createBrowserRouter([
   {
@@ -109,6 +107,14 @@ const routes = createBrowserRouter([
           {
             path: 'attendance',
             element: <AttendanceTracker teacherId={undefined} />,
+          },
+          {
+            path: 'students',
+            element: <div>My Students Component (Teacher View)</div>,
+          },
+          {
+            path: 'materials',
+            element: <div>Course Materials Component (Teacher View)</div>,
           }
         ]
       },
@@ -124,6 +130,18 @@ const routes = createBrowserRouter([
           {
             path: 'packs',
             element: <StudentPacks studentId={undefined} />,
+          },
+          {
+            path: 'courses',
+            element: <div>My Courses Component (Student View)</div>,
+          },
+          {
+            path: 'resources',
+            element: <div>Learning Resources Component (Student View)</div>,
+          },
+          {
+            path: 'payments',
+            element: <div>Payments Component (Student View)</div>,
           }
         ]
       }
