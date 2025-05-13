@@ -91,6 +91,7 @@ export const useSessions = (filter: FilterOptions = {}) => {
         return {
           ...session,
           student_ids,
+          studentIds: student_ids, // Add this for compatibility
           teacher_name: session.teachers?.profiles?.name,
           subject: session.subject,
           session_type: session.session_type,
@@ -106,9 +107,8 @@ export const useSessions = (filter: FilterOptions = {}) => {
     }
   });
 
-  // Inside the hook where bulk creation is used
-  // Fix the bulk insert logic by ensuring we pass an array of properly formatted objects
-  const createBulkSessions = useMutation({
+  // Create bulk sessions mutation
+  const createBulkMutation = useMutation({
     mutationFn: async (sessions: Array<{
       pack_id: string;
       teacher_id: string;
@@ -117,7 +117,7 @@ export const useSessions = (filter: FilterOptions = {}) => {
       location: LocationType;
       date_time: string | Date;
       duration: number;
-      status: AttendanceStatus;
+      status?: AttendanceStatus;
       notes?: string;
       studentIds?: string[];
     }>) => {
@@ -126,13 +126,14 @@ export const useSessions = (filter: FilterOptions = {}) => {
         ...session,
         date_time: typeof session.date_time === 'string' 
           ? session.date_time 
-          : session.date_time.toISOString()
+          : session.date_time.toISOString(),
+        status: session.status || 'Scheduled'
       }));
       
       // Insert the sessions
       const { data, error } = await supabase
         .from('sessions')
-        .insert(formattedSessions)
+        .insert(formattedSessions.map(({ studentIds, ...rest }) => rest))
         .select('*');
       
       if (error) throw error;
@@ -170,79 +171,8 @@ export const useSessions = (filter: FilterOptions = {}) => {
     }
   });
 
-  // Fix the useCreateSession hook to properly handle error and isError
-  export const useCreateSession = () => {
-    const queryClient = useQueryClient();
-    const mutation = useMutation({
-      mutationFn: async (sessionData: {
-        pack_id: string;
-        teacher_id: string;
-        subject: SubjectType;
-        session_type: SessionType;
-        location: LocationType;
-        date_time: string | Date;
-        duration: number;
-        status?: AttendanceStatus;
-        notes?: string;
-        studentIds?: string[];
-      }) => {
-        // Format date to ISO string if it's a Date object
-        const formattedData = {
-          ...sessionData,
-          date_time: typeof sessionData.date_time === 'string' 
-            ? sessionData.date_time 
-            : sessionData.date_time.toISOString(),
-          status: sessionData.status || 'Scheduled'
-        };
-        
-        // Remove studentIds from the session insert since it's not a column
-        const { studentIds, ...sessionInsertData } = formattedData;
-        
-        // Insert the session
-        const { data, error } = await supabase
-          .from('sessions')
-          .insert(sessionInsertData)
-          .select('*')
-          .single();
-        
-        if (error) throw error;
-        
-        // If students were provided, associate them with the session
-        if (studentIds && studentIds.length > 0 && data) {
-          const sessionStudents = studentIds.map(studentId => ({
-            session_id: data.id,
-            student_id: studentId
-          }));
-          
-          const { error: studentError } = await supabase
-            .from('session_students')
-            .insert(sessionStudents);
-          
-          if (studentError) throw studentError;
-        }
-        
-        return data;
-      },
-      onSuccess: () => {
-        queryClient.invalidateQueries({ queryKey: ['sessions'] });
-        toast.success('Session created successfully');
-      },
-      onError: (error: any) => {
-        toast.error(`Error creating session: ${error.message}`);
-      }
-    });
-    
-    return {
-      ...mutation,
-      mutateAsync: mutation.mutateAsync,
-      isPending: mutation.isPending,
-      isError: mutation.isError,
-      error: mutation.error
-    };
-  };
-
-  // Update session status
-  const updateSessionStatus = useMutation({
+  // Update session status mutation
+  const updateStatusMutation = useMutation({
     mutationFn: async ({ id, status }: { id: string; status: AttendanceStatus }) => {
       const { data, error } = await supabase
         .from('sessions')
@@ -256,19 +186,120 @@ export const useSessions = (filter: FilterOptions = {}) => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['sessions'] });
+      toast.success('Session status updated successfully');
     },
     onError: (error: any) => {
       toast.error(`Error updating session status: ${error.message}`);
     }
   });
 
+  // Export the full hook object
   return {
     sessions,
     isLoading,
     error,
     refetchSessions,
-    createBulkSessions: createBulkSessions.mutateAsync,
-    updateSessionStatus: updateSessionStatus.mutateAsync,
-    isPendingBulkCreate: createBulkSessions.isPending
+    createBulkSessions: createBulkMutation.mutateAsync,
+    updateSessionStatus: updateStatusMutation.mutateAsync,
+    isPendingBulkCreate: createBulkMutation.isPending
   };
+};
+
+// Create a separate hook for creating sessions
+export const useCreateSession = () => {
+  const queryClient = useQueryClient();
+  
+  const mutation = useMutation({
+    mutationFn: async (sessionData: {
+      pack_id: string;
+      teacher_id: string;
+      subject: SubjectType;
+      session_type: SessionType;
+      location: LocationType;
+      date_time: string | Date;
+      duration: number;
+      status?: AttendanceStatus;
+      notes?: string;
+      studentIds?: string[];
+    }) => {
+      // Format date to ISO string if it's a Date object
+      const formattedData = {
+        ...sessionData,
+        date_time: typeof sessionData.date_time === 'string' 
+          ? sessionData.date_time 
+          : sessionData.date_time.toISOString(),
+        status: sessionData.status || 'Scheduled'
+      };
+      
+      // Remove studentIds from the session insert since it's not a column
+      const { studentIds, ...sessionInsertData } = formattedData;
+      
+      // Insert the session
+      const { data, error } = await supabase
+        .from('sessions')
+        .insert(sessionInsertData)
+        .select('*')
+        .single();
+      
+      if (error) throw error;
+      
+      // If students were provided, associate them with the session
+      if (studentIds && studentIds.length > 0 && data) {
+        const sessionStudents = studentIds.map(studentId => ({
+          session_id: data.id,
+          student_id: studentId
+        }));
+        
+        const { error: studentError } = await supabase
+          .from('session_students')
+          .insert(sessionStudents);
+        
+        if (studentError) throw studentError;
+      }
+      
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['sessions'] });
+      toast.success('Session created successfully');
+    },
+    onError: (error: any) => {
+      toast.error(`Error creating session: ${error.message}`);
+    }
+  });
+  
+  return {
+    createSession: mutation.mutateAsync,
+    isPending: mutation.isPending,
+    isError: mutation.isError,
+    error: mutation.error
+  };
+};
+
+// Add a hook for updating session status
+export const useUpdateSessionStatus = () => {
+  const queryClient = useQueryClient();
+  
+  const mutation = useMutation({
+    mutationFn: async ({ id, status }: { id: string; status: AttendanceStatus }) => {
+      const { data, error } = await supabase
+        .from('sessions')
+        .update({ status })
+        .eq('id', id)
+        .select();
+      
+      if (error) throw error;
+      
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['sessions'] });
+      toast.success('Session status updated');
+    },
+    onError: (error: any) => {
+      toast.error(`Error updating session status: ${error.message}`);
+    }
+  });
+  
+  return mutation;
 };

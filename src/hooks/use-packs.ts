@@ -1,169 +1,198 @@
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { toast } from "sonner";
-import { supabase } from "@/integrations/supabase/client";
-import { Pack, SubjectType } from "@/lib/types";
 
-export interface PackWithRelations extends Pack {
-  student?: {
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
+import { SubjectType, SessionType, LocationType, WeeklyFrequency } from '@/lib/types';
+
+export interface PackWithRelations {
+  id: string;
+  name: string;
+  student_id: string;
+  size: number;
+  subject: SubjectType;
+  session_type: SessionType;
+  location: LocationType;
+  purchased_date: string;
+  expiry_date?: string;
+  remaining_sessions: number;
+  is_active: boolean;
+  weekly_frequency: WeeklyFrequency;
+  created_at: string;
+  updated_at: string;
+  students?: {
     id: string;
-    name: string;
-    email: string;
+    profiles: {
+      name: string;
+    };
   };
 }
 
-export const usePacks = (studentId?: string) => {
-  const queryClient = useQueryClient();
-
-  // Fetch packs for a specific student
-  const { data: packs, isLoading, error } = useQuery({
-    queryKey: ['packs', studentId],
+export const usePacks = () => {
+  return useQuery({
+    queryKey: ['packs'],
     queryFn: async () => {
-      let query = supabase
-        .from('packs')
+      const { data, error } = await supabase
+        .from('session_packs')
         .select(`
           *,
-          profiles!student_id (
+          students (
             id,
-            name,
-            email
+            profiles (
+              name
+            )
           )
         `)
         .order('created_at', { ascending: false });
+  
+      if (error) {
+        throw error;
+      }
+  
+      return data as PackWithRelations[];
+    }
+  });
+};
+
+export const useSessionPacks = (studentId?: string) => {
+  return useQuery({
+    queryKey: ['packs', studentId],
+    queryFn: async () => {
+      let query = supabase
+        .from('session_packs')
+        .select(`
+          *,
+          students (
+            id,
+            profiles (
+              name
+            )
+          )
+        `);
       
       if (studentId) {
         query = query.eq('student_id', studentId);
       }
       
-      const { data, error } = await query;
+      const { data, error } = await query.order('created_at', { ascending: false });
       
-      if (error) throw error;
-      
-      return data.map((pack) => ({
-        id: pack.id,
-        student_id: pack.student_id,
-        subject: pack.subject,
-        total_sessions: pack.total_sessions,
-        remaining_sessions: pack.remaining_sessions,
-        price: pack.price,
-        purchased_date: pack.purchased_date,
-        expiry_date: pack.expiry_date,
-        created_at: pack.created_at,
-        student: pack.profiles ? {
-          id: pack.profiles.id,
-          name: pack.profiles.name,
-          email: pack.profiles.email
-        } : undefined
-      } as PackWithRelations));
-    }
-  });
-
-  // Create a new pack
-  const createPack = useMutation({
-    mutationFn: async (packData: Partial<Pack>) => {
-      // Ensure we have the required fields
-      if (!packData.student_id || !packData.subject || !packData.total_sessions || 
-          !packData.price || !packData.purchased_date || !packData.expiry_date) {
-        throw new Error("Missing required pack fields");
+      if (error) {
+        throw error;
       }
       
-      const formattedData: Record<string, any> = {};
-      
-      // Convert Date objects to ISO strings if present
-      Object.entries(packData).forEach(([key, value]) => {
-        if (key === 'expiry_date' || key === 'purchased_date') {
-          formattedData[key] = typeof value === 'object' && value !== null && 'getTime' in value 
-            ? value.toISOString() 
-            : value;
-        } else {
-          formattedData[key] = value;
-        }
-      });
+      return data as PackWithRelations[];
+    },
+    enabled: !!studentId
+  });
+};
+
+export const useCreateSessionPack = () => {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async (packData: {
+      name: string;
+      student_id: string;
+      size: number;
+      subject: SubjectType;
+      session_type: SessionType;
+      location: LocationType;
+      remaining_sessions: number;
+      weekly_frequency: WeeklyFrequency;
+      purchased_date?: string | Date;
+      expiry_date?: string | Date;
+      is_active?: boolean;
+    }) => {
+      const formattedData = {
+        ...packData,
+        purchased_date: packData.purchased_date 
+          ? typeof packData.purchased_date === 'string'
+            ? packData.purchased_date
+            : packData.purchased_date.toISOString()
+          : new Date().toISOString(),
+        expiry_date: packData.expiry_date
+          ? typeof packData.expiry_date === 'string'
+            ? packData.expiry_date
+            : packData.expiry_date.toISOString()
+          : null,
+        is_active: packData.is_active !== undefined ? packData.is_active : true
+      };
       
       const { data, error } = await supabase
-        .from('packs')
+        .from('session_packs')
         .insert(formattedData)
-        .select('id')
+        .select('*')
         .single();
-      
-      if (error) throw error;
+        
+      if (error) {
+        throw error;
+      }
       
       return data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['packs'] });
-      toast.success("Pack created successfully");
+      toast.success('Session pack created successfully');
     },
     onError: (error: any) => {
-      toast.error(`Error creating pack: ${error.message}`);
+      toast.error(`Error creating session pack: ${error.message}`);
     }
   });
+};
 
-  // Update an existing pack
-  const updatePack = useMutation({
-    mutationFn: async (packData: Partial<Pack> & { id: string }) => {
-      const { id, ...updateFields } = packData;
+export const useUpdateSessionPack = () => {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async ({ id, packData }: { 
+      id: string;
+      packData: Partial<{
+        name: string;
+        student_id: string;
+        size: number;
+        subject: SubjectType;
+        session_type: SessionType;
+        location: LocationType;
+        remaining_sessions: number;
+        weekly_frequency: WeeklyFrequency;
+        purchased_date: string | Date;
+        expiry_date: string | Date;
+        is_active: boolean;
+      }>;
+    }) => {
+      // Format dates if they're Date objects
+      const formattedData = {
+        ...packData,
+        purchased_date: packData.purchased_date 
+          ? typeof packData.purchased_date === 'string'
+            ? packData.purchased_date
+            : packData.purchased_date.toISOString()
+          : undefined,
+        expiry_date: packData.expiry_date
+          ? typeof packData.expiry_date === 'string'
+            ? packData.expiry_date
+            : packData.expiry_date.toISOString()
+          : undefined
+      };
       
-      const formattedData: Record<string, any> = {};
-      
-      // Convert Date objects to ISO strings if present
-      Object.entries(packData).forEach(([key, value]) => {
-        if (key === 'expiry_date' || key === 'purchased_date') {
-          formattedData[key] = typeof value === 'object' && value !== null && value instanceof Date
-            ? value.toISOString() 
-            : value;
-        } else {
-          formattedData[key] = value;
-        }
-      });
-      
-      const { error } = await supabase
-        .from('packs')
+      const { data, error } = await supabase
+        .from('session_packs')
         .update(formattedData)
-        .eq('id', id);
+        .eq('id', id)
+        .select('*')
+        .single();
+        
+      if (error) {
+        throw error;
+      }
       
-      if (error) throw error;
-      
-      return { id };
+      return data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['packs'] });
-      toast.success("Pack updated successfully");
+      toast.success('Session pack updated successfully');
     },
     onError: (error: any) => {
-      toast.error(`Error updating pack: ${error.message}`);
+      toast.error(`Error updating session pack: ${error.message}`);
     }
   });
-
-  // Delete a pack
-  const deletePack = useMutation({
-    mutationFn: async (id: string) => {
-      const { error } = await supabase
-        .from('packs')
-        .delete()
-        .eq('id', id);
-      
-      if (error) throw error;
-      
-      return { id };
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['packs'] });
-      toast.success("Pack deleted successfully");
-    },
-    onError: (error: any) => {
-      toast.error(`Error deleting pack: ${error.message}`);
-    }
-  });
-
-  return {
-    packs,
-    isLoading,
-    error,
-    createPack: createPack.mutateAsync,
-    updatePack: updatePack.mutateAsync,
-    deletePack: deletePack.mutateAsync,
-    isPendingCreate: createPack.isPending,
-    isPendingUpdate: updatePack.isPending,
-    isPendingDelete: deletePack.isPending
-  };
 };

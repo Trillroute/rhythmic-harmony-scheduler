@@ -1,7 +1,6 @@
-
 export type UserRole = 'admin' | 'teacher' | 'student';
 
-export type AttendanceStatus = 'Present' | 'Scheduled' | 'Cancelled by Student' | 
+export type AttendanceStatus = 'Present' | 'Absent' | 'Scheduled' | 'Cancelled by Student' | 
                         'Cancelled by Teacher' | 'Cancelled by School' | 'No Show';
 
 export type SubjectType = 'Guitar' | 'Piano' | 'Drums' | 'Ukulele' | 'Vocal';
@@ -133,4 +132,21 @@ export interface Reminder {
   status: "pending" | "sent" | "failed" | "cancelled";
   channel: "email" | "in_app" | "sms" | "push";
   created_at: string | Date;
+}
+
+// Add SessionWithStudents to exports
+export interface SessionWithStudents {
+  id: string;
+  teacher_id: string;
+  pack_id: string;
+  student_ids: string[];
+  studentIds: string[];
+  teacher_name: string;
+  subject: string;
+  session_type: string;
+  location: string;
+  date_time: string;
+  duration: number;
+  status: string;
+  notes: string;
 }

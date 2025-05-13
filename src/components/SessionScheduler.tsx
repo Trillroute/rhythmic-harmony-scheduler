@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import {
   Card,
@@ -11,11 +12,11 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Calendar } from "@/components/ui/calendar";
 import { Button } from "@/components/ui/button";
-import { CalendarIcon } from "@radix-ui/react-icons"
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { CalendarIcon } from "@radix-ui/react-icons";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
-import { useToast } from "@/components/ui/use-toast"
+import { useToast } from "@/hooks/use-toast";
 import { useTeachers } from "@/hooks/use-teachers";
 import { usePacks } from "@/hooks/use-packs";
 import { useStudents } from "@/hooks/use-students";
@@ -25,9 +26,8 @@ import {
   LocationType,
   AttendanceStatus
 } from "@/lib/types";
-import { useCreateSession } from "@/hooks/use-sessions";
 import { useSessions } from "@/hooks/use-sessions";
-import { Checkbox } from "@/components/ui/checkbox"
+import { Checkbox } from "@/components/ui/checkbox";
 
 interface SessionSchedulerProps {
   onSuccess?: (data: any) => void;
@@ -46,11 +46,17 @@ const SessionScheduler: React.FC<SessionSchedulerProps> = ({ onSuccess }) => {
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const { toast } = useToast();
 
-  const { teachers, isLoading: isLoadingTeachers } = useTeachers();
-  const { packs, isLoading: isLoadingPacks } = usePacks();
-  const { students, isLoading: isLoadingStudents } = useStudents();
-  const { createSession, isPending: isPendingCreateSession } = useCreateSession();
-  const { refetch: refetchSessions } = useSessions();
+  const teachersQuery = useTeachers();
+  const packsQuery = usePacks();
+  const studentsQuery = useStudents();
+  const { createBulkSessions, refetchSessions } = useSessions();
+
+  const teachers = teachersQuery.data || [];
+  const packs = packsQuery.data || [];
+  const students = studentsQuery.data || [];
+  const isLoadingTeachers = teachersQuery.isLoading;
+  const isLoadingPacks = packsQuery.isLoading;
+  const isLoadingStudents = studentsQuery.isLoading;
 
   const resetForm = () => {
     setSelectedPack("");
@@ -67,7 +73,11 @@ const SessionScheduler: React.FC<SessionSchedulerProps> = ({ onSuccess }) => {
   const handleCreateSession = async () => {
     if (!selectedTeacher || !selectedSubject || !selectedSessionType || 
         !selectedLocation || !sessionDate || !selectedDuration) {
-      toast.error("Please fill in all required fields");
+      toast({
+        title: "Missing required fields",
+        description: "Please fill in all required fields",
+        variant: "destructive"
+      });
       return;
     }
     
@@ -76,7 +86,7 @@ const SessionScheduler: React.FC<SessionSchedulerProps> = ({ onSuccess }) => {
       
       // Prepare the session data with pack_id instead of packId
       const sessionData = {
-        pack_id: selectedPack, // Use pack_id instead of packId
+        pack_id: selectedPack,
         teacher_id: selectedTeacher,
         subject: selectedSubject as SubjectType,
         session_type: selectedSessionType as SessionType,
@@ -87,12 +97,23 @@ const SessionScheduler: React.FC<SessionSchedulerProps> = ({ onSuccess }) => {
         studentIds: selectedStudents
       };
       
-      const result = await createSession(sessionData);
+      const result = await createBulkSessions([sessionData]);
+      
+      toast({
+        title: "Success",
+        description: "Session created successfully"
+      });
       
       resetForm();
       onSuccess?.(result);
+      refetchSessions();
     } catch (error) {
       console.error("Failed to create session:", error);
+      toast({
+        title: "Error",
+        description: "Failed to create session",
+        variant: "destructive"
+      });
     } finally {
       setIsSubmitting(false);
     }
@@ -101,18 +122,24 @@ const SessionScheduler: React.FC<SessionSchedulerProps> = ({ onSuccess }) => {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (isPendingCreateSession) return;
-    
     // Validate date is in the future
     if (sessionDate && new Date(sessionDate) < new Date()) {
-      toast.error("Session date must be in the future");
+      toast({
+        title: "Invalid date",
+        description: "Session date must be in the future",
+        variant: "destructive"
+      });
       return;
     }
     
     // Check for required fields
     if (!selectedTeacher || !selectedSubject || !selectedSessionType || 
         !selectedLocation || !sessionDate || !selectedDuration) {
-      toast.error("Please fill in all required fields");
+      toast({
+        title: "Missing required fields",
+        description: "Please fill in all required fields",
+        variant: "destructive"
+      });
       return;
     }
     
