@@ -1,4 +1,3 @@
-
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -140,14 +139,24 @@ export const useProgress = (enrollmentId?: string) => {
         throw new Error("Missing required fields: enrollment_id and/or last_updated_by");
       }
       
-      // Create a new object that will hold the formatted fields
-      const formattedData: Record<string, any> = {};
+      // Create the formatted data with all required fields explicitly defined
+      const formattedData = {
+        enrollment_id: progressData.enrollment_id,
+        last_updated_by: progressData.last_updated_by,
+        completion_percentage: progressData.completion_percentage ?? 0,
+        module_number: progressData.module_number,
+        session_number: progressData.session_number,
+        teacher_notes: progressData.teacher_notes,
+        student_notes: progressData.student_notes,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      };
       
-      // Fix: Convert Date objects to ISO strings if present
-      Object.entries(progressData).forEach(([key, value]) => {
-        formattedData[key] = typeof value === 'object' && value !== null && 'getTime' in value 
-          ? value.toISOString() 
-          : value;
+      // Convert Date objects to ISO strings where applicable
+      Object.entries(formattedData).forEach(([key, value]) => {
+        if (value instanceof Date) {
+          (formattedData as any)[key] = value.toISOString();
+        }
       });
       
       const { data, error } = await supabase

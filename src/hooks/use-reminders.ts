@@ -1,4 +1,3 @@
-
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -68,14 +67,24 @@ export const useReminders = (recipientId?: string) => {
         throw new Error("Missing required reminder fields");
       }
       
-      // Create a new object that will hold the formatted fields
-      const formattedData: Record<string, any> = {};
+      // Create the formatted data with all required fields explicitly defined
+      const formattedData = {
+        recipient_id: reminderData.recipient_id,
+        message: reminderData.message,
+        send_at: reminderData.send_at,
+        type: reminderData.type,
+        channel: reminderData.channel,
+        related_id: reminderData.related_id,
+        status: reminderData.status || 'pending',
+        sent_at: reminderData.sent_at,
+        created_at: new Date().toISOString()
+      };
       
-      // Convert Date objects to ISO strings if present
-      Object.entries(reminderData).forEach(([key, value]) => {
-        formattedData[key] = typeof value === 'object' && value !== null && 'getTime' in value 
-          ? value.toISOString() 
-          : value;
+      // Convert Date objects to ISO strings where applicable
+      Object.entries(formattedData).forEach(([key, value]) => {
+        if (value instanceof Date) {
+          (formattedData as any)[key] = value.toISOString();
+        }
       });
       
       const { data, error } = await supabase

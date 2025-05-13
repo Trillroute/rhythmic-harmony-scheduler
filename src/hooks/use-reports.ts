@@ -1,8 +1,38 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { FilterOptions, AttendanceStatus } from "@/lib/types";
+import { FilterOptions, AttendanceStatus, SubjectType } from "@/lib/types";
 import { format } from "date-fns";
+
+// Add proper type for the attendance report data
+export interface AttendanceReportData {
+  id: string;
+  sessionId: string;
+  status: AttendanceStatus;
+  markedAt: string;
+  teacherId: string;
+  teacherName: string;
+  subject: SubjectType;
+  sessionType: string;
+  location: string;
+  dateTime: string;
+  duration: number;
+  formattedDate: string;
+  formattedTime: string;
+}
+
+// Add proper type for the teacher utilization report data
+export interface TeacherUtilizationData {
+  teacherId: string;
+  teacherName: string;
+  maxWeeklySessions: number;
+  completedSessions: number;
+  cancelledSessions: number;
+  totalSessions: number;
+  completionRate: number;
+  cancellationRate: number;
+  utilization: number;
+}
 
 export const useAttendanceReport = (filter: FilterOptions = {}) => {
   return useQuery({
@@ -63,8 +93,14 @@ export const useAttendanceReport = (filter: FilterOptions = {}) => {
       
       if (filter.status) {
         if (Array.isArray(filter.status)) {
-          query = query.in('status', filter.status);
-        } else {
+          // Ensure we only use valid status values
+          const validStatuses = filter.status.filter(
+            status => ["Present", "Scheduled", "Cancelled by Student", "Cancelled by Teacher", "Cancelled by School"].includes(status)
+          );
+          if (validStatuses.length > 0) {
+            query = query.in('status', validStatuses);
+          }
+        } else if (["Present", "Scheduled", "Cancelled by Student", "Cancelled by Teacher", "Cancelled by School"].includes(filter.status)) {
           query = query.eq('status', filter.status);
         }
       }
@@ -192,4 +228,114 @@ export const useTeacherUtilizationReport = (filter: FilterOptions = {}) => {
   });
 };
 
-// Add other report hooks as needed
+// Create the useReports hook that combines data from different reports
+export const useReports = (filter: FilterOptions = {}) => {
+  const attendanceQuery = useAttendanceReport(filter);
+  const teacherUtilizationQuery = useTeacherUtilizationReport(filter);
+  
+  const isLoading = attendanceQuery.isLoading || teacherUtilizationQuery.isLoading;
+  const error = attendanceQuery.error || teacherUtilizationQuery.error;
+  
+  // Process attendance data for charts
+  const attendanceData = React.useMemo(() => {
+    if (!attendanceQuery.data) return null;
+    
+    const statusCounts: Record<string, number> = {};
+    const dailyCounts: Record<string, { total: number, present: number }> = {};
+    
+    attendanceQuery.data.forEach(entry => {
+      // Count by status
+      statusCounts[entry.status] = (statusCounts[entry.status] || 0) + 1;
+      
+      // Count by date
+      const day = entry.formattedDate;
+      if (!dailyCounts[day]) {
+        dailyCounts[day] = { total: 0, present: 0 };
+      }
+      dailyCounts[day].total += 1;
+      if (entry.status === 'Present') {
+        dailyCounts[day].present += 1;
+      }
+    });
+    
+    // Calculate attendance rate
+    const totalSessions = attendanceQuery.data.length || 0;
+    const presentSessions = statusCounts['Present'] || 0;
+    const attendanceRate = totalSessions > 0 ? Math.round((presentSessions / totalSessions) * 100) : 0;
+    
+    // Format data for chart
+    const chartData = Object.entries(dailyCounts).map(([date, counts]) => ({
+      date,
+      total: counts.total,
+      present: counts.present,
+      rate: counts.total > 0 ? (counts.present / counts.total) * 100 : 0
+    }));
+    
+    // Sort by date
+    chartData.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+    
+    return {
+      statusCounts,
+      attendanceRate,
+      chartData
+    };
+  }, [attendanceQuery.data]);
+  
+  // Process sessions data for charts
+  const sessionsData = React.useMemo(() => {
+    if (!attendanceQuery.data) return null;
+    
+    const subjectCounts: Record<string, number> = {};
+    const typesCounts: Record<string, number> = {};
+    
+    attendanceQuery.data.forEach(entry => {
+      // Count by subject
+      subjectCounts[entry.subject] = (subjectCounts[entry.subject] || 0) + 1;
+      
+      // Count by session type
+      typesCounts[entry.sessionType] = (typesCounts[entry.sessionType] || 0) + 1;
+    });
+    
+    // Format data for chart
+    const chartData = Object.keys(subjectCounts).map(subject => ({
+      subject,
+      sessions: subjectCounts[subject],
+      solo: attendanceQuery.data.filter(e => e.subject === subject && e.sessionType === 'Solo').length,
+      duo: attendanceQuery.data.filter(e => e.subject === subject && e.sessionType === 'Duo').length,
+      focus: attendanceQuery.data.filter(e => e.subject === subject && e.sessionType === 'Focus').length,
+    }));
+    
+    return {
+      totalSessions: attendanceQuery.data.length,
+      subjectCounts,
+      typesCounts,
+      chartData
+    };
+  }, [attendanceQuery.data]);
+  
+  // Process student progress data
+  const studentProgressData = React.useMemo(() => {
+    // Simulated data - in a real app, this would come from another query
+    return {
+      activeStudents: 42,
+      completionRates: [
+        { name: "Beginner", value: 65 },
+        { name: "Intermediate", value: 25 },
+        { name: "Advanced", value: 10 }
+      ],
+      chartData: [
+        { name: "Beginner", value: 65 },
+        { name: "Intermediate", value: 25 },
+        { name: "Advanced", value: 10 }
+      ]
+    };
+  }, []);
+  
+  return {
+    attendanceData,
+    sessionsData,
+    studentProgressData,
+    isLoading,
+    error
+  };
+};

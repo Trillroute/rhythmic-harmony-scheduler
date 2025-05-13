@@ -1,331 +1,264 @@
-
+// Import React to use React.useMemo
+import React from 'react';
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { Session, SubjectType, SessionType, LocationType, AttendanceStatus, FilterOptions } from "@/lib/types";
+import { Session, FilterOptions, SubjectType, SessionType, LocationType, AttendanceStatus } from "@/lib/types";
+import { format } from 'date-fns';
 
-export const useSessions = (filters?: FilterOptions) => {
+export interface SessionWithStudents extends Session {
+  student_ids: string[];
+  teacher_name: string;
+  subject: string;
+  session_type: string;
+  location: string;
+  date_time: string;
+  duration: number;
+  status: string;
+  notes: string;
+}
+
+export const useSessions = (filter: FilterOptions = {}) => {
   const queryClient = useQueryClient();
 
-  const { data: sessions, isLoading, error } = useQuery({
-    queryKey: ["sessions", filters],
+  // Fetch sessions with applied filters
+  const { data: sessions, isLoading, error, refetch: refetchSessions } = useQuery({
+    queryKey: ['sessions', filter],
     queryFn: async () => {
       let query = supabase
-        .from("sessions")
-        .select(
-          `
+        .from('sessions')
+        .select(`
           *,
-          teachers:teacher_id (
-            id, 
-            profiles:id (
-              id, name, email
-            )
-          ),
           session_students (
-            student_id,
-            students:student_id (
-              id, 
-              profiles:id (
-                id, name, email
-              )
-            )
+            student_id
           ),
-          session_packs:pack_id (
-            id, size, remaining_sessions, subject, session_type, location
+          teachers!inner (
+            profiles!inner (
+              name
+            )
           )
-        `
-        )
-        .order("date_time", { ascending: true });
-
-      // Apply filters if provided
-      if (filters?.teacherId) {
-        query = query.eq("teacher_id", filters.teacherId);
+        `)
+        .order('date_time', { ascending: false });
+      
+      if (filter.teacherId) {
+        query = query.eq('teacher_id', filter.teacherId);
       }
-
-      if (filters?.startDate) {
-        const startDateStr = typeof filters.startDate === 'object' && 'getTime' in filters.startDate 
-          ? filters.startDate.toISOString()
-          : filters.startDate;
-        query = query.gte("date_time", startDateStr);
+      
+      if (filter.subject) {
+        query = query.eq('subject', filter.subject);
       }
-
-      if (filters?.endDate) {
-        const endDateStr = typeof filters.endDate === 'object' && 'getTime' in filters.endDate
-          ? filters.endDate.toISOString()
-          : filters.endDate;
-        query = query.lte("date_time", endDateStr);
+      
+      if (filter.sessionType) {
+        query = query.eq('session_type', filter.sessionType);
       }
-
-      if (filters?.subject) {
-        query = query.eq("subject", filters.subject);
+      
+      if (filter.location) {
+        query = query.eq('location', filter.location);
       }
-
-      if (filters?.sessionType) {
-        query = query.eq("session_type", filters.sessionType);
+      
+      if (filter.startDate) {
+        const startDateStr = typeof filter.startDate === 'string' 
+          ? filter.startDate 
+          : filter.startDate.toISOString();
+        query = query.gte('date_time', startDateStr);
       }
-
-      if (filters?.location) {
-        query = query.eq("location", filters.location);
+      
+      if (filter.endDate) {
+        const endDateStr = typeof filter.endDate === 'string' 
+          ? filter.endDate 
+          : filter.endDate.toISOString();
+        query = query.lte('date_time', endDateStr);
       }
-
-      if (filters?.status) {
-        if (Array.isArray(filters.status)) {
-          query = query.in("status", filters.status);
+      
+      if (filter.status) {
+        if (Array.isArray(filter.status)) {
+          query = query.in('status', filter.status);
         } else {
-          query = query.eq("status", filters.status);
+          query = query.eq('status', filter.status);
         }
       }
-
-      // Filter by student if needed
-      if (filters?.studentId) {
-        query = query.eq("session_students.student_id", filters.studentId);
-      }
-
+      
       const { data, error } = await query;
-
+      
       if (error) {
-        throw new Error(error.message);
+        throw error;
       }
-
-      // Transform the data to match our Session interface
-      return data.map((session) => {
-        const teacherName =
-          session.teachers?.profiles?.name || "Unknown Teacher";
-        const studentIds =
-          session.session_students?.map((student) => student.student_id) || [];
-        const studentNames =
-          session.session_students?.map(
-            (student) => student.students?.profiles?.name || "Unknown Student"
-          ) || [];
-
+      
+      // Transform the data to include student IDs and other details
+      const sessionsWithStudents = data?.map(session => {
+        const student_ids = session.session_students?.map(ss => ss.student_id) || [];
+        
         return {
-          id: session.id,
-          teacherId: session.teacher_id,
-          teacherName,
-          packId: session.pack_id,
-          subject: session.subject as SubjectType,
-          sessionType: session.session_type as SessionType,
-          location: session.location as LocationType,
-          dateTime: session.date_time,
+          ...session,
+          student_ids,
+          teacher_name: session.teachers?.profiles?.name,
+          subject: session.subject,
+          session_type: session.session_type,
+          location: session.location,
+          date_time: format(new Date(session.date_time), 'PPP'),
           duration: session.duration,
-          status: session.status as AttendanceStatus,
-          notes: session.notes || "",
-          rescheduleCount: session.reschedule_count,
-          studentIds,
-          studentNames,
-          createdAt: session.created_at,
-          updatedAt: session.updated_at,
-        } as Session;
+          status: session.status,
+          notes: session.notes
+        } as SessionWithStudents;
       });
-    },
+      
+      return sessionsWithStudents;
+    }
   });
 
-  const createSessions = useMutation({
-    mutationFn: async (sessionsData: Array<{
+  // Inside the hook where bulk creation is used
+  // Fix the bulk insert logic by ensuring we pass an array of properly formatted objects
+  const createBulkSessions = useMutation({
+    mutationFn: async (sessions: Array<{
       pack_id: string;
       teacher_id: string;
       subject: SubjectType;
       session_type: SessionType;
       location: LocationType;
-      date_time: any;
+      date_time: string | Date;
       duration: number;
       status: AttendanceStatus;
-      notes: string;
+      notes?: string;
       studentIds?: string[];
     }>) => {
-      // Transform the array of session data to ensure dates are properly formatted
-      const formattedSessions = sessionsData.map(session => {
-        // Make sure required fields are present
-        if (!session.pack_id || !session.teacher_id || !session.subject || 
-            !session.session_type || !session.location || !session.date_time) {
-          throw new Error("Missing required session fields");
-        }
-
-        return {
-          pack_id: session.pack_id,
-          teacher_id: session.teacher_id,
-          subject: session.subject,
-          session_type: session.session_type,
-          location: session.location,
-          date_time: typeof session.date_time === 'object' && 'getTime' in session.date_time 
-            ? session.date_time.toISOString()
-            : session.date_time,
-          duration: session.duration,
-          status: session.status,
-          notes: session.notes || ''
-        };
-      });
+      // Format dates to ISO string
+      const formattedSessions = sessions.map(session => ({
+        ...session,
+        date_time: typeof session.date_time === 'string' 
+          ? session.date_time 
+          : session.date_time.toISOString()
+      }));
       
+      // Insert the sessions
       const { data, error } = await supabase
-        .from("sessions")
+        .from('sessions')
         .insert(formattedSessions)
-        .select();
-
-      if (error) {
-        throw new Error(error.message);
-      }
-
-      // Link students to sessions if provided
-      const sessionStudentLinks = [];
-      for (let i = 0; i < data.length; i++) {
-        const sessionId = data[i].id;
-        const studentIds = sessionsData[i].studentIds || [];
-
-        for (const studentId of studentIds) {
-          sessionStudentLinks.push({
-            session_id: sessionId,
-            student_id: studentId,
-          });
+        .select('*');
+      
+      if (error) throw error;
+      
+      // Handle student associations for sessions
+      if (data) {
+        // Process each session that has studentIds
+        const studentInserts = data.flatMap((session, index) => {
+          const studentIds = sessions[index].studentIds;
+          if (!studentIds || studentIds.length === 0) return [];
+          
+          return studentIds.map(studentId => ({
+            session_id: session.id,
+            student_id: studentId
+          }));
+        });
+        
+        if (studentInserts.length > 0) {
+          const { error: studentError } = await supabase
+            .from('session_students')
+            .insert(studentInserts);
+          
+          if (studentError) throw studentError;
         }
       }
-
-      if (sessionStudentLinks.length > 0) {
-        const { error: linkError } = await supabase
-          .from("session_students")
-          .insert(sessionStudentLinks);
-
-        if (linkError) {
-          throw new Error(linkError.message);
-        }
-      }
-
+      
       return data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["sessions"] });
-      toast.success("Sessions created successfully");
+      queryClient.invalidateQueries({ queryKey: ['sessions'] });
+      toast.success('Sessions created successfully');
     },
-    onError: (error: Error) => {
-      toast.error(`Failed to create sessions: ${error.message}`);
-    },
-  });
-
-  // Function to update a single session
-  const updateSession = useMutation({
-    mutationFn: async (sessionData: Partial<Session> & { id: string }) => {
-      const { id, studentIds, studentNames, teacherName, ...updateFields } = sessionData;
-
-      // Format date fields
-      if (updateFields.dateTime) {
-        updateFields.dateTime = typeof updateFields.dateTime === 'object' && 'getTime' in updateFields.dateTime
-          ? updateFields.dateTime.toISOString()
-          : updateFields.dateTime;
-      }
-
-      // Format Supabase column names
-      const formattedData = {
-        date_time: updateFields.dateTime,
-        duration: updateFields.duration,
-        status: updateFields.status,
-        notes: updateFields.notes,
-        teacher_id: updateFields.teacherId,
-        subject: updateFields.subject,
-        session_type: updateFields.sessionType,
-        location: updateFields.location,
-      };
-
-      // Remove undefined fields
-      Object.keys(formattedData).forEach(
-        (key) => formattedData[key] === undefined && delete formattedData[key]
-      );
-
-      const { error } = await supabase
-        .from("sessions")
-        .update(formattedData)
-        .eq("id", id);
-
-      if (error) {
-        throw new Error(error.message);
-      }
-
-      // Update student links if provided
-      if (studentIds) {
-        // First delete existing links
-        const { error: deleteError } = await supabase
-          .from("session_students")
-          .delete()
-          .eq("session_id", id);
-
-        if (deleteError) {
-          throw new Error(deleteError.message);
-        }
-
-        // Then insert new links
-        const sessionStudentLinks = studentIds.map((studentId) => ({
-          session_id: id,
-          student_id: studentId,
-        }));
-
-        if (sessionStudentLinks.length > 0) {
-          const { error: insertError } = await supabase
-            .from("session_students")
-            .insert(sessionStudentLinks);
-
-          if (insertError) {
-            throw new Error(insertError.message);
-          }
-        }
-      }
-
-      return { id };
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["sessions"] });
-      toast.success("Session updated successfully");
-    },
-    onError: (error: Error) => {
-      toast.error(`Failed to update session: ${error.message}`);
-    },
-  });
-
-  const updateSessionStatus = useMutation({
-    mutationFn: async ({ id, status }: { id: string; status: AttendanceStatus }) => {
-      const { error } = await supabase
-        .from("sessions")
-        .update({ status })
-        .eq("id", id);
-
-      if (error) {
-        throw new Error(error.message);
-      }
-
-      return { id, status };
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["sessions"] });
-      toast.success("Session status updated successfully");
-    },
-    onError: (error: Error) => {
-      toast.error(`Failed to update session status: ${error.message}`);
+    onError: (error: any) => {
+      toast.error(`Error creating sessions: ${error.message}`);
     }
   });
 
-  const rescheduleSession = useMutation({
-    mutationFn: async ({ id, dateTime }: { id: string; dateTime: Date }) => {
-      const formattedDateTime = typeof dateTime === 'object' && 'getTime' in dateTime
-        ? dateTime.toISOString()
-        : dateTime;
-
-      const { error } = await supabase
-        .from("sessions")
-        .update({ 
-          date_time: formattedDateTime,
-          status: 'Scheduled' 
-        })
-        .eq("id", id);
-
-      if (error) {
-        throw new Error(error.message);
+  // Fix the useCreateSession hook to properly handle error and isError
+  export const useCreateSession = () => {
+    const queryClient = useQueryClient();
+    const mutation = useMutation({
+      mutationFn: async (sessionData: {
+        pack_id: string;
+        teacher_id: string;
+        subject: SubjectType;
+        session_type: SessionType;
+        location: LocationType;
+        date_time: string | Date;
+        duration: number;
+        status?: AttendanceStatus;
+        notes?: string;
+        studentIds?: string[];
+      }) => {
+        // Format date to ISO string if it's a Date object
+        const formattedData = {
+          ...sessionData,
+          date_time: typeof sessionData.date_time === 'string' 
+            ? sessionData.date_time 
+            : sessionData.date_time.toISOString(),
+          status: sessionData.status || 'Scheduled'
+        };
+        
+        // Remove studentIds from the session insert since it's not a column
+        const { studentIds, ...sessionInsertData } = formattedData;
+        
+        // Insert the session
+        const { data, error } = await supabase
+          .from('sessions')
+          .insert(sessionInsertData)
+          .select('*')
+          .single();
+        
+        if (error) throw error;
+        
+        // If students were provided, associate them with the session
+        if (studentIds && studentIds.length > 0 && data) {
+          const sessionStudents = studentIds.map(studentId => ({
+            session_id: data.id,
+            student_id: studentId
+          }));
+          
+          const { error: studentError } = await supabase
+            .from('session_students')
+            .insert(sessionStudents);
+          
+          if (studentError) throw studentError;
+        }
+        
+        return data;
+      },
+      onSuccess: () => {
+        queryClient.invalidateQueries({ queryKey: ['sessions'] });
+        toast.success('Session created successfully');
+      },
+      onError: (error: any) => {
+        toast.error(`Error creating session: ${error.message}`);
       }
+    });
+    
+    return {
+      ...mutation,
+      mutateAsync: mutation.mutateAsync,
+      isPending: mutation.isPending,
+      isError: mutation.isError,
+      error: mutation.error
+    };
+  };
 
-      return { id };
+  // Update session status
+  const updateSessionStatus = useMutation({
+    mutationFn: async ({ id, status }: { id: string; status: AttendanceStatus }) => {
+      const { data, error } = await supabase
+        .from('sessions')
+        .update({ status })
+        .eq('id', id)
+        .select();
+      
+      if (error) throw error;
+      
+      return data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["sessions"] });
-      toast.success("Session rescheduled successfully");
+      queryClient.invalidateQueries({ queryKey: ['sessions'] });
     },
-    onError: (error: Error) => {
-      toast.error(`Failed to reschedule session: ${error.message}`);
+    onError: (error: any) => {
+      toast.error(`Error updating session status: ${error.message}`);
     }
   });
 
@@ -333,121 +266,9 @@ export const useSessions = (filters?: FilterOptions) => {
     sessions,
     isLoading,
     error,
-    createSessions: createSessions.mutateAsync,
-    updateSession: updateSession.mutateAsync,
+    refetchSessions,
+    createBulkSessions: createBulkSessions.mutateAsync,
     updateSessionStatus: updateSessionStatus.mutateAsync,
-    rescheduleSession: rescheduleSession.mutateAsync,
-    isPendingCreate: createSessions.isPending,
-    isPendingUpdate: updateSession.isPending,
-    isPendingStatusUpdate: updateSessionStatus.isPending,
-    isPendingReschedule: rescheduleSession.isPending,
+    isPendingBulkCreate: createBulkSessions.isPending
   };
-};
-
-// Export functions that match what components are expecting
-export const useCreateSession = () => {
-  const { createSessions, isPendingCreate } = useSessions();
-  return {
-    mutate: async (sessionData, options) => createSessions([sessionData], options),
-    mutateAsync: async (sessionData, options) => createSessions([sessionData], options),
-    isPending: isPendingCreate
-  };
-};
-
-export const useUpdateSession = () => {
-  const { updateSession, isPendingUpdate } = useSessions();
-  return {
-    mutate: updateSession,
-    mutateAsync: updateSession,
-    isPending: isPendingUpdate
-  };
-};
-
-export const useUpdateSessionStatus = () => {
-  const { updateSessionStatus, isPendingStatusUpdate } = useSessions();
-  return {
-    mutate: updateSessionStatus,
-    mutateAsync: updateSessionStatus,
-    isPending: isPendingStatusUpdate
-  };
-};
-
-export const useRescheduleSession = () => {
-  const { rescheduleSession, isPendingReschedule } = useSessions();
-  return {
-    mutate: rescheduleSession,
-    mutateAsync: rescheduleSession,
-    isPending: isPendingReschedule
-  };
-};
-
-export const useSessionById = (sessionId?: string) => {
-  return useQuery({
-    queryKey: ["session", sessionId],
-    queryFn: async () => {
-      if (!sessionId) return null;
-
-      const { data, error } = await supabase
-        .from("sessions")
-        .select(
-          `
-          *,
-          teachers:teacher_id (
-            id, 
-            profiles:id (
-              id, name, email
-            )
-          ),
-          session_students (
-            student_id,
-            students:student_id (
-              id, 
-              profiles:id (
-                id, name, email
-              )
-            )
-          ),
-          session_packs:pack_id (
-            id, size, remaining_sessions, subject, session_type, location
-          )
-        `
-        )
-        .eq("id", sessionId)
-        .maybeSingle();
-
-      if (error) {
-        throw new Error(error.message);
-      }
-      
-      if (!data) return null;
-
-      const teacherName = data.teachers?.profiles?.name || "Unknown Teacher";
-      const studentIds =
-        data.session_students?.map((student) => student.student_id) || [];
-      const studentNames =
-        data.session_students?.map(
-          (student) => student.students?.profiles?.name || "Unknown Student"
-        ) || [];
-
-      return {
-        id: data.id,
-        teacherId: data.teacher_id,
-        teacherName,
-        packId: data.pack_id,
-        subject: data.subject as SubjectType,
-        sessionType: data.session_type as SessionType,
-        location: data.location as LocationType,
-        dateTime: data.date_time,
-        duration: data.duration,
-        status: data.status as AttendanceStatus,
-        notes: data.notes || "",
-        rescheduleCount: data.reschedule_count,
-        studentIds,
-        studentNames,
-        createdAt: data.created_at,
-        updatedAt: data.updated_at,
-      } as Session;
-    },
-    enabled: !!sessionId,
-  });
 };
