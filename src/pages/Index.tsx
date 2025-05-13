@@ -1,13 +1,84 @@
-// Update this page (the content is just a fallback if you fail to update the page)
+
+import React, { useState } from 'react';
+import Layout from '@/components/Layout';
+import Dashboard from '@/components/Dashboard';
+import AttendanceTracker from '@/components/AttendanceTracker';
+import SessionScheduler from '@/components/SessionScheduler';
+import StudentPacks from '@/components/StudentPacks';
+import { teachers } from '@/lib/data';
 
 const Index = () => {
+  // For demo purposes, use the first teacher's ID
+  const demoTeacherId = teachers[0].id;
+  const demoStudentId = 's1';
+  
+  // Role would typically come from authentication
+  const [activeRole, setActiveRole] = useState<'admin' | 'teacher' | 'student'>('admin');
+  
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100">
-      <div className="text-center">
-        <h1 className="text-4xl font-bold mb-4">Welcome to Your Blank App</h1>
-        <p className="text-xl text-gray-600">Start building your amazing project here!</p>
+    <Layout>
+      <div className="mb-6">
+        <div className="flex justify-end mb-8">
+          <div className="inline-flex rounded-md shadow-sm" role="group">
+            <button
+              type="button"
+              className={`px-4 py-2 text-sm font-medium rounded-l-lg ${
+                activeRole === 'admin' ? 'bg-primary text-primary-foreground' : 'bg-white text-gray-700 hover:bg-gray-100'
+              }`}
+              onClick={() => setActiveRole('admin')}
+            >
+              Admin View
+            </button>
+            <button
+              type="button"
+              className={`px-4 py-2 text-sm font-medium ${
+                activeRole === 'teacher' ? 'bg-primary text-primary-foreground' : 'bg-white text-gray-700 hover:bg-gray-100'
+              }`}
+              onClick={() => setActiveRole('teacher')}
+            >
+              Teacher View
+            </button>
+            <button
+              type="button"
+              className={`px-4 py-2 text-sm font-medium rounded-r-lg ${
+                activeRole === 'student' ? 'bg-primary text-primary-foreground' : 'bg-white text-gray-700 hover:bg-gray-100'
+              }`}
+              onClick={() => setActiveRole('student')}
+            >
+              Student View
+            </button>
+          </div>
+        </div>
+        
+        {/* Display appropriate components based on role */}
+        {activeRole === 'admin' && (
+          <>
+            <Dashboard userRole="admin" />
+            <div className="mt-10">
+              <SessionScheduler />
+            </div>
+          </>
+        )}
+        
+        {activeRole === 'teacher' && (
+          <>
+            <Dashboard userRole="teacher" />
+            <div className="mt-10">
+              <AttendanceTracker teacherId={demoTeacherId} />
+            </div>
+          </>
+        )}
+        
+        {activeRole === 'student' && (
+          <>
+            <Dashboard userRole="student" />
+            <div className="mt-10">
+              <StudentPacks studentId={demoStudentId} />
+            </div>
+          </>
+        )}
       </div>
-    </div>
+    </Layout>
   );
 };
 
