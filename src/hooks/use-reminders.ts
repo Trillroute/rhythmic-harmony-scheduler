@@ -62,9 +62,16 @@ export const useReminders = (recipientId?: string) => {
   // Create a new reminder
   const createReminder = useMutation({
     mutationFn: async (reminderData: Partial<Reminder>) => {
-      // Convert Date objects to ISO strings if present
+      // Ensure we have the required fields
+      if (!reminderData.recipient_id || !reminderData.message || !reminderData.send_at || 
+          !reminderData.type || !reminderData.channel) {
+        throw new Error("Missing required reminder fields");
+      }
+      
+      // Create a new object that will hold the formatted fields
       const formattedData: Record<string, any> = {};
       
+      // Convert Date objects to ISO strings if present
       Object.entries(reminderData).forEach(([key, value]) => {
         formattedData[key] = typeof value === 'object' && value !== null && 'getTime' in value 
           ? value.toISOString() 
@@ -95,9 +102,10 @@ export const useReminders = (recipientId?: string) => {
     mutationFn: async (reminderData: Partial<Reminder> & { id: string }) => {
       const { id, ...updateFields } = reminderData;
       
-      // Convert Date objects to ISO strings if present
+      // Create a new object that will hold the formatted fields
       const formattedFields: Record<string, any> = {};
       
+      // Convert Date objects to ISO strings if present
       Object.entries(updateFields).forEach(([key, value]) => {
         formattedFields[key] = typeof value === 'object' && value !== null && 'getTime' in value 
           ? value.toISOString() 

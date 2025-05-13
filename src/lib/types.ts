@@ -78,7 +78,7 @@ export interface AttendanceEvent {
   updatedAt: string | Date;
 }
 
-// Merged FilterOptions with ExtendedFilterOptions to ensure consistency
+// Complete FilterOptions with all possible filter fields
 export interface FilterOptions {
   teacherId?: string;
   studentId?: string;
@@ -99,16 +99,26 @@ export interface FilterOptions {
   paymentStatus?: string[];
 }
 
+// Updated UserWithRole to match what's used in UserManagement.tsx
 export interface UserWithRole {
   id: string;
   name: string;
   email: string;
   role: UserRole;
   createdAt: string | Date;
+  updatedAt?: string | Date;
   studentData?: {
     preferredSubjects?: SubjectType[];
     notes?: string;
     preferredTeachers?: string[];
+  };
+  teacherData?: {
+    subjects?: SubjectType[];
+    maxWeeklySessions?: number;
+    availableTimes?: any[];
+  };
+  adminData?: {
+    permissions?: string[];
   };
 }
 

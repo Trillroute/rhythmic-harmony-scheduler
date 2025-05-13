@@ -2,7 +2,19 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { StudentProgress } from "@/lib/models";
+
+export interface StudentProgress {
+  id: string;
+  enrollment_id: string;
+  module_number?: number;
+  session_number?: number;
+  completion_percentage: number;
+  teacher_notes?: string;
+  student_notes?: string;
+  last_updated_by: string;
+  created_at: string | Date;
+  updated_at: string | Date;
+}
 
 export interface ProgressWithRelations extends StudentProgress {
   enrollment?: {
@@ -89,13 +101,15 @@ export const useProgress = (enrollmentId?: string) => {
     mutationFn: async (progressData: Partial<StudentProgress> & { id: string }) => {
       const { id, ...updateFields } = progressData;
       
+      // Create a new object that will hold the formatted fields
+      const formattedFields: Record<string, any> = {};
+      
       // Fix: Convert Date objects to ISO strings if present
-      const formattedFields = Object.entries(updateFields).reduce((acc, [key, value]) => {
-        acc[key] = typeof value === 'object' && value !== null && 'getTime' in value 
+      Object.entries(updateFields).forEach(([key, value]) => {
+        formattedFields[key] = typeof value === 'object' && value !== null && 'getTime' in value 
           ? value.toISOString() 
           : value;
-        return acc;
-      }, {} as Record<string, any>);
+      });
       
       const { error } = await supabase
         .from('student_progress')
@@ -121,13 +135,20 @@ export const useProgress = (enrollmentId?: string) => {
   // Create new progress entry
   const createProgress = useMutation({
     mutationFn: async (progressData: Partial<StudentProgress>) => {
+      // Ensure we have the required fields
+      if (!progressData.enrollment_id || !progressData.last_updated_by) {
+        throw new Error("Missing required fields: enrollment_id and/or last_updated_by");
+      }
+      
+      // Create a new object that will hold the formatted fields
+      const formattedData: Record<string, any> = {};
+      
       // Fix: Convert Date objects to ISO strings if present
-      const formattedData = Object.entries(progressData).reduce((acc, [key, value]) => {
-        acc[key] = typeof value === 'object' && value !== null && 'getTime' in value 
+      Object.entries(progressData).forEach(([key, value]) => {
+        formattedData[key] = typeof value === 'object' && value !== null && 'getTime' in value 
           ? value.toISOString() 
           : value;
-        return acc;
-      }, {} as Record<string, any>);
+      });
       
       const { data, error } = await supabase
         .from('student_progress')

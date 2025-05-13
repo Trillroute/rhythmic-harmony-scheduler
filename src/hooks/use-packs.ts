@@ -1,4 +1,3 @@
-
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
@@ -69,7 +68,9 @@ export const useSessionPacks = (studentId?: string) => {
         weeklyFrequency: item.weekly_frequency,
         sessions: [], // Need separate query for this
         createdAt: new Date(item.created_at),
-        updatedAt: new Date(item.updated_at)
+        updatedAt: typeof item.updatedAt === 'object' && 'getTime' in item.updatedAt
+          ? item.updatedAt.toISOString()
+          : item.updatedAt
       } as SessionPack & { studentName: string }));
     },
   });

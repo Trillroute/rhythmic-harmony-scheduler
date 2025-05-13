@@ -1,258 +1,195 @@
 
-import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
-import { FilterOptions, ExtendedFilterOptions, SubjectType, AttendanceStatus } from "@/lib/types";
-import { format, subDays, eachDayOfInterval, parseISO } from 'date-fns';
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { FilterOptions, AttendanceStatus } from "@/lib/types";
+import { format } from "date-fns";
 
-export const useReports = (filters: FilterOptions | ExtendedFilterOptions = {}) => {
-  // For attendance trends
-  const { data: attendanceData, isLoading: attendanceLoading } = useQuery({
-    queryKey: ['reports', 'attendance', filters],
+export const useAttendanceReport = (filter: FilterOptions = {}) => {
+  return useQuery({
+    queryKey: ['attendance-report', filter],
     queryFn: async () => {
-      const startDate = filters.startDate || subDays(new Date(), 30);
-      const endDate = filters.endDate || new Date();
-      
-      // Build query for attendance data
+      // Start with the base query
       let query = supabase
-        .from('sessions')
-        .select('date_time, status, id')
-        .gte('date_time', startDate.toISOString())
-        .lte('date_time', endDate.toISOString());
+        .from('attendance_events')
+        .select(`
+          *,
+          sessions!inner (
+            id,
+            subject,
+            session_type,
+            location,
+            date_time,
+            duration,
+            teacher_id,
+            teachers!inner (
+              profiles!inner (
+                name
+              )
+            )
+          )
+        `)
+        .order('created_at', { ascending: false });
       
-      // Check if we're dealing with ExtendedFilterOptions (which has subjects array)
-      if ('subjects' in filters && filters.subjects && filters.subjects.length > 0) {
-        query = query.in('subject', filters.subjects as SubjectType[]);
-      } else if ('subject' in filters && filters.subject) {
-        query = query.eq('subject', filters.subject);
+      // Apply filters
+      if (filter.teacherId) {
+        query = query.eq('sessions.teacher_id', filter.teacherId);
       }
       
-      // Similar check for status
-      if ('status' in filters && Array.isArray(filters.status) && filters.status.length > 0) {
-        // Filter out any statuses that aren't valid for our DB schema
-        const validStatuses = filters.status.filter(s => 
-          s !== 'No Show') as ('Present' | 'Scheduled' | 'Cancelled by Student' | 'Cancelled by Teacher' | 'Cancelled by School')[];
-        
-        if (validStatuses.length > 0) {
-          query = query.in('status', validStatuses);
-        }
-      } else if ('status' in filters && filters.status) {
-        if (filters.status !== 'No Show') {
-          query = query.eq('status', filters.status);
+      if (filter.subject) {
+        query = query.eq('sessions.subject', filter.subject);
+      }
+      
+      if (filter.sessionType) {
+        query = query.eq('sessions.session_type', filter.sessionType);
+      }
+      
+      if (filter.location) {
+        query = query.eq('sessions.location', filter.location);
+      }
+      
+      if (filter.startDate) {
+        const startDateStr = typeof filter.startDate === 'string' 
+          ? filter.startDate 
+          : filter.startDate.toISOString();
+        query = query.gte('sessions.date_time', startDateStr);
+      }
+      
+      if (filter.endDate) {
+        const endDateStr = typeof filter.endDate === 'string' 
+          ? filter.endDate 
+          : filter.endDate.toISOString();
+        query = query.lte('sessions.date_time', endDateStr);
+      }
+      
+      if (filter.status) {
+        if (Array.isArray(filter.status)) {
+          query = query.in('status', filter.status);
+        } else {
+          query = query.eq('status', filter.status);
         }
       }
       
+      // Execute the query
       const { data, error } = await query;
       
-      if (error) throw error;
+      if (error) {
+        throw error;
+      }
       
-      // Calculate attendance rate
-      const totalSessions = data.length;
-      const presentSessions = data.filter(session => session.status === 'Present').length;
-      const attendanceRate = totalSessions > 0 ? Math.round((presentSessions / totalSessions) * 100) : 0;
+      // Transform the data for the report
+      const reportData = data.map(item => ({
+        id: item.id,
+        sessionId: item.session_id,
+        status: item.status as AttendanceStatus,
+        markedAt: item.marked_at,
+        teacherId: item.sessions.teacher_id,
+        teacherName: item.sessions.teachers.profiles.name,
+        subject: item.sessions.subject,
+        sessionType: item.sessions.session_type,
+        location: item.sessions.location,
+        dateTime: item.sessions.date_time,
+        duration: item.sessions.duration,
+        formattedDate: format(new Date(item.sessions.date_time), 'PPP'),
+        formattedTime: format(new Date(item.sessions.date_time), 'p')
+      }));
       
-      // Prepare daily attendance data for chart
-      const dateRange = eachDayOfInterval({ start: startDate, end: endDate });
-      const dailyAttendance = dateRange.map(day => {
-        const dayStr = format(day, 'yyyy-MM-dd');
-        const daySessions = data.filter(session => 
-          format(parseISO(session.date_time), 'yyyy-MM-dd') === dayStr
-        );
+      return reportData;
+    }
+  });
+};
+
+export const useTeacherUtilizationReport = (filter: FilterOptions = {}) => {
+  return useQuery({
+    queryKey: ['teacher-utilization-report', filter],
+    queryFn: async () => {
+      // First get all teachers
+      const { data: teachers, error: teachersError } = await supabase
+        .from('teachers')
+        .select(`
+          id,
+          profiles!inner (
+            name
+          ),
+          max_weekly_sessions
+        `);
+      
+      if (teachersError) {
+        throw teachersError;
+      }
+      
+      // For each teacher, calculate their utilization
+      const startDate = filter.startDate 
+        ? typeof filter.startDate === 'string' ? new Date(filter.startDate) : filter.startDate
+        : new Date(new Date().setDate(new Date().getDate() - 30)); // Default to last 30 days
         
-        const total = daySessions.length;
-        const present = daySessions.filter(session => session.status === 'Present').length;
-        const cancelledByStudent = daySessions.filter(session => session.status === 'Cancelled by Student').length;
-        const cancelledByTeacher = daySessions.filter(session => session.status === 'Cancelled by Teacher').length;
-        const cancelledBySchool = daySessions.filter(session => session.status === 'Cancelled by School').length;
+      const endDate = filter.endDate
+        ? typeof filter.endDate === 'string' ? new Date(filter.endDate) : filter.endDate
+        : new Date(); // Default to today
+      
+      const utilizationPromises = teachers.map(async (teacher) => {
+        // Count completed sessions
+        const { count: completedCount, error: completedError } = await supabase
+          .from('sessions')
+          .select('*', { count: 'exact' })
+          .eq('teacher_id', teacher.id)
+          .eq('status', 'Present')
+          .gte('date_time', startDate.toISOString())
+          .lte('date_time', endDate.toISOString());
+        
+        if (completedError) {
+          throw completedError;
+        }
+        
+        // Count cancelled sessions (by teacher)
+        const { count: cancelledCount, error: cancelledError } = await supabase
+          .from('sessions')
+          .select('*', { count: 'exact' })
+          .eq('teacher_id', teacher.id)
+          .eq('status', 'Cancelled by Teacher')
+          .gte('date_time', startDate.toISOString())
+          .lte('date_time', endDate.toISOString());
+        
+        if (cancelledError) {
+          throw cancelledError;
+        }
+        
+        // Count total scheduled sessions
+        const { count: totalCount, error: totalError } = await supabase
+          .from('sessions')
+          .select('*', { count: 'exact' })
+          .eq('teacher_id', teacher.id)
+          .in('status', ['Present', 'Scheduled', 'Cancelled by Teacher', 'Cancelled by Student', 'Cancelled by School'])
+          .gte('date_time', startDate.toISOString())
+          .lte('date_time', endDate.toISOString());
+        
+        if (totalError) {
+          throw totalError;
+        }
+        
+        // Calculate utilization metrics
+        const completionRate = totalCount > 0 ? (completedCount / totalCount) * 100 : 0;
+        const cancellationRate = totalCount > 0 ? (cancelledCount / totalCount) * 100 : 0;
         
         return {
-          date: dayStr,
-          total,
-          present,
-          cancelledByStudent,
-          cancelledByTeacher,
-          cancelledBySchool
+          teacherId: teacher.id,
+          teacherName: teacher.profiles.name,
+          maxWeeklySessions: teacher.max_weekly_sessions || 0,
+          completedSessions: completedCount || 0,
+          cancelledSessions: cancelledCount || 0,
+          totalSessions: totalCount || 0,
+          completionRate,
+          cancellationRate,
+          utilization: teacher.max_weekly_sessions 
+            ? (totalCount / (teacher.max_weekly_sessions * 4)) * 100 // Assuming 4 weeks
+            : 0
         };
       });
       
-      // Prepare chart data
-      const chartData = {
-        labels: dailyAttendance.map(day => format(parseISO(day.date), 'MMM d')),
-        datasets: [
-          {
-            label: 'Present',
-            data: dailyAttendance.map(day => day.present),
-            borderColor: 'rgb(75, 192, 192)',
-            backgroundColor: 'rgba(75, 192, 192, 0.5)',
-          },
-          {
-            label: 'Cancelled by Student',
-            data: dailyAttendance.map(day => day.cancelledByStudent),
-            borderColor: 'rgb(255, 205, 86)',
-            backgroundColor: 'rgba(255, 205, 86, 0.5)',
-          },
-          {
-            label: 'Cancelled by Teacher',
-            data: dailyAttendance.map(day => day.cancelledByTeacher),
-            borderColor: 'rgb(255, 99, 132)',
-            backgroundColor: 'rgba(255, 99, 132, 0.5)',
-          },
-          {
-            label: 'Cancelled by School',
-            data: dailyAttendance.map(day => day.cancelledBySchool),
-            borderColor: 'rgb(201, 203, 207)',
-            backgroundColor: 'rgba(201, 203, 207, 0.5)',
-          }
-        ]
-      };
+      const utilizationData = await Promise.all(utilizationPromises);
       
-      return {
-        totalSessions,
-        presentSessions,
-        attendanceRate,
-        chartData
-      };
+      return utilizationData;
     }
   });
-  
-  // For sessions by instrument
-  const { data: sessionsData, isLoading: sessionsLoading } = useQuery({
-    queryKey: ['reports', 'sessions', filters],
-    queryFn: async () => {
-      const startDate = filters.startDate || subDays(new Date(), 30);
-      const endDate = filters.endDate || new Date();
-      
-      // Build query for sessions data
-      let query = supabase
-        .from('sessions')
-        .select('subject, session_type, id')
-        .gte('date_time', startDate.toISOString())
-        .lte('date_time', endDate.toISOString());
-      
-      // Check if we're dealing with ExtendedFilterOptions (which has subjects array)
-      if ('subjects' in filters && filters.subjects && filters.subjects.length > 0) {
-        query = query.in('subject', filters.subjects as SubjectType[]);
-      } else if ('subject' in filters && filters.subject) {
-        query = query.eq('subject', filters.subject);
-      }
-      
-      // Similar check for status
-      if ('status' in filters && Array.isArray(filters.status) && filters.status.length > 0) {
-        // Filter out any statuses that aren't valid for our DB schema
-        const validStatuses = filters.status.filter(s => 
-          s !== 'No Show') as ('Present' | 'Scheduled' | 'Cancelled by Student' | 'Cancelled by Teacher' | 'Cancelled by School')[];
-          
-        if (validStatuses.length > 0) {
-          query = query.in('status', validStatuses);
-        }
-      } else if ('status' in filters && filters.status) {
-        if (filters.status !== 'No Show') {
-          query = query.eq('status', filters.status);
-        }
-      }
-      
-      const { data, error } = await query;
-      
-      if (error) throw error;
-      
-      // Count sessions by instrument
-      const sessionsByInstrument = data.reduce((acc: any, session) => {
-        if (!acc[session.subject]) {
-          acc[session.subject] = {
-            total: 0,
-            Solo: 0,
-            Duo: 0,
-            Focus: 0
-          };
-        }
-        acc[session.subject].total++;
-        acc[session.subject][session.session_type]++;
-        return acc;
-      }, {});
-      
-      // Overall totals
-      const totalSessions = data.length;
-      const soloSessions = data.filter(session => session.session_type === 'Solo').length;
-      const duoSessions = data.filter(session => session.session_type === 'Duo').length;
-      const focusSessions = data.filter(session => session.session_type === 'Focus').length;
-      
-      // Prepare chart data
-      const instruments = Object.keys(sessionsByInstrument);
-      const chartData = {
-        labels: instruments,
-        datasets: [
-          {
-            label: 'Solo',
-            data: instruments.map(instrument => sessionsByInstrument[instrument].Solo),
-            backgroundColor: 'rgba(75, 192, 192, 0.7)',
-          },
-          {
-            label: 'Duo',
-            data: instruments.map(instrument => sessionsByInstrument[instrument].Duo),
-            backgroundColor: 'rgba(255, 205, 86, 0.7)',
-          },
-          {
-            label: 'Focus',
-            data: instruments.map(instrument => sessionsByInstrument[instrument].Focus),
-            backgroundColor: 'rgba(255, 99, 132, 0.7)',
-          }
-        ]
-      };
-      
-      return {
-        totalSessions,
-        soloSessions,
-        duoSessions,
-        focusSessions,
-        sessionsByInstrument,
-        chartData
-      };
-    }
-  });
-  
-  // For student progress data
-  const { data: studentProgressData, isLoading: progressLoading } = useQuery({
-    queryKey: ['reports', 'student-progress'],
-    queryFn: async () => {
-      // Get data about student enrollments and pack purchases
-      // This will be implemented with actual data once we have these tables
-      
-      // For now, generate placeholder data
-      const activeStudents = 15;
-      const completedCourses = 8;
-      const inProgressCourses = 12;
-      const notStartedCourses = 5;
-      
-      // Prepare chart data
-      const chartData = {
-        labels: ['Completed', 'In Progress', 'Not Started'],
-        datasets: [
-          {
-            data: [completedCourses, inProgressCourses, notStartedCourses],
-            backgroundColor: [
-              'rgba(75, 192, 192, 0.7)',
-              'rgba(255, 205, 86, 0.7)',
-              'rgba(201, 203, 207, 0.7)'
-            ]
-          }
-        ]
-      };
-      
-      return {
-        activeStudents,
-        completedCourses,
-        inProgressCourses,
-        notStartedCourses,
-        chartData
-      };
-    }
-  });
-  
-  const isLoading = attendanceLoading || sessionsLoading || progressLoading;
-  
-  return {
-    attendanceData,
-    sessionsData,
-    studentProgressData,
-    isLoading
-  };
 };
+
+// Add other report hooks as needed

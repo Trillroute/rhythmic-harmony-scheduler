@@ -2,13 +2,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { User, Teacher, Student, Admin, UserRole, SubjectType, TimeSlot } from "@/lib/types";
-
-export interface UserWithRole extends User {
-  teacherData?: Omit<Teacher, keyof User>;
-  studentData?: Omit<Student, keyof User>;
-  adminData?: Omit<Admin, keyof User>;
-}
+import { UserRole, SubjectType, UserWithRole } from "@/lib/types";
 
 export const useUsers = (filters?: { role?: UserRole; email?: string }) => {
   const queryClient = useQueryClient();
@@ -76,7 +70,6 @@ export const useUsers = (filters?: { role?: UserRole; email?: string }) => {
                 preferredSubjects: studentData.preferred_subjects as SubjectType[],
                 preferredTeachers: studentData.preferred_teachers || [],
                 notes: studentData.notes || '',
-                packs: [] // Initialize with empty array
               };
             }
           } else if (profile.role === 'admin') {
