@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { createBrowserRouter, RouterProvider, Outlet } from 'react-router-dom';
+import { Routes, Route, useNavigate } from 'react-router-dom';
 import Login from '@/pages/Login';
 import Signup from '@/pages/Signup';
 import NotFound from '@/pages/NotFound';
@@ -23,144 +23,218 @@ import CourseMaterials from '@/components/admin/CourseMaterials';
 import AdvancedScheduler from '@/components/admin/AdvancedScheduler';
 import StudentManagement from '@/components/admin/StudentManagement';
 
-const routes = createBrowserRouter([
-  {
-    path: '/',
-    element: <Layout><Index /></Layout>,
-    children: [
-      {
-        index: true,
-        element: <Index />,
-      },
-      // Admin routes
-      {
-        path: 'admin',
-        element: <ProtectedRoute requiredRole="admin"><Layout><Outlet /></Layout></ProtectedRoute>,
-        children: [
-          {
-            path: 'dashboard',
-            element: <AdminDashboard />,
-          },
-          {
-            path: 'users',
-            element: <UserManagement />,
-          },
-          {
-            path: 'settings',
-            element: <SystemSettings />,
-          },
-          {
-            path: 'reports',
-            element: <ReportingDashboard />,
-          },
-          {
-            path: 'export',
-            element: <DataExport />,
-          },
-          {
-            path: 'scheduler',
-            element: <AdvancedScheduler />,
-          },
-          {
-            path: 'attendance',
-            element: <AttendanceTracker teacherId={undefined} />,
-          },
-          {
-            path: 'packs',
-            element: <StudentPacks studentId={undefined} />,
-          },
-          {
-            path: 'courses',
-            element: <CourseManagement />,
-          },
-          {
-            path: 'session-plans',
-            element: <SessionPlans />,
-          },
-          {
-            path: 'invoices',
-            element: <InvoiceManagement />,
-          },
-          {
-            path: 'materials',
-            element: <CourseMaterials />,
-          },
-          {
-            path: 'students',
-            element: <StudentManagement />,
-          },
-        ]
-      },
-      // Teacher routes
-      {
-        path: 'teacher',
-        element: <ProtectedRoute requiredRole="teacher"><Layout><Outlet /></Layout></ProtectedRoute>,
-        children: [
-          {
-            path: 'dashboard',
-            element: <Dashboard userRole="teacher" />,
-          },
-          {
-            path: 'scheduler',
-            element: <SessionScheduler />,
-          },
-          {
-            path: 'attendance',
-            element: <AttendanceTracker teacherId={undefined} />,
-          },
-          {
-            path: 'students',
-            element: <div>My Students Component (Teacher View)</div>,
-          },
-          {
-            path: 'materials',
-            element: <div>Course Materials Component (Teacher View)</div>,
-          }
-        ]
-      },
-      // Student routes
-      {
-        path: 'student',
-        element: <ProtectedRoute requiredRole="student"><Layout><Outlet /></Layout></ProtectedRoute>,
-        children: [
-          {
-            path: 'dashboard',
-            element: <Dashboard userRole="student" />,
-          },
-          {
-            path: 'packs',
-            element: <StudentPacks studentId={undefined} />,
-          },
-          {
-            path: 'courses',
-            element: <div>My Courses Component (Student View)</div>,
-          },
-          {
-            path: 'resources',
-            element: <div>Learning Resources Component (Student View)</div>,
-          },
-          {
-            path: 'payments',
-            element: <div>Payments Component (Student View)</div>,
-          }
-        ]
-      }
-    ]
-  },
-  {
-    path: '/login',
-    element: <Login />,
-  },
-  {
-    path: '/signup',
-    element: <Signup />,
-  },
-  {
-    path: '*',
-    element: <NotFound />,
-  }
-]);
-
+// Use Routes directly instead of createBrowserRouter
 export default function Router() {
-  return <RouterProvider router={routes} />;
+  return (
+    <Routes>
+      {/* Public routes */}
+      <Route path="/login" element={<Login />} />
+      <Route path="/signup" element={<Signup />} />
+      <Route path="/verify" element={<Login />} /> {/* Redirect verification to login page */}
+      
+      {/* Main layout routes */}
+      <Route path="/" element={<Layout />}>
+        <Route index element={<Index />} />
+        
+        {/* Admin routes */}
+        <Route path="admin">
+          <Route 
+            path="dashboard" 
+            element={
+              <ProtectedRoute requiredRole="admin">
+                <AdminDashboard />
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="users" 
+            element={
+              <ProtectedRoute requiredRole="admin">
+                <UserManagement />
+              </ProtectedRoute>
+            }
+          />
+          <Route 
+            path="settings" 
+            element={
+              <ProtectedRoute requiredRole="admin">
+                <SystemSettings />
+              </ProtectedRoute>
+            }
+          />
+          <Route 
+            path="reports" 
+            element={
+              <ProtectedRoute requiredRole="admin">
+                <ReportingDashboard />
+              </ProtectedRoute>
+            }
+          />
+          <Route 
+            path="export" 
+            element={
+              <ProtectedRoute requiredRole="admin">
+                <DataExport />
+              </ProtectedRoute>
+            }
+          />
+          <Route 
+            path="scheduler" 
+            element={
+              <ProtectedRoute requiredRole="admin">
+                <AdvancedScheduler />
+              </ProtectedRoute>
+            }
+          />
+          <Route 
+            path="attendance" 
+            element={
+              <ProtectedRoute requiredRole="admin">
+                <AttendanceTracker teacherId={undefined} />
+              </ProtectedRoute>
+            }
+          />
+          <Route 
+            path="packs" 
+            element={
+              <ProtectedRoute requiredRole="admin">
+                <StudentPacks studentId={undefined} />
+              </ProtectedRoute>
+            }
+          />
+          <Route 
+            path="courses" 
+            element={
+              <ProtectedRoute requiredRole="admin">
+                <CourseManagement />
+              </ProtectedRoute>
+            }
+          />
+          <Route 
+            path="session-plans" 
+            element={
+              <ProtectedRoute requiredRole="admin">
+                <SessionPlans />
+              </ProtectedRoute>
+            }
+          />
+          <Route 
+            path="invoices" 
+            element={
+              <ProtectedRoute requiredRole="admin">
+                <InvoiceManagement />
+              </ProtectedRoute>
+            }
+          />
+          <Route 
+            path="materials" 
+            element={
+              <ProtectedRoute requiredRole="admin">
+                <CourseMaterials />
+              </ProtectedRoute>
+            }
+          />
+          <Route 
+            path="students" 
+            element={
+              <ProtectedRoute requiredRole="admin">
+                <StudentManagement />
+              </ProtectedRoute>
+            }
+          />
+        </Route>
+        
+        {/* Teacher routes */}
+        <Route path="teacher">
+          <Route 
+            path="dashboard" 
+            element={
+              <ProtectedRoute requiredRole="teacher">
+                <Dashboard userRole="teacher" />
+              </ProtectedRoute>
+            }
+          />
+          <Route 
+            path="scheduler" 
+            element={
+              <ProtectedRoute requiredRole="teacher">
+                <SessionScheduler />
+              </ProtectedRoute>
+            }
+          />
+          <Route 
+            path="attendance" 
+            element={
+              <ProtectedRoute requiredRole="teacher">
+                <AttendanceTracker teacherId={undefined} />
+              </ProtectedRoute>
+            }
+          />
+          <Route 
+            path="students" 
+            element={
+              <ProtectedRoute requiredRole="teacher">
+                <div>My Students Component (Teacher View)</div>
+              </ProtectedRoute>
+            }
+          />
+          <Route 
+            path="materials" 
+            element={
+              <ProtectedRoute requiredRole="teacher">
+                <div>Course Materials Component (Teacher View)</div>
+              </ProtectedRoute>
+            }
+          />
+        </Route>
+        
+        {/* Student routes */}
+        <Route path="student">
+          <Route 
+            path="dashboard" 
+            element={
+              <ProtectedRoute requiredRole="student">
+                <Dashboard userRole="student" />
+              </ProtectedRoute>
+            }
+          />
+          <Route 
+            path="packs" 
+            element={
+              <ProtectedRoute requiredRole="student">
+                <StudentPacks studentId={undefined} />
+              </ProtectedRoute>
+            }
+          />
+          <Route 
+            path="courses" 
+            element={
+              <ProtectedRoute requiredRole="student">
+                <div>My Courses Component (Student View)</div>
+              </ProtectedRoute>
+            }
+          />
+          <Route 
+            path="resources" 
+            element={
+              <ProtectedRoute requiredRole="student">
+                <div>Learning Resources Component (Student View)</div>
+              </ProtectedRoute>
+            }
+          />
+          <Route 
+            path="payments" 
+            element={
+              <ProtectedRoute requiredRole="student">
+                <div>Payments Component (Student View)</div>
+              </ProtectedRoute>
+            }
+          />
+        </Route>
+      </Route>
+      
+      {/* Fallback route */}
+      <Route path="*" element={<NotFound />} />
+    </Routes>
+  );
 }
