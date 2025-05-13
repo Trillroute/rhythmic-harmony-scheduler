@@ -3,6 +3,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { SessionUpdateProps } from "./types";
 import { toast } from "sonner";
+import { AttendanceStatus } from "@/lib/types";
 
 // Hook for updating session status
 export const useUpdateSession = (queryKey: any[]) => {
@@ -14,7 +15,7 @@ export const useUpdateSession = (queryKey: any[]) => {
       
       const { data, error } = await supabase
         .from("sessions")
-        .update({ status: status as string })
+        .update({ status: status as AttendanceStatus })
         .eq("id", id)
         .select();
         

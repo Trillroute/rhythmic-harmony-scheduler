@@ -27,7 +27,7 @@ export const useCreateSessions = (queryKey: any[]) => {
           date_time: sessionFields.dateTime.toISOString(),
           duration: sessionFields.duration,
           notes: sessionFields.notes || '',
-          status: 'Scheduled' as string
+          status: 'Scheduled' as AttendanceStatus
         };
         
         // Create session

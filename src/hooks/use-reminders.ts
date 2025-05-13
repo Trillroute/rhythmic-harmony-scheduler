@@ -1,141 +1,127 @@
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "../integrations/supabase/client";
+import { supabase } from "@/integrations/supabase/client";
+import { Reminder } from "@/lib/types";
 import { toast } from "sonner";
 
-interface Reminder {
-  id: string;
+export interface ReminderFormData {
   recipientId: string;
+  type: string;
   message: string;
-  sendAt: string;
-  type: "session" | "payment" | "enrollment" | "other";
-  channel: "email" | "in_app" | "sms" | "push";
+  channel: string;
+  sendAt: Date;
   relatedId?: string;
-  status: "pending" | "sent" | "cancelled";
-  sentAt?: string;
-  createdAt: string;
 }
 
-interface CreateReminderProps {
-  recipient_id: string;
-  message: string;
-  send_at: string;  
-  type: "session" | "payment" | "enrollment" | "other";
-  channel: "email" | "in_app" | "sms" | "push";
-  related_id?: string;
-  status?: "pending" | "sent" | "cancelled";
+interface RemindersFilterOptions {
+  recipientId?: string;
+  status?: string[];
+  type?: string[];
 }
 
-interface UpdateReminderProps {
-  id: string;
-  status?: "pending" | "sent" | "cancelled";
-  sent_at?: string;
-}
-
-export const useReminders = (recipientId?: string) => {
-  const queryKey = ["reminders", recipientId];
-  
-  const fetchReminders = async (): Promise<Reminder[]> => {
-    let query = supabase.from("reminders").select("*");
-    
-    if (recipientId) {
-      query = query.eq("recipient_id", recipientId);
-    }
-    
-    const { data, error } = await query.order('send_at', { ascending: false });
-    
-    if (error) {
-      throw error;
-    }
-    
-    // Transform data to match our interface
-    return data.map(reminder => ({
-      id: reminder.id,
-      recipientId: reminder.recipient_id,
-      message: reminder.message,
-      sendAt: reminder.send_at,
-      type: reminder.type,
-      channel: reminder.channel,
-      relatedId: reminder.related_id,
-      status: reminder.status,
-      sentAt: reminder.sent_at,
-      createdAt: reminder.created_at
-    }));
-  };
-  
+// Fetch reminders with optional filters
+export const useFetchReminders = (filters?: RemindersFilterOptions) => {
   return useQuery({
-    queryKey,
-    queryFn: fetchReminders,
-    enabled: !!recipientId
+    queryKey: ['reminders', filters],
+    queryFn: async () => {
+      let query = supabase.from('reminders')
+        .select('*');
+      
+      // Apply filters
+      if (filters?.recipientId) {
+        query = query.eq('recipient_id', filters.recipientId);
+      }
+      
+      if (filters?.status && filters.status.length > 0) {
+        query = query.in('status', filters.status);
+      }
+      
+      if (filters?.type && filters.type.length > 0) {
+        query = query.in('type', filters.type);
+      }
+      
+      const { data, error } = await query.order('send_at', { ascending: false });
+      
+      if (error) throw error;
+      
+      // Map to our Reminder interface
+      const reminders: Reminder[] = data.map(item => ({
+        id: item.id,
+        type: item.type,
+        recipient_id: item.recipient_id,
+        related_id: item.related_id || undefined,
+        message: item.message,
+        send_at: item.send_at,
+        sent_at: item.sent_at || undefined,
+        status: item.status,
+        channel: item.channel,
+        created_at: item.created_at
+      }));
+      
+      return reminders;
+    }
   });
 };
 
+// Create a new reminder
 export const useCreateReminder = () => {
   const queryClient = useQueryClient();
   
   return useMutation({
-    mutationFn: async (reminderData: CreateReminderProps) => {
-      // Ensure send_at is a string
-      const formattedData = {
-        ...reminderData,
-        send_at: typeof reminderData.send_at === 'string' 
-          ? reminderData.send_at 
-          : reminderData.send_at.toISOString(),
-        status: reminderData.status || 'pending'
+    mutationFn: async (formData: ReminderFormData) => {
+      const { recipientId, type, message, channel, sendAt, relatedId } = formData;
+      
+      const reminderData = {
+        recipient_id: recipientId,
+        type,
+        message,
+        channel,
+        send_at: sendAt.toISOString(),
+        status: 'pending',
+        ...(relatedId && { related_id: relatedId })
       };
       
       const { data, error } = await supabase
-        .from("reminders")
-        .insert([formattedData])
+        .from('reminders')
+        .insert(reminderData)
         .select();
-        
-      if (error) {
-        throw error;
-      }
+      
+      if (error) throw error;
       
       return data[0];
     },
-    onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ["reminders", data.recipient_id] });
-      toast.success("Reminder created successfully");
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['reminders'] });
+      toast.success('Reminder created successfully!');
     },
     onError: (error) => {
-      toast.error(`Error creating reminder: ${error.message}`);
+      toast.error(`Failed to create reminder: ${error.message}`);
     }
   });
 };
 
-export const useUpdateReminder = () => {
+// Cancel a reminder
+export const useCancelReminder = () => {
   const queryClient = useQueryClient();
   
   return useMutation({
-    mutationFn: async ({ id, ...updateData }: UpdateReminderProps) => {
-      // Format sent_at as ISO string if it's a Date object
-      const formattedData = {
-        ...updateData,
-        sent_at: updateData.sent_at && typeof updateData.sent_at !== 'string'
-          ? updateData.sent_at.toISOString()
-          : updateData.sent_at
-      };
-      
+    mutationFn: async (reminderId: string) => {
       const { data, error } = await supabase
-        .from("reminders")
-        .update(formattedData)
-        .eq("id", id)
+        .from('reminders')
+        .update({ status: 'cancelled' })
+        .eq('id', reminderId)
         .select();
-        
-      if (error) {
-        throw error;
-      }
+      
+      if (error) throw error;
       
       return data[0];
     },
-    onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ["reminders", data.recipient_id] });
-      toast.success("Reminder updated successfully");
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['reminders'] });
+      toast.success('Reminder cancelled successfully!');
     },
     onError: (error) => {
-      toast.error(`Error updating reminder: ${error.message}`);
+      toast.error(`Failed to cancel reminder: ${error.message}`);
     }
   });
 };

@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -24,10 +25,12 @@ const ReportingDashboard = () => {
   
   const { 
     attendanceData, 
+    subjectData,
+    sessionTypeData,
     sessionsData, 
     studentProgressData,
     isLoading 
-  } = useReports({
+  } = useReports('month', {
     startDate: dateRange.from,
     endDate: dateRange.to,
     subjects: selectedSubjects,

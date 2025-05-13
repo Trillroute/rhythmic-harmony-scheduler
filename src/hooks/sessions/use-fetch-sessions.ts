@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { SessionsProps } from "./types";
 import { transformSessionData } from "./session-transformers";
+import { AttendanceStatus } from "@/lib/types";
 
 // Hook for fetching sessions with filters
 export const useFetchSessions = (props: SessionsProps = {}) => {
@@ -41,8 +42,8 @@ export const useFetchSessions = (props: SessionsProps = {}) => {
     }
     
     if (props.status && props.status.length > 0) {
-      // Cast the array to string array to avoid TypeScript errors with enum arrays
-      query = query.in("status", props.status as string[]);
+      // Cast the array to AttendanceStatus[] to fix the type error
+      query = query.in("status", props.status as AttendanceStatus[]);
     }
     
     // If studentId is provided, we need to filter by session_students
