@@ -4,6 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { Session, AttendanceStatus, FilterOptions } from '@/lib/types';
 import { useAuth } from '@/contexts/AuthContext';
+import { checkSessionConflicts } from '@/lib/utils';
 
 // Helper to build the filter query
 const buildFilterQuery = (query: any, filters: FilterOptions) => {
@@ -118,9 +119,30 @@ export const useSessions = (filters: FilterOptions = {}) => {
 // Create a new session
 export const useCreateSession = () => {
   const queryClient = useQueryClient();
+  const { data: allSessions } = useSessions();
   
   return useMutation({
     mutationFn: async (sessionData: Partial<Session>) => {
+      // Check for conflicts before creating
+      if (allSessions) {
+        // Check for teacher conflicts
+        const teacherConflict = checkSessionConflicts(sessionData, allSessions, 'teacher');
+        if (teacherConflict.hasConflict) {
+          throw new Error(`Teacher is already booked during this time slot`);
+        }
+        
+        // Check for student conflicts
+        const studentConflict = checkSessionConflicts(sessionData, allSessions, 'student');
+        if (studentConflict.hasConflict) {
+          throw new Error(`Student is already booked during this time slot`);
+        }
+        
+        // For duo sessions, check if we're trying to add more than 2 students
+        if (sessionData.sessionType === 'Duo' && sessionData.studentIds && sessionData.studentIds.length > 2) {
+          throw new Error('Duo sessions can have a maximum of 2 students');
+        }
+      }
+      
       const { data, error } = await supabase
         .from('sessions')
         .insert([
@@ -144,7 +166,7 @@ export const useCreateSession = () => {
       }
       
       // If there are student IDs and it's a duo session, add them to session_students
-      if (sessionData.studentIds && sessionData.studentIds.length > 0 && sessionData.sessionType === 'Duo') {
+      if (sessionData.studentIds && sessionData.studentIds.length > 0) {
         const sessionStudentPromises = sessionData.studentIds.map(studentId => 
           supabase
             .from('session_students')
@@ -191,6 +213,7 @@ export const useUpdateSessionStatus = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['sessions'] });
+      queryClient.invalidateQueries({ queryKey: ['attendance-events'] });
       toast({
         title: 'Success',
         description: 'Session status updated',
@@ -209,6 +232,7 @@ export const useUpdateSessionStatus = () => {
 // Reschedule a session 
 export const useRescheduleSession = () => {
   const queryClient = useQueryClient();
+  const { data: allSessions } = useSessions();
   
   return useMutation({
     mutationFn: async ({ 
@@ -220,18 +244,87 @@ export const useRescheduleSession = () => {
       newDateTime: Date,
       reason?: string 
     }) => {
-      // First update the session with the new date time
+      // First get the current session data
+      const { data: currentSession, error: fetchError } = await supabase
+        .from('sessions')
+        .select('*')
+        .eq('id', sessionId)
+        .single();
+        
+      if (fetchError) throw fetchError;
+      
+      // Check if session has already been rescheduled
+      if (currentSession.reschedule_count >= 1) {
+        throw new Error('This session has already been rescheduled once and cannot be rescheduled again.');
+      }
+      
+      // Check if the session is in the correct status to be rescheduled
+      if (currentSession.status !== 'Cancelled by Student') {
+        throw new Error('Only sessions cancelled by students can be rescheduled.');
+      }
+      
+      // Check for conflicts with new time
+      if (allSessions) {
+        const sessionData = {
+          id: sessionId,
+          teacherId: currentSession.teacher_id,
+          dateTime: newDateTime,
+          duration: currentSession.duration
+        };
+        
+        const teacherConflict = checkSessionConflicts(sessionData, allSessions, 'teacher');
+        if (teacherConflict.hasConflict) {
+          throw new Error(`Teacher is already booked during this time slot`);
+        }
+        
+        // Get students for this session
+        const { data: sessionStudents, error: studentsError } = await supabase
+          .from('session_students')
+          .select('student_id')
+          .eq('session_id', sessionId);
+          
+        if (studentsError) throw studentsError;
+        
+        const studentIds = sessionStudents.map(item => item.student_id);
+        const sessionDataWithStudents = {
+          ...sessionData,
+          studentIds
+        };
+        
+        const studentConflict = checkSessionConflicts(sessionDataWithStudents, allSessions, 'student');
+        if (studentConflict.hasConflict) {
+          throw new Error(`Student is already booked during this time slot`);
+        }
+      }
+      
+      // Update the session with the new date time and increment reschedule count
       const { data, error } = await supabase
         .from('sessions')
         .update({ 
           date_time: newDateTime.toISOString(),
-          status: 'Scheduled'  // Reset status to scheduled
+          status: 'Scheduled',
+          reschedule_count: currentSession.reschedule_count + 1
         })
         .eq('id', sessionId)
         .select()
         .single();
       
       if (error) throw error;
+      
+      // Record the reschedule in history
+      const { error: historyError } = await supabase
+        .from('reschedule_history')
+        .insert({
+          session_id: sessionId,
+          original_date_time: currentSession.date_time,
+          new_date_time: newDateTime.toISOString(),
+          rescheduled_by_user_id: (await supabase.auth.getUser()).data.user?.id,
+          reason,
+          status: 'Approved'
+        });
+        
+      if (historyError) throw historyError;
+      
       return data;
     },
     onSuccess: () => {

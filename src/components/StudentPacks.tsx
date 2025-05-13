@@ -12,26 +12,25 @@ import {
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
-import { 
-  SessionPack, 
+import {
   SubjectType, 
   SessionType, 
   LocationType,
   PackSize,
   WeeklyFrequency
 } from '@/lib/types';
-import { sessionPacks } from '@/lib/data';
+import { useSessionPacks, useCreateSessionPack } from '@/hooks/use-packs';
+import { Filter } from 'lucide-react';
 
 interface StudentPacksProps {
   studentId: string;
-  onNewPack?: (pack: SessionPack) => void;
+  onNewPack?: (packId: string) => void;
 }
 
 const StudentPacks = ({ studentId, onNewPack }: StudentPacksProps) => {
   const { toast } = useToast();
-  
-  // Get student's packs
-  const studentPacks = sessionPacks.filter(pack => pack.studentId === studentId);
+  const { data: sessionPacks, isLoading, error, isError } = useSessionPacks(studentId);
+  const createPackMutation = useCreateSessionPack();
   
   // Form state for new pack
   const [newPackSubject, setNewPackSubject] = useState<SubjectType | ''>('');
@@ -39,6 +38,11 @@ const StudentPacks = ({ studentId, onNewPack }: StudentPacksProps) => {
   const [newPackLocation, setNewPackLocation] = useState<LocationType | ''>('');
   const [newPackSize, setNewPackSize] = useState<string>('');
   const [newPackFrequency, setNewPackFrequency] = useState<WeeklyFrequency>('once');
+  
+  // Filter state
+  const [showFilters, setShowFilters] = useState(false);
+  const [subjectFilter, setSubjectFilter] = useState<string>('');
+  const [statusFilter, setStatusFilter] = useState<string>('active'); // 'active', 'inactive', 'all'
   
   const subjectOptions: SubjectType[] = ['Guitar', 'Piano', 'Drums', 'Ukulele', 'Vocal'];
   const sessionTypeOptions: SessionType[] = ['Solo', 'Duo', 'Focus'];
@@ -53,6 +57,22 @@ const StudentPacks = ({ studentId, onNewPack }: StudentPacksProps) => {
     if (newPackType === '' || newPackLocation === '') return true;
     return newPackLocation === 'Offline';
   };
+  
+  // Filter the packs based on user selections
+  const filteredPacks = sessionPacks?.filter(pack => {
+    // Filter by subject
+    if (subjectFilter && pack.subject !== subjectFilter) return false;
+    
+    // Filter by active status
+    if (statusFilter === 'active' && !pack.isActive) return false;
+    if (statusFilter === 'inactive' && pack.isActive) return false;
+    
+    return true;
+  }) || [];
+  
+  // Separate active and inactive packs
+  const activePacks = filteredPacks.filter(pack => pack.isActive);
+  const inactivePacks = filteredPacks.filter(pack => !pack.isActive);
   
   const handleCreatePack = () => {
     if (!newPackSubject || !newPackType || !newPackLocation || !newPackSize) {
@@ -74,49 +94,126 @@ const StudentPacks = ({ studentId, onNewPack }: StudentPacksProps) => {
       return;
     }
     
-    const now = new Date();
-    
-    // Create new pack
-    const newPack: SessionPack = {
-      id: `pack_${Date.now()}`,
+    // Create new pack using the mutation
+    createPackMutation.mutate({
       studentId,
       size: parseInt(newPackSize) as PackSize,
       subject: newPackSubject as SubjectType,
       sessionType: newPackType as SessionType,
       location: newPackLocation as LocationType,
-      purchasedDate: now,
+      purchasedDate: new Date(),
       remainingSessions: parseInt(newPackSize),
       isActive: true,
       weeklyFrequency: newPackFrequency,
-      sessions: [],
-      createdAt: now,
-      updatedAt: now,
-    };
-    
-    // Call callback if provided
-    if (onNewPack) {
-      onNewPack(newPack);
-    }
-    
-    toast({
-      title: "Pack Created",
-      description: `Created a new ${newPackSize}-session ${newPackSubject} pack.`,
+    }, {
+      onSuccess: (data) => {
+        // Call the callback if provided with the pack ID
+        if (onNewPack && data.id) {
+          onNewPack(data.id);
+        }
+        
+        // Reset form
+        setNewPackSubject('');
+        setNewPackType('');
+        setNewPackLocation('');
+        setNewPackSize('');
+        setNewPackFrequency('once');
+      }
     });
-    
-    // Reset form
-    setNewPackSubject('');
-    setNewPackType('');
-    setNewPackLocation('');
-    setNewPackSize('');
-    setNewPackFrequency('once');
   };
+  
+  // Loading state
+  if (isLoading) {
+    return (
+      <div className="space-y-6">
+        <div>
+          <h2 className="text-3xl font-bold tracking-tight">Session Packs</h2>
+          <p className="text-muted-foreground">Loading packs...</p>
+        </div>
+        <div className="grid gap-6 md:grid-cols-2">
+          <Card>
+            <CardContent className="pt-6">
+              <div className="h-48 flex items-center justify-center">
+                <div className="animate-pulse h-8 w-48 bg-muted rounded-md"></div>
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="pt-6">
+              <div className="h-48 flex items-center justify-center">
+                <div className="animate-pulse h-8 w-48 bg-muted rounded-md"></div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    );
+  }
+  
+  // Error state
+  if (isError) {
+    return (
+      <div className="space-y-6">
+        <div>
+          <h2 className="text-3xl font-bold tracking-tight">Session Packs</h2>
+          <p className="text-destructive">Error loading packs: {(error as Error)?.message || 'Unknown error'}</p>
+        </div>
+      </div>
+    );
+  }
   
   return (
     <div className="space-y-6">
-      <div>
-        <h2 className="text-3xl font-bold tracking-tight">Session Packs</h2>
-        <p className="text-muted-foreground">Manage student session packs</p>
+      <div className="flex justify-between items-center">
+        <div>
+          <h2 className="text-3xl font-bold tracking-tight">Session Packs</h2>
+          <p className="text-muted-foreground">Manage student session packs</p>
+        </div>
+        
+        <Button onClick={() => setShowFilters(!showFilters)} variant="outline" size="sm">
+          <Filter className="mr-2 h-4 w-4" />
+          {showFilters ? 'Hide Filters' : 'Show Filters'}
+        </Button>
       </div>
+      
+      {showFilters && (
+        <Card>
+          <CardContent className="pt-6 pb-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="subjectFilter">Subject</Label>
+                <Select value={subjectFilter} onValueChange={setSubjectFilter}>
+                  <SelectTrigger id="subjectFilter">
+                    <SelectValue placeholder="All Subjects" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">All Subjects</SelectItem>
+                    {subjectOptions.map(subject => (
+                      <SelectItem key={subject} value={subject}>
+                        {subject}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="statusFilter">Status</Label>
+                <Select value={statusFilter} onValueChange={setStatusFilter}>
+                  <SelectTrigger id="statusFilter">
+                    <SelectValue placeholder="Filter by status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="active">Active</SelectItem>
+                    <SelectItem value="inactive">Inactive</SelectItem>
+                    <SelectItem value="all">All</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
       
       <div className="grid gap-6 md:grid-cols-2">
         <Card>
@@ -124,14 +221,12 @@ const StudentPacks = ({ studentId, onNewPack }: StudentPacksProps) => {
             <CardTitle>Active Packs</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            {studentPacks.filter(pack => pack.isActive).length === 0 ? (
+            {activePacks.length === 0 ? (
               <div className="text-center py-8 text-muted-foreground">
                 No active packs found
               </div>
             ) : (
-              studentPacks
-                .filter(pack => pack.isActive)
-                .map(pack => (
+              activePacks.map(pack => (
                 <div 
                   key={pack.id} 
                   className="p-4 border rounded-lg space-y-2"
@@ -165,6 +260,12 @@ const StudentPacks = ({ studentId, onNewPack }: StudentPacksProps) => {
                       <span>Frequency:</span>
                       <span className="font-medium">Weekly {pack.weeklyFrequency}</span>
                     </div>
+                    {pack.expiryDate && (
+                      <div className="flex justify-between text-sm">
+                        <span>Expires:</span>
+                        <span className="font-medium">{new Date(pack.expiryDate).toLocaleDateString()}</span>
+                      </div>
+                    )}
                   </div>
                   
                   <div className="pt-2 flex gap-2">
@@ -292,10 +393,16 @@ const StudentPacks = ({ studentId, onNewPack }: StudentPacksProps) => {
             <Button 
               className="w-full mt-2" 
               onClick={handleCreatePack}
-              disabled={!newPackSubject || !newPackType || !newPackLocation || !newPackSize || !isLocationValid()}
+              disabled={!newPackSubject || !newPackType || !newPackLocation || !newPackSize || !isLocationValid() || createPackMutation.isPending}
             >
-              Create Pack
+              {createPackMutation.isPending ? 'Creating...' : 'Create Pack'}
             </Button>
+            
+            {createPackMutation.isError && (
+              <p className="text-destructive text-sm mt-2">
+                Error: {(createPackMutation.error as Error)?.message || 'Failed to create pack'}
+              </p>
+            )}
           </CardContent>
         </Card>
       </div>
@@ -305,15 +412,13 @@ const StudentPacks = ({ studentId, onNewPack }: StudentPacksProps) => {
           <CardTitle>Pack History</CardTitle>
         </CardHeader>
         <CardContent>
-          {studentPacks.filter(pack => !pack.isActive).length === 0 ? (
+          {inactivePacks.length === 0 ? (
             <div className="text-center py-4 text-muted-foreground">
               No pack history found
             </div>
           ) : (
             <div className="space-y-4">
-              {studentPacks
-                .filter(pack => !pack.isActive)
-                .map(pack => (
+              {inactivePacks.map(pack => (
                 <div key={pack.id} className="flex items-center justify-between p-2 border-b last:border-0">
                   <div>
                     <div className="font-medium">{pack.subject} - {pack.sessionType}</div>

@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
@@ -12,7 +12,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Calendar } from '@/components/ui/calendar';
-import { CalendarCheck, Search } from 'lucide-react';
+import { CalendarCheck, Search, Filter } from 'lucide-react';
 import { 
   Popover, 
   PopoverContent, 
@@ -30,7 +30,10 @@ import {
   Session, 
   SessionPack 
 } from '@/lib/types';
-import { teachers, students, sessionPacks } from '@/lib/data';
+import { useStudents } from '@/hooks/use-students';
+import { useTeachers } from '@/hooks/use-teachers';
+import { useSessionPacks } from '@/hooks/use-packs';
+import { useCreateSession } from '@/hooks/use-sessions';
 
 interface SessionSchedulerProps {
   onScheduleSession?: (session: Session) => void;
@@ -39,6 +42,12 @@ interface SessionSchedulerProps {
 const SessionScheduler = ({ onScheduleSession }: SessionSchedulerProps) => {
   const { toast } = useToast();
   
+  // Fetch data using React Query hooks
+  const { data: students, isLoading: studentsLoading, error: studentsError } = useStudents();
+  const { data: teachers, isLoading: teachersLoading, error: teachersError } = useTeachers();
+  const { data: sessionPacks, isLoading: packsLoading, error: packsError } = useSessionPacks();
+  const createSessionMutation = useCreateSession();
+  
   // Form state
   const [selectedStudent, setSelectedStudent] = useState<string>('');
   const [selectedPack, setSelectedPack] = useState<string>('');
@@ -46,22 +55,22 @@ const SessionScheduler = ({ onScheduleSession }: SessionSchedulerProps) => {
   const [selectedDate, setSelectedDate] = useState<Date>();
   const [selectedTime, setSelectedTime] = useState<string>('');
   
-  // Get available packs for selected student
-  const availablePacks = selectedStudent
-    ? sessionPacks.filter(
-        pack => pack.studentId === selectedStudent && pack.isActive && pack.remainingSessions > 0
-      )
-    : [];
+  // Filters state
+  const [subjectFilter, setSubjectFilter] = useState<string>('');
+  const [typeFilter, setTypeFilter] = useState<string>('');
+  const [locationFilter, setLocationFilter] = useState<string>('');
+  const [showFilters, setShowFilters] = useState(false);
   
-  // Get selected pack details
-  const pack = selectedPack
-    ? sessionPacks.find(p => p.id === selectedPack)
-    : undefined;
+  // Reset form when student selection changes
+  useEffect(() => {
+    setSelectedPack('');
+    setSelectedTeacher('');
+  }, [selectedStudent]);
   
-  // Get available teachers based on subject
-  const availableTeachers = pack
-    ? teachers.filter(teacher => teacher.subjects.includes(pack.subject))
-    : [];
+  // Reset teacher when pack changes (since subject might change)
+  useEffect(() => {
+    setSelectedTeacher('');
+  }, [selectedPack]);
   
   // Generate time slots (9AM to 7PM)
   const generateTimeSlots = () => {
@@ -78,6 +87,38 @@ const SessionScheduler = ({ onScheduleSession }: SessionSchedulerProps) => {
   
   const timeSlots = generateTimeSlots();
   
+  // Get available packs for selected student
+  const availablePacks = selectedStudent && sessionPacks
+    ? sessionPacks.filter(
+        pack => pack.studentId === selectedStudent && pack.isActive && pack.remainingSessions > 0
+      )
+    : [];
+    
+  // Apply subject filter if set
+  const filteredPacks = subjectFilter 
+    ? availablePacks.filter(pack => pack.subject === subjectFilter)
+    : availablePacks;
+    
+  // Apply session type filter if set
+  const filteredByTypePacks = typeFilter
+    ? filteredPacks.filter(pack => pack.sessionType === typeFilter)
+    : filteredPacks;
+    
+  // Apply location filter if set
+  const fullyFilteredPacks = locationFilter
+    ? filteredByTypePacks.filter(pack => pack.location === locationFilter)
+    : filteredByTypePacks;
+  
+  // Get selected pack details
+  const pack = selectedPack && sessionPacks
+    ? sessionPacks.find(p => p.id === selectedPack)
+    : undefined;
+  
+  // Get available teachers based on subject
+  const availableTeachers = pack && teachers
+    ? teachers.filter(teacher => teacher.subjects.includes(pack.subject))
+    : [];
+  
   const handleScheduleSession = () => {
     if (!selectedStudent || !selectedPack || !selectedTeacher || !selectedDate || !selectedTime) {
       toast({
@@ -88,59 +129,166 @@ const SessionScheduler = ({ onScheduleSession }: SessionSchedulerProps) => {
       return;
     }
     
-    const pack = sessionPacks.find(p => p.id === selectedPack);
-    if (!pack) return;
+    if (!pack) {
+      toast({
+        title: "Error",
+        description: "Selected pack not found.",
+        variant: "destructive",
+      });
+      return;
+    }
     
     const [hours, minutes] = selectedTime.split(':').map(Number);
     const sessionDateTime = new Date(selectedDate);
     sessionDateTime.setHours(hours, minutes, 0, 0);
     
-    const now = new Date();
-    
-    // Create the session
-    const newSession: Session = {
-      id: `session_${Date.now()}`,
+    // Create the session using the mutation
+    createSessionMutation.mutate({
       packId: selectedPack,
       teacherId: selectedTeacher,
-      studentIds: [selectedStudent],
+      studentIds: pack.sessionType === 'Duo' ? [selectedStudent] : [selectedStudent],
       subject: pack.subject,
       sessionType: pack.sessionType,
       location: pack.location,
       dateTime: sessionDateTime,
       duration: pack.sessionType === 'Focus' ? 45 : 60,
       status: 'Scheduled',
-      rescheduleCount: 0,
-      createdAt: now,
-      updatedAt: now,
-    };
-    
-    // If it's a Duo session, we'd need to add another student
-    // (simplified here - in a real app, we would handle this)
-    
-    // Call the callback if provided
-    if (onScheduleSession) {
-      onScheduleSession(newSession);
-    }
-    
-    toast({
-      title: "Session Scheduled",
-      description: `${pack.subject} session scheduled for ${format(sessionDateTime, 'PPP')} at ${format(sessionDateTime, 'p')}`,
+      notes: ''
+    }, {
+      onSuccess: (data) => {
+        // Call the callback if provided
+        if (onScheduleSession) {
+          const newSession: Session = {
+            id: data.id,
+            packId: selectedPack,
+            teacherId: selectedTeacher,
+            studentIds: [selectedStudent],
+            subject: pack.subject,
+            sessionType: pack.sessionType,
+            location: pack.location,
+            dateTime: sessionDateTime,
+            duration: pack.sessionType === 'Focus' ? 45 : 60,
+            status: 'Scheduled',
+            rescheduleCount: 0,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          };
+          onScheduleSession(newSession);
+        }
+        
+        // Reset form
+        setSelectedStudent('');
+        setSelectedPack('');
+        setSelectedTeacher('');
+        setSelectedDate(undefined);
+        setSelectedTime('');
+      }
     });
-    
-    // Reset form
-    setSelectedStudent('');
-    setSelectedPack('');
-    setSelectedTeacher('');
-    setSelectedDate(undefined);
-    setSelectedTime('');
   };
+
+  // Loading states
+  if (studentsLoading || teachersLoading || packsLoading) {
+    return <div className="space-y-6">
+      <div>
+        <h2 className="text-3xl font-bold tracking-tight">Session Scheduler</h2>
+        <p className="text-muted-foreground">Loading data...</p>
+      </div>
+      <div className="grid gap-6 md:grid-cols-2">
+        <Card>
+          <CardContent className="pt-6">
+            <div className="h-48 flex items-center justify-center">
+              <div className="animate-pulse h-8 w-48 bg-muted rounded-md"></div>
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="pt-6">
+            <div className="h-48 flex items-center justify-center">
+              <div className="animate-pulse h-8 w-48 bg-muted rounded-md"></div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    </div>;
+  }
+  
+  // Error states
+  if (studentsError || teachersError || packsError) {
+    return <div className="space-y-6">
+      <div>
+        <h2 className="text-3xl font-bold tracking-tight">Session Scheduler</h2>
+        <p className="text-destructive">Error loading data. Please try again later.</p>
+      </div>
+    </div>;
+  }
   
   return (
     <div className="space-y-6">
-      <div>
-        <h2 className="text-3xl font-bold tracking-tight">Session Scheduler</h2>
-        <p className="text-muted-foreground">Create and manage session schedules</p>
+      <div className="flex justify-between items-center">
+        <div>
+          <h2 className="text-3xl font-bold tracking-tight">Session Scheduler</h2>
+          <p className="text-muted-foreground">Create and manage session schedules</p>
+        </div>
+        
+        <Button onClick={() => setShowFilters(!showFilters)} variant="outline" size="sm">
+          <Filter className="mr-2 h-4 w-4" />
+          {showFilters ? 'Hide Filters' : 'Show Filters'}
+        </Button>
       </div>
+      
+      {showFilters && (
+        <Card>
+          <CardContent className="pt-6 pb-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="subjectFilter">Subject</Label>
+                <Select value={subjectFilter} onValueChange={setSubjectFilter}>
+                  <SelectTrigger id="subjectFilter">
+                    <SelectValue placeholder="All Subjects" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">All Subjects</SelectItem>
+                    <SelectItem value="Guitar">Guitar</SelectItem>
+                    <SelectItem value="Piano">Piano</SelectItem>
+                    <SelectItem value="Drums">Drums</SelectItem>
+                    <SelectItem value="Ukulele">Ukulele</SelectItem>
+                    <SelectItem value="Vocal">Vocal</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="typeFilter">Session Type</Label>
+                <Select value={typeFilter} onValueChange={setTypeFilter}>
+                  <SelectTrigger id="typeFilter">
+                    <SelectValue placeholder="All Types" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">All Types</SelectItem>
+                    <SelectItem value="Solo">Solo</SelectItem>
+                    <SelectItem value="Duo">Duo</SelectItem>
+                    <SelectItem value="Focus">Focus</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="locationFilter">Location</Label>
+                <Select value={locationFilter} onValueChange={setLocationFilter}>
+                  <SelectTrigger id="locationFilter">
+                    <SelectValue placeholder="All Locations" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">All Locations</SelectItem>
+                    <SelectItem value="Online">Online</SelectItem>
+                    <SelectItem value="Offline">Offline</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
       
       <div className="grid gap-6 md:grid-cols-2">
         <Card>
@@ -158,7 +306,7 @@ const SessionScheduler = ({ onScheduleSession }: SessionSchedulerProps) => {
                   <SelectValue placeholder="Select a student" />
                 </SelectTrigger>
                 <SelectContent>
-                  {students.map(student => (
+                  {students?.map((student) => (
                     <SelectItem key={student.id} value={student.id}>
                       {student.name}
                     </SelectItem>
@@ -172,19 +320,19 @@ const SessionScheduler = ({ onScheduleSession }: SessionSchedulerProps) => {
               <Select
                 value={selectedPack}
                 onValueChange={setSelectedPack}
-                disabled={!selectedStudent || availablePacks.length === 0}
+                disabled={!selectedStudent || fullyFilteredPacks.length === 0}
               >
                 <SelectTrigger id="pack">
                   <SelectValue placeholder={
                     !selectedStudent 
                       ? "Select a student first" 
-                      : availablePacks.length === 0 
+                      : fullyFilteredPacks.length === 0 
                         ? "No active packs available" 
                         : "Select a session pack"
                   } />
                 </SelectTrigger>
                 <SelectContent>
-                  {availablePacks.map(pack => (
+                  {fullyFilteredPacks.map(pack => (
                     <SelectItem key={pack.id} value={pack.id}>
                       {pack.subject} - {pack.sessionType} ({pack.remainingSessions} remaining)
                     </SelectItem>
@@ -243,6 +391,12 @@ const SessionScheduler = ({ onScheduleSession }: SessionSchedulerProps) => {
                       onSelect={setSelectedDate}
                       initialFocus
                       className="pointer-events-auto"
+                      disabled={(date) => {
+                        // Disable dates in the past
+                        const today = new Date();
+                        today.setHours(0, 0, 0, 0);
+                        return date < today;
+                      }}
                     />
                   </PopoverContent>
                 </Popover>
@@ -271,10 +425,18 @@ const SessionScheduler = ({ onScheduleSession }: SessionSchedulerProps) => {
             <Button 
               className="w-full mt-2" 
               onClick={handleScheduleSession}
-              disabled={!selectedStudent || !selectedPack || !selectedTeacher || !selectedDate || !selectedTime}
+              disabled={!selectedStudent || !selectedPack || !selectedTeacher || !selectedDate || !selectedTime || createSessionMutation.isPending}
             >
-              Schedule Session
+              {createSessionMutation.isPending 
+                ? 'Scheduling...' 
+                : 'Schedule Session'}
             </Button>
+            
+            {createSessionMutation.isError && (
+              <p className="text-sm text-destructive mt-2">
+                {(createSessionMutation.error as Error)?.message || 'Failed to schedule session'}
+              </p>
+            )}
           </CardContent>
         </Card>
         
