@@ -1,4 +1,3 @@
-
 export type UserRole = 'admin' | 'teacher' | 'student';
 
 export type SubjectType = 'Guitar' | 'Piano' | 'Drums' | 'Ukulele' | 'Vocal';
@@ -142,4 +141,12 @@ export interface InstrumentAvailability {
   location: LocationType;
   quantity: number; // How many of this instrument are available
   isAvailable: boolean;
+}
+
+export interface AttendanceTrackerProps {
+  teacherId?: string;
+}
+
+export interface StudentPacksProps {
+  studentId?: string;
 }

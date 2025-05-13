@@ -1,82 +1,77 @@
 
-import React, { useState } from 'react';
+import React from 'react';
 import Layout from '@/components/Layout';
 import Dashboard from '@/components/Dashboard';
-import AttendanceTracker from '@/components/AttendanceTracker';
 import SessionScheduler from '@/components/SessionScheduler';
+import AttendanceTracker from '@/components/AttendanceTracker';
 import StudentPacks from '@/components/StudentPacks';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAuth } from '@/contexts/AuthContext';
-import { UserRole } from '@/lib/types';
 
-const Index = () => {
-  // Get the user role from auth context
-  const { userRole } = useAuth();
-  
-  // Role selection only for demo purposes (will default to actual user role)
-  const [activeRole, setActiveRole] = useState<UserRole>(userRole || 'student');
+const Index: React.FC = () => {
+  const { userRole, user } = useAuth();
   
   return (
     <Layout>
-      <div className="mb-6">
-        <div className="flex justify-end mb-8">
-          <div className="inline-flex rounded-md shadow-sm" role="group">
-            <button
-              type="button"
-              className={`px-4 py-2 text-sm font-medium rounded-l-lg ${
-                activeRole === 'admin' ? 'bg-primary text-primary-foreground' : 'bg-white text-gray-700 hover:bg-gray-100'
-              }`}
-              onClick={() => setActiveRole('admin')}
-            >
-              Admin View
-            </button>
-            <button
-              type="button"
-              className={`px-4 py-2 text-sm font-medium ${
-                activeRole === 'teacher' ? 'bg-primary text-primary-foreground' : 'bg-white text-gray-700 hover:bg-gray-100'
-              }`}
-              onClick={() => setActiveRole('teacher')}
-            >
-              Teacher View
-            </button>
-            <button
-              type="button"
-              className={`px-4 py-2 text-sm font-medium rounded-r-lg ${
-                activeRole === 'student' ? 'bg-primary text-primary-foreground' : 'bg-white text-gray-700 hover:bg-gray-100'
-              }`}
-              onClick={() => setActiveRole('student')}
-            >
-              Student View
-            </button>
-          </div>
-        </div>
+      <div className="space-y-6">
+        <h1 className="text-3xl font-bold tracking-tight">
+          {userRole === 'admin' && 'Admin Dashboard'}
+          {userRole === 'teacher' && 'Teacher Dashboard'}
+          {userRole === 'student' && 'Student Dashboard'}
+        </h1>
         
-        {/* Display appropriate components based on role */}
-        {activeRole === 'admin' && (
-          <>
-            <Dashboard userRole="admin" />
-            <div className="mt-10">
-              <SessionScheduler />
-            </div>
-          </>
-        )}
-        
-        {activeRole === 'teacher' && (
-          <>
-            <Dashboard userRole="teacher" />
-            <div className="mt-10">
-              <AttendanceTracker />
-            </div>
-          </>
-        )}
-        
-        {activeRole === 'student' && (
-          <>
-            <Dashboard userRole="student" />
-            <div className="mt-10">
-              <StudentPacks />
-            </div>
-          </>
-        )}
+        <Tabs defaultValue="dashboard">
+          <TabsList className="grid w-full grid-cols-3 md:grid-cols-4 lg:w-1/2">
+            <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
+            <TabsTrigger value="scheduler">Schedule</TabsTrigger>
+            
+            {userRole === 'admin' || userRole === 'teacher' ? (
+              <TabsTrigger value="attendance">Attendance</TabsTrigger>
+            ) : (
+              <TabsTrigger value="my-packs">My Packs</TabsTrigger>
+            )}
+            
+            {userRole === 'admin' && (
+              <TabsTrigger value="admin">Admin</TabsTrigger>
+            )}
+          </TabsList>
+          
+          <TabsContent value="dashboard" className="pt-4">
+            <Dashboard />
+          </TabsContent>
+          
+          <TabsContent value="scheduler" className="pt-4">
+            <SessionScheduler />
+          </TabsContent>
+          
+          <TabsContent value="attendance" className="pt-4">
+            {(userRole === 'admin' || userRole === 'teacher') && (
+              <AttendanceTracker teacherId={user?.id} />
+            )}
+          </TabsContent>
+          
+          <TabsContent value="my-packs" className="pt-4">
+            {userRole === 'student' && (
+              <StudentPacks studentId={user?.id} />
+            )}
+          </TabsContent>
+          
+          <TabsContent value="admin" className="pt-4">
+            {userRole === 'admin' && (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="bg-white p-6 rounded-lg shadow">
+                  <h3 className="text-lg font-medium mb-4">User Management</h3>
+                  <p>Admin tools for managing users will go here.</p>
+                </div>
+                
+                <div className="bg-white p-6 rounded-lg shadow">
+                  <h3 className="text-lg font-medium mb-4">System Settings</h3>
+                  <p>Settings for the entire system will go here.</p>
+                </div>
+              </div>
+            )}
+          </TabsContent>
+        </Tabs>
       </div>
     </Layout>
   );

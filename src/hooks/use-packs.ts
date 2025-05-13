@@ -57,7 +57,7 @@ export const useSessionPacks = (studentId?: string) => {
       return data.map((item: any) => ({
         id: item.id,
         studentId: item.student_id,
-        studentName: item.students.profiles.name,
+        studentName: item.students?.profiles?.name || 'Unknown',
         size: parseInt(item.size),
         subject: item.subject,
         sessionType: item.session_type,
@@ -88,20 +88,18 @@ export const useCreateSessionPack = () => {
       
       const { data, error } = await supabase
         .from('session_packs')
-        .insert([
-          {
-            student_id: packData.studentId,
-            size: packData.size?.toString(),
-            subject: packData.subject,
-            session_type: packData.sessionType,
-            location: packData.location,
-            purchased_date: purchasedDate.toISOString(),
-            expiry_date: expiryDate.toISOString(),
-            remaining_sessions: packData.size || 4, // Default to pack size
-            is_active: true,
-            weekly_frequency: packData.weeklyFrequency || 'once'
-          }
-        ])
+        .insert({
+          student_id: packData.studentId,
+          size: packData.size?.toString(),
+          subject: packData.subject,
+          session_type: packData.sessionType,
+          location: packData.location,
+          purchased_date: purchasedDate.toISOString(),
+          expiry_date: expiryDate.toISOString(),
+          remaining_sessions: packData.size || 4, // Default to pack size
+          is_active: true,
+          weekly_frequency: packData.weeklyFrequency || 'once'
+        })
         .select()
         .single();
       
