@@ -11,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { supabase } from "@/integrations/supabase/client";
 import { formatDataForExport, exportToCsv } from "@/lib/exportToCsv";
 import { useToast } from "@/hooks/use-toast";
+import { SubjectType, AttendanceStatus } from "@/lib/types";
 
 const DataExport = () => {
   const { toast } = useToast();
@@ -21,8 +22,8 @@ const DataExport = () => {
   
   const [dataType, setDataType] = useState("sessions");
   const [isLoading, setIsLoading] = useState(false);
-  const [selectedSubject, setSelectedSubject] = useState<string | null>(null);
-  const [selectedStatus, setSelectedStatus] = useState<string | null>(null);
+  const [selectedSubject, setSelectedSubject] = useState<SubjectType | null>(null);
+  const [selectedStatus, setSelectedStatus] = useState<AttendanceStatus | null>(null);
   
   // Export data based on filters
   const handleExport = async () => {
@@ -185,7 +186,8 @@ const DataExport = () => {
                 {(dataType === "sessions" || dataType === "packs") && (
                   <div className="space-y-2">
                     <span className="text-sm font-medium">Subject</span>
-                    <Select value={selectedSubject || ""} onValueChange={setSelectedSubject}>
+                    <Select value={selectedSubject || ""} 
+                      onValueChange={(value) => setSelectedSubject(value as SubjectType || null)}>
                       <SelectTrigger>
                         <SelectValue placeholder="All Subjects" />
                       </SelectTrigger>
@@ -205,7 +207,8 @@ const DataExport = () => {
                 {(dataType === "sessions" || dataType === "attendance") && (
                   <div className="space-y-2">
                     <span className="text-sm font-medium">Status</span>
-                    <Select value={selectedStatus || ""} onValueChange={setSelectedStatus}>
+                    <Select value={selectedStatus || ""} 
+                      onValueChange={(value) => setSelectedStatus(value as AttendanceStatus || null)}>
                       <SelectTrigger>
                         <SelectValue placeholder="All Statuses" />
                       </SelectTrigger>

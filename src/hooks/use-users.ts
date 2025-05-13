@@ -2,7 +2,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { User, Teacher, Student, Admin } from "@/lib/types";
+import { User, Teacher, Student, Admin, UserRole, SubjectType, TimeSlot } from "@/lib/types";
 
 export interface UserWithRole extends User {
   teacherData?: Omit<Teacher, keyof User>;
@@ -10,7 +10,7 @@ export interface UserWithRole extends User {
   adminData?: Omit<Admin, keyof User>;
 }
 
-export const useUsers = (filters?: { role?: string; email?: string }) => {
+export const useUsers = (filters?: { role?: UserRole; email?: string }) => {
   const queryClient = useQueryClient();
 
   // Fetch all users with their role-specific data
@@ -44,7 +44,7 @@ export const useUsers = (filters?: { role?: string; email?: string }) => {
             id: profile.id,
             name: profile.name,
             email: profile.email,
-            role: profile.role,
+            role: profile.role as UserRole,
             createdAt: new Date(profile.created_at),
             updatedAt: new Date(profile.updated_at)
           };
@@ -59,8 +59,9 @@ export const useUsers = (filters?: { role?: string; email?: string }) => {
               
             if (teacherData) {
               user.teacherData = {
-                subjects: teacherData.subjects,
-                maxWeeklySessions: teacherData.max_weekly_sessions
+                subjects: teacherData.subjects as SubjectType[],
+                maxWeeklySessions: teacherData.max_weekly_sessions || 0,
+                availableTimes: [] // Initialize with empty array
               };
             }
           } else if (profile.role === 'student') {
@@ -72,9 +73,10 @@ export const useUsers = (filters?: { role?: string; email?: string }) => {
               
             if (studentData) {
               user.studentData = {
-                preferredSubjects: studentData.preferred_subjects,
-                preferredTeachers: studentData.preferred_teachers,
-                notes: studentData.notes
+                preferredSubjects: studentData.preferred_subjects as SubjectType[],
+                preferredTeachers: studentData.preferred_teachers || [],
+                notes: studentData.notes || '',
+                packs: [] // Initialize with empty array
               };
             }
           } else if (profile.role === 'admin') {
@@ -86,7 +88,7 @@ export const useUsers = (filters?: { role?: string; email?: string }) => {
               
             if (adminData) {
               user.adminData = {
-                permissions: adminData.permissions
+                permissions: adminData.permissions || []
               };
             }
           }

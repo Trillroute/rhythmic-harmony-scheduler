@@ -2,12 +2,13 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { format, subMonths } from "date-fns";
+import { SubjectType, AttendanceStatus } from "@/lib/types";
 
 export interface ReportFilter {
   startDate?: Date;
   endDate?: Date;
-  subjects?: string[];
-  status?: string[];
+  subjects?: SubjectType[];
+  status?: AttendanceStatus[];
   teacherId?: string;
   studentId?: string;
 }
@@ -41,11 +42,11 @@ export const useAttendanceReport = (filters: ReportFilter = {}) => {
         .lte('marked_at', formattedEndDate);
       
       if (filters.subjects && filters.subjects.length > 0) {
-        query = query.in('sessions.subject', filters.subjects);
+        query = query.in('sessions.subject', filters.subjects as SubjectType[]);
       }
       
       if (filters.status && filters.status.length > 0) {
-        query = query.in('status', filters.status);
+        query = query.in('status', filters.status as AttendanceStatus[]);
       }
       
       if (filters.teacherId) {
@@ -150,11 +151,11 @@ export const useSessionReport = (filters: ReportFilter = {}) => {
         .lte('date_time', formattedEndDate);
       
       if (filters.subjects && filters.subjects.length > 0) {
-        query = query.in('subject', filters.subjects);
+        query = query.in('subject', filters.subjects as SubjectType[]);
       }
       
       if (filters.status && filters.status.length > 0) {
-        query = query.in('status', filters.status);
+        query = query.in('status', filters.status as AttendanceStatus[]);
       }
       
       if (filters.teacherId) {
@@ -243,7 +244,7 @@ export const usePackReport = (filters: ReportFilter = {}) => {
       
       // Apply any filters
       if (filters.subjects && filters.subjects.length > 0) {
-        query = query.in('subject', filters.subjects);
+        query = query.in('subject', filters.subjects as SubjectType[]);
       }
       
       if (filters.studentId) {

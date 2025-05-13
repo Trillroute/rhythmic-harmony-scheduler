@@ -1,6 +1,6 @@
 
 import React, { useEffect } from 'react';
-import { Navigate, useLocation } from 'react-router-dom';
+import { Navigate, useLocation, Outlet } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { UserRole } from '@/lib/types';
 import { toast } from '@/hooks/use-toast';
@@ -55,7 +55,12 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
     return <Navigate to={roleBasedPath} replace />;
   }
   
-  return <>{children}</>;
+  return (
+    <>
+      {children}
+      <Outlet />
+    </>
+  );
 };
 
 export default ProtectedRoute;

@@ -15,6 +15,7 @@ import SystemSettings from "./components/admin/SystemSettings";
 import ReportingDashboard from "./components/admin/ReportingDashboard";
 import DataExport from "./components/admin/DataExport";
 import AdminDashboard from "./components/admin/AdminDashboard";
+import { UserRole } from "./lib/types";
 
 export const router = createBrowserRouter([
   {
@@ -35,24 +36,24 @@ export const router = createBrowserRouter([
       // Protected Routes
       {
         path: "/teacher",
-        element: <ProtectedRoute role="teacher" />,
+        element: <ProtectedRoute allowedRoles={["teacher"]}><></></ProtectedRoute>,
         children: [
-          { path: "dashboard", element: <Dashboard /> },
+          { path: "dashboard", element: <Dashboard userRole="teacher" /> },
           { path: "scheduler", element: <SessionScheduler /> },
           { path: "attendance", element: <AttendanceTracker /> },
         ],
       },
       {
         path: "/student",
-        element: <ProtectedRoute role="student" />,
+        element: <ProtectedRoute allowedRoles={["student"]}><></></ProtectedRoute>,
         children: [
-          { path: "dashboard", element: <Dashboard /> },
+          { path: "dashboard", element: <Dashboard userRole="student" /> },
           { path: "packs", element: <StudentPacks /> },
         ],
       },
       {
         path: "/admin",
-        element: <ProtectedRoute role="admin" />,
+        element: <ProtectedRoute allowedRoles={["admin"]}><></></ProtectedRoute>,
         children: [
           { path: "dashboard", element: <AdminDashboard /> },
           { path: "users", element: <UserManagement /> },
