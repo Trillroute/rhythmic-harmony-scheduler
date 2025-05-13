@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { UserRole } from '@/lib/types';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -18,27 +18,43 @@ const Signup = () => {
   const [role, setRole] = useState<UserRole>('student');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [showLoadingMessage, setShowLoadingMessage] = useState(false);
-  const { signUp, isLoading } = useAuth();
+  const { signUp, isLoading, user } = useAuth();
+  const navigate = useNavigate();
 
   // Show a message if loading persists for too long
   useEffect(() => {
+    // Force loading state to false on mount
+    setShowLoadingMessage(false);
+    
     const loadingTimer = setTimeout(() => {
       if (isLoading) {
         setShowLoadingMessage(true);
       }
     }, 2000);
+    
+    // If we have a user already, redirect to the appropriate dashboard
+    if (user) {
+      navigate('/');
+    }
 
     return () => {
       clearTimeout(loadingTimer);
     };
-  }, [isLoading]);
+  }, [isLoading, user, navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMessage(null);
     
+    // Simple validation
+    if (password.length < 6) {
+      setErrorMessage('Password must be at least 6 characters long');
+      return;
+    }
+    
     try {
       await signUp(email, password, name, role);
+      // The redirect is handled in the signUp function
     } catch (error) {
       console.error('Signup error:', error);
       if (error instanceof Error) {

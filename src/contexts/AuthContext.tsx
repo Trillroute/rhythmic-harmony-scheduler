@@ -34,11 +34,23 @@ const cleanupAuthState = () => {
   });
 };
 
+// Helper function to get redirect path based on user role
+const getRoleBasedRedirectPath = (role: UserRole | null): string => {
+  if (!role) return '/dashboard';
+  
+  switch(role) {
+    case 'admin': return '/admin/dashboard';
+    case 'teacher': return '/teacher/dashboard';
+    case 'student': return '/student/dashboard';
+    default: return '/dashboard';
+  }
+};
+
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
-  const [isLoading, setIsLoading] = useState(false); // 🔧 Initialize to false
-  const [initialLoadComplete, setInitialLoadComplete] = useState(false); // Track initial load
+  const [isLoading, setIsLoading] = useState(false); // Initialize to false
+  const [initialLoadComplete, setInitialLoadComplete] = useState(false);
   const [userRole, setUserRole] = useState<UserRole | null>(null);
   const navigate = useNavigate();
 
@@ -81,10 +93,26 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     
     // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (_event, session) => {
-        console.log('Auth state changed:', _event);
+      async (event, session) => {
+        console.log('Auth state changed:', event);
         setSession(session);
         setUser(session?.user || null);
+        
+        // Handle session expiration events
+        if (event === 'SIGNED_OUT' || event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED') {
+          console.log(`Auth event ${event} detected`);
+          
+          if (!session) {
+            // Session expired or user signed out
+            setUserRole(null);
+            toast({
+              title: 'Session ended',
+              description: 'Your session has ended. Please sign in again.',
+            });
+            navigate('/login');
+            return;
+          }
+        }
         
         if (session?.user) {
           // Defer fetching user role to prevent potential deadlocks
@@ -100,7 +128,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return () => {
       subscription.unsubscribe();
     };
-  }, []);
+  }, [navigate]);
   
   // Fetch user role from profiles table
   const fetchUserRole = async (userId: string) => {
@@ -209,7 +237,26 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           title: 'Signed in',
           description: 'Welcome back!',
         });
-        navigate('/');
+        
+        // Fetch user role and redirect based on role
+        try {
+          const { data: profileData } = await supabase
+            .from('profiles')
+            .select('role')
+            .eq('id', data.user.id)
+            .single();
+            
+          const role = profileData?.role as UserRole;
+          setUserRole(role);
+          
+          // Redirect based on user role
+          const redirectPath = getRoleBasedRedirectPath(role);
+          navigate(redirectPath);
+        } catch (roleError) {
+          console.error('Error fetching user role for redirect:', roleError);
+          // Default redirect if role fetch fails
+          navigate('/');
+        }
       }
     } catch (error) {
       console.error('Error in signIn:', error);

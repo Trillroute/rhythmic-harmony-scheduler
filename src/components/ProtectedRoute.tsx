@@ -1,8 +1,9 @@
 
-import React from 'react';
-import { Navigate } from 'react-router-dom';
+import React, { useEffect } from 'react';
+import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { UserRole } from '@/lib/types';
+import { toast } from '@/hooks/use-toast';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -14,23 +15,44 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   allowedRoles 
 }) => {
   const { user, userRole, isLoading } = useAuth();
+  const location = useLocation();
+  
+  useEffect(() => {
+    // If user is authenticated but doesn't have the required role, show a toast
+    if (user && userRole && allowedRoles && !allowedRoles.includes(userRole)) {
+      toast({
+        title: "Access Denied",
+        description: "You don't have permission to access this page.",
+        variant: "destructive",
+      });
+    }
+  }, [user, userRole, allowedRoles]);
   
   if (isLoading) {
-    // You can replace this with a proper loading component
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+        <div className="flex flex-col items-center gap-4">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+          <p className="text-muted-foreground">Verifying your access...</p>
+        </div>
       </div>
     );
   }
   
   if (!user) {
-    return <Navigate to="/login" replace />;
+    // Save the attempted URL to redirect back after login
+    return <Navigate to="/login" state={{ from: location }} replace />;
   }
   
   if (allowedRoles && userRole && !allowedRoles.includes(userRole)) {
-    // If user doesn't have the required role, redirect to home
-    return <Navigate to="/" replace />;
+    // If user doesn't have the required role, redirect to their role-specific dashboard
+    const roleBasedPath = 
+      userRole === 'admin' ? '/admin/dashboard' : 
+      userRole === 'teacher' ? '/teacher/dashboard' : 
+      userRole === 'student' ? '/student/dashboard' : 
+      '/';
+    
+    return <Navigate to={roleBasedPath} replace />;
   }
   
   return <>{children}</>;

@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
-import { Link } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertCircle, Loader2 } from "lucide-react";
 
@@ -14,20 +14,40 @@ const Login = () => {
   const [password, setPassword] = useState('');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [showLoadingMessage, setShowLoadingMessage] = useState(false);
-  const { signIn, isLoading } = useAuth();
-
+  const { signIn, isLoading, user } = useAuth();
+  const location = useLocation();
+  const navigate = useNavigate();
+  
+  // Get the "from" redirect path if available
+  const from = location.state?.from?.pathname || '/';
+  
   // Reset loading state when component mounts
   useEffect(() => {
+    // Force loading state to false on mount
+    setShowLoadingMessage(false);
+    
+    // Show loading message after delay if still loading
     const loadingTimer = setTimeout(() => {
       if (isLoading) {
         setShowLoadingMessage(true);
       }
     }, 2000);
 
+    // If we have a user already, redirect to appropriate page
+    if (user) {
+      navigate(from, { replace: true });
+    }
+    
+    // Check if we have a session expired message
+    const sessionExpired = new URLSearchParams(location.search).get('session_expired');
+    if (sessionExpired === 'true') {
+      setErrorMessage('Your session has expired. Please sign in again.');
+    }
+
     return () => {
       clearTimeout(loadingTimer);
     };
-  }, [isLoading]);
+  }, [isLoading, user, navigate, from, location.search]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -35,6 +55,7 @@ const Login = () => {
     
     try {
       await signIn(email, password);
+      // Navigate is handled inside the signIn function based on user role
     } catch (error) {
       console.error('Login error:', error);
       if (error instanceof Error) {
