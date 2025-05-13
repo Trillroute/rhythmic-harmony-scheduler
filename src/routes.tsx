@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { createBrowserRouter, RouterProvider } from 'react-router-dom';
+import { createBrowserRouter, RouterProvider, Outlet } from 'react-router-dom';
 import Login from '@/pages/Login';
 import Signup from '@/pages/Signup';
 import NotFound from '@/pages/NotFound';
@@ -12,16 +12,18 @@ import UserManagement from '@/components/admin/UserManagement';
 import SystemSettings from '@/components/admin/SystemSettings';
 import ReportingDashboard from '@/components/admin/ReportingDashboard';
 import DataExport from '@/components/admin/DataExport';
-import CourseManagement from '@/components/admin/CourseManagement';
-import SessionPlans from '@/components/admin/SessionPlans';
-import InvoiceManagement from '@/components/admin/InvoiceManagement';
-import CourseMaterials from '@/components/admin/CourseMaterials';
-import AdvancedScheduler from '@/components/admin/AdvancedScheduler';
-import StudentManagement from '@/components/admin/StudentManagement';
 import Dashboard from '@/components/Dashboard';
 import SessionScheduler from '@/components/SessionScheduler';
 import AttendanceTracker from '@/components/AttendanceTracker';
 import StudentPacks from '@/components/StudentPacks';
+
+// Create placeholder components for missing components until they're implemented
+const CourseManagement = () => <div>Course Management Component</div>;
+const SessionPlans = () => <div>Session Plans Component</div>;
+const InvoiceManagement = () => <div>Invoice Management Component</div>;
+const CourseMaterials = () => <div>Course Materials Component</div>;
+const AdvancedScheduler = () => <div>Advanced Scheduler Component</div>;
+const StudentManagement = () => <div>Student Management Component</div>;
 
 const routes = createBrowserRouter([
   {
@@ -140,9 +142,6 @@ const routes = createBrowserRouter([
     element: <NotFound />,
   }
 ]);
-
-// Need to import Outlet
-import { Outlet } from 'react-router-dom';
 
 export default function Router() {
   return <RouterProvider router={routes} />;

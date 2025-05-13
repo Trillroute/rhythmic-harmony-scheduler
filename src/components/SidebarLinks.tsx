@@ -11,7 +11,7 @@ import {
   CreditCardIcon,
   GraduationCapIcon,
   UsersIcon,
-  UserGroupIcon
+  Users as GroupIcon
 } from "lucide-react";
 import { UserRole } from "@/lib/types";
 import AdminLinks from "./admin/AdminLinks";
@@ -78,7 +78,7 @@ const SidebarLinks: React.FC<SidebarLinksProps> = ({ role }) => {
             }`
           }
         >
-          <UserGroupIcon className="mr-2 h-4 w-4" />
+          <GroupIcon className="mr-2 h-4 w-4" />
           My Students
         </NavLink>
         

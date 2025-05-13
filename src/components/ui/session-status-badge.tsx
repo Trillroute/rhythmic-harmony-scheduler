@@ -1,7 +1,10 @@
 
 import React from 'react';
 import { Badge } from '@/components/ui/badge';
-import { AttendanceStatus } from '@/lib/types';
+
+// Define the AttendanceStatus type if it doesn't exist in types.ts
+type AttendanceStatus = 'Present' | 'Scheduled' | 'Cancelled by Student' | 
+                         'Cancelled by Teacher' | 'Cancelled by School' | 'No Show';
 
 interface SessionStatusBadgeProps {
   status: AttendanceStatus;
@@ -9,14 +12,14 @@ interface SessionStatusBadgeProps {
 }
 
 export function SessionStatusBadge({ status, className }: SessionStatusBadgeProps) {
-  let variant: "default" | "secondary" | "destructive" | "outline" | "success" = "outline";
+  let variant: "default" | "destructive" | "outline" | "secondary" = "outline";
   
   switch (status) {
     case 'Present':
-      variant = 'success';
+      variant = "default"; // Using default instead of success which isn't in the Badge variant options
       break;
     case 'Scheduled':
-      variant = 'default';
+      variant = "default";
       break;
     case 'Cancelled by Student':
     case 'Cancelled by Teacher':
