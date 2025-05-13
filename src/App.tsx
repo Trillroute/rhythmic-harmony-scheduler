@@ -22,6 +22,7 @@ function App() {
             <Routes>
               <Route path="/login" element={<Login />} />
               <Route path="/signup" element={<Signup />} />
+              <Route path="/verify" element={<Login />} /> {/* Redirect verification to login page */}
               <Route 
                 path="/" 
                 element={

@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Session, User } from '@supabase/supabase-js';
@@ -117,6 +118,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       // Clean up existing auth state to avoid conflicts
       cleanupAuthState();
       
+      // Get the current app URL for redirection
+      const appUrl = window.location.origin;
+      
       // Make sure the role is passed correctly in the metadata
       const { data, error } = await supabase.auth.signUp({
         email,
@@ -125,7 +129,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           data: {
             name,
             role
-          }
+          },
+          emailRedirectTo: `${appUrl}/verify`,
         }
       });
       
@@ -143,11 +148,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (data.user) {
         toast({
           title: 'Account created',
-          description: 'Welcome to Music School!',
+          description: 'Please check your email to verify your account.',
         });
         
         // Explicitly log the user metadata for debugging
         console.log('User metadata:', data.user.user_metadata);
+        console.log('Redirect URL:', `${appUrl}/verify`);
         
         navigate('/');
       }
