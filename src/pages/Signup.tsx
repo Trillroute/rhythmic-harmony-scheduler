@@ -8,17 +8,31 @@ import { Label } from '@/components/ui/label';
 import { Link } from 'react-router-dom';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { UserRole } from '@/lib/types';
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { AlertCircle } from "lucide-react";
 
 const Signup = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
   const [role, setRole] = useState<UserRole>('student');
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const { signUp, isLoading } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    await signUp(email, password, name, role);
+    setErrorMessage(null);
+    
+    try {
+      await signUp(email, password, name, role);
+    } catch (error) {
+      console.error('Signup error:', error);
+      if (error instanceof Error) {
+        setErrorMessage(error.message || 'An error occurred during sign up');
+      } else {
+        setErrorMessage('An unexpected error occurred');
+      }
+    }
   };
 
   return (
@@ -30,6 +44,14 @@ const Signup = () => {
         </CardHeader>
         <form onSubmit={handleSubmit}>
           <CardContent className="space-y-4">
+            {errorMessage && (
+              <Alert variant="destructive">
+                <AlertCircle className="h-4 w-4" />
+                <AlertTitle>Error</AlertTitle>
+                <AlertDescription>{errorMessage}</AlertDescription>
+              </Alert>
+            )}
+            
             <div className="space-y-2">
               <Label htmlFor="name">Full Name</Label>
               <Input 

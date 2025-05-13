@@ -18,6 +18,23 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+const cleanupAuthState = () => {
+  // Remove standard auth tokens
+  localStorage.removeItem('supabase.auth.token');
+  // Remove all Supabase auth keys from localStorage
+  Object.keys(localStorage).forEach((key) => {
+    if (key.startsWith('supabase.auth.') || key.includes('sb-')) {
+      localStorage.removeItem(key);
+    }
+  });
+  // Remove from sessionStorage if in use
+  Object.keys(sessionStorage || {}).forEach((key) => {
+    if (key.startsWith('supabase.auth.') || key.includes('sb-')) {
+      sessionStorage.removeItem(key);
+    }
+  });
+};
+
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
@@ -98,6 +115,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       setIsLoading(true);
       
+      // Clean up existing auth state to avoid conflicts
+      cleanupAuthState();
+      
+      // Make sure the role is passed correctly in the metadata
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
@@ -110,12 +131,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       });
       
       if (error) {
+        // Log detailed error information
+        console.error('Supabase signup error:', error);
         toast({
           title: 'Sign up failed',
           description: error.message,
           variant: 'destructive',
         });
-        return;
+        throw new Error(error.message);
       }
       
       if (data.user) {
@@ -123,15 +146,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           title: 'Account created',
           description: 'Welcome to Music School!',
         });
+        
+        // Explicitly log the user metadata for debugging
+        console.log('User metadata:', data.user.user_metadata);
+        
         navigate('/');
       }
     } catch (error) {
       console.error('Error in signUp:', error);
-      toast({
-        title: 'Sign up error',
-        description: 'An unexpected error occurred. Please try again.',
-        variant: 'destructive',
-      });
+      throw error;
     } finally {
       setIsLoading(false);
     }
@@ -140,6 +163,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const signIn = async (email: string, password: string) => {
     try {
       setIsLoading(true);
+      
+      // Clean up existing auth state first
+      cleanupAuthState();
       
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
@@ -177,6 +203,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const signOut = async () => {
     try {
       setIsLoading(true);
+      
+      // Clean up auth state
+      cleanupAuthState();
       
       const { error } = await supabase.auth.signOut();
       
