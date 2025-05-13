@@ -19,68 +19,81 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 const cleanupAuthState = () => {
-  // Remove standard auth tokens
+  // Only remove expired or temporary auth state items
+  // We're more selective now to avoid removing active sessions
+  
+  // Remove items related to one-time tokens or errors
   localStorage.removeItem('supabase.auth.token');
-  // Remove all Supabase auth keys from localStorage
-  Object.keys(localStorage).forEach((key) => {
-    if (key.startsWith('supabase.auth.') || key.includes('sb-')) {
-      localStorage.removeItem(key);
-    }
-  });
-  // Remove from sessionStorage if in use
-  Object.keys(sessionStorage || {}).forEach((key) => {
-    if (key.startsWith('supabase.auth.') || key.includes('sb-')) {
-      sessionStorage.removeItem(key);
-    }
+  
+  // Only clear specific auth-related temporary storage
+  // This is safer than clearing all auth keys
+  const keysToRemove = ['errorMessage', 'inviteToken', 'tempAuthState'];
+  
+  keysToRemove.forEach(key => {
+    localStorage.removeItem(key);
   });
 };
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false); // 🔧 Initialize to false
+  const [initialLoadComplete, setInitialLoadComplete] = useState(false); // Track initial load
   const [userRole, setUserRole] = useState<UserRole | null>(null);
   const navigate = useNavigate();
 
+  // Initialize auth state on component mount
   useEffect(() => {
-    async function getInitialSession() {
-      setIsLoading(true);
-      
-      const { data: { session }, error } = await supabase.auth.getSession();
-      
-      if (error) {
-        console.error('Error getting session:', error);
-        toast({
-          title: 'Authentication error',
-          description: 'Could not retrieve your session. Please try again.',
-          variant: 'destructive',
-        });
+    const initializeAuth = async () => {
+      try {
+        // Only set loading true for the initial auth check
+        setIsLoading(true);
+        console.log('Starting auth initialization');
+        
+        const { data, error } = await supabase.auth.getSession();
+        
+        if (error) {
+          console.error('Error getting initial session:', error);
+          toast({
+            title: 'Authentication error',
+            description: 'Could not retrieve your session. Please try again.',
+            variant: 'destructive',
+          });
+        }
+        
+        setSession(data?.session || null);
+        setUser(data?.session?.user || null);
+        
+        if (data?.session?.user) {
+          await fetchUserRole(data.session.user.id);
+        }
+      } catch (err) {
+        console.error('Unexpected error during auth initialization:', err);
+      } finally {
+        // Always reset loading and mark initialization as complete
+        setIsLoading(false);
+        setInitialLoadComplete(true);
+        console.log('Auth initialization complete');
       }
-      
-      setSession(session);
-      setUser(session?.user || null);
-      
-      if (session?.user) {
-        await fetchUserRole(session.user.id);
-      }
-      
-      setIsLoading(false);
-    }
+    };
     
-    getInitialSession();
+    initializeAuth();
     
+    // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (_event, session) => {
+        console.log('Auth state changed:', _event);
         setSession(session);
         setUser(session?.user || null);
         
         if (session?.user) {
-          await fetchUserRole(session.user.id);
+          // Defer fetching user role to prevent potential deadlocks
+          setTimeout(async () => {
+            await fetchUserRole(session.user.id);
+          }, 0);
         } else {
           setUserRole(null);
         }
-        
-        setIsLoading(false);
       }
     );
     
@@ -114,6 +127,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const signUp = async (email: string, password: string, name: string, role: UserRole) => {
     try {
       setIsLoading(true);
+      console.log('Starting signup process');
       
       // Clean up existing auth state to avoid conflicts
       cleanupAuthState();
@@ -162,14 +176,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       throw error;
     } finally {
       setIsLoading(false);
+      console.log('Signup process complete, isLoading set to false');
     }
   };
   
   const signIn = async (email: string, password: string) => {
     try {
       setIsLoading(true);
+      console.log('Starting signin process');
       
-      // Clean up existing auth state first
+      // Clean up existing auth state first, but be more selective
+      // to avoid removing critical authentication data
       cleanupAuthState();
       
       const { data, error } = await supabase.auth.signInWithPassword({
@@ -178,6 +195,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       });
       
       if (error) {
+        console.error('Sign in error:', error);
         toast({
           title: 'Sign in failed',
           description: error.message,
@@ -202,12 +220,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       });
     } finally {
       setIsLoading(false);
+      console.log('Signin process complete, isLoading set to false');
     }
   };
   
   const signOut = async () => {
     try {
       setIsLoading(true);
+      console.log('Starting signout process');
       
       // Clean up auth state
       cleanupAuthState();
@@ -238,6 +258,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       });
     } finally {
       setIsLoading(false);
+      console.log('Signout process complete, isLoading set to false');
     }
   };
   

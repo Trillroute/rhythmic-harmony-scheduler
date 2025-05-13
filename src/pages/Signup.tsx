@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -9,7 +9,7 @@ import { Link } from 'react-router-dom';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { UserRole } from '@/lib/types';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { AlertCircle } from "lucide-react";
+import { AlertCircle, Loader2 } from "lucide-react";
 
 const Signup = () => {
   const [email, setEmail] = useState('');
@@ -17,7 +17,21 @@ const Signup = () => {
   const [name, setName] = useState('');
   const [role, setRole] = useState<UserRole>('student');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [showLoadingMessage, setShowLoadingMessage] = useState(false);
   const { signUp, isLoading } = useAuth();
+
+  // Show a message if loading persists for too long
+  useEffect(() => {
+    const loadingTimer = setTimeout(() => {
+      if (isLoading) {
+        setShowLoadingMessage(true);
+      }
+    }, 2000);
+
+    return () => {
+      clearTimeout(loadingTimer);
+    };
+  }, [isLoading]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -49,6 +63,16 @@ const Signup = () => {
                 <AlertCircle className="h-4 w-4" />
                 <AlertTitle>Error</AlertTitle>
                 <AlertDescription>{errorMessage}</AlertDescription>
+              </Alert>
+            )}
+            
+            {showLoadingMessage && isLoading && (
+              <Alert>
+                <Loader2 className="h-4 w-4 animate-spin" />
+                <AlertTitle>Checking session...</AlertTitle>
+                <AlertDescription>
+                  We're verifying your authentication status. This should only take a moment.
+                </AlertDescription>
               </Alert>
             )}
             
@@ -106,7 +130,12 @@ const Signup = () => {
               className="w-full" 
               disabled={isLoading}
             >
-              {isLoading ? 'Creating account...' : 'Create Account'}
+              {isLoading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Creating account...
+                </>
+              ) : 'Create Account'}
             </Button>
             <p className="text-sm text-center text-gray-500">
               Already have an account?{' '}

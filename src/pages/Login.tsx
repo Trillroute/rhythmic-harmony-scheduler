@@ -1,20 +1,48 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Link } from 'react-router-dom';
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { AlertCircle, Loader2 } from "lucide-react";
 
 const Login = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [showLoadingMessage, setShowLoadingMessage] = useState(false);
   const { signIn, isLoading } = useAuth();
+
+  // Reset loading state when component mounts
+  useEffect(() => {
+    const loadingTimer = setTimeout(() => {
+      if (isLoading) {
+        setShowLoadingMessage(true);
+      }
+    }, 2000);
+
+    return () => {
+      clearTimeout(loadingTimer);
+    };
+  }, [isLoading]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    await signIn(email, password);
+    setErrorMessage(null);
+    
+    try {
+      await signIn(email, password);
+    } catch (error) {
+      console.error('Login error:', error);
+      if (error instanceof Error) {
+        setErrorMessage(error.message || 'An error occurred during sign in');
+      } else {
+        setErrorMessage('An unexpected error occurred');
+      }
+    }
   };
 
   return (
@@ -26,6 +54,24 @@ const Login = () => {
         </CardHeader>
         <form onSubmit={handleSubmit}>
           <CardContent className="space-y-4">
+            {errorMessage && (
+              <Alert variant="destructive">
+                <AlertCircle className="h-4 w-4" />
+                <AlertTitle>Error</AlertTitle>
+                <AlertDescription>{errorMessage}</AlertDescription>
+              </Alert>
+            )}
+            
+            {showLoadingMessage && isLoading && (
+              <Alert>
+                <Loader2 className="h-4 w-4 animate-spin" />
+                <AlertTitle>Checking session...</AlertTitle>
+                <AlertDescription>
+                  We're verifying your authentication status. This should only take a moment.
+                </AlertDescription>
+              </Alert>
+            )}
+            
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
               <Input 
@@ -55,7 +101,12 @@ const Login = () => {
               className="w-full" 
               disabled={isLoading}
             >
-              {isLoading ? 'Signing in...' : 'Sign In'}
+              {isLoading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Signing in...
+                </>
+              ) : 'Sign In'}
             </Button>
             <p className="text-sm text-center text-gray-500">
               Don't have an account?{' '}
