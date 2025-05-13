@@ -8,25 +8,30 @@ import { toast } from '@/hooks/use-toast';
 interface ProtectedRouteProps {
   children: React.ReactNode;
   allowedRoles?: UserRole[];
+  requiredRole?: UserRole;
 }
 
 const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ 
   children, 
-  allowedRoles 
+  allowedRoles,
+  requiredRole
 }) => {
   const { user, userRole, isLoading } = useAuth();
   const location = useLocation();
   
+  // Use either requiredRole or allowedRoles
+  const effectiveRoles = requiredRole ? [requiredRole] : allowedRoles;
+  
   useEffect(() => {
     // If user is authenticated but doesn't have the required role, show a toast
-    if (user && userRole && allowedRoles && !allowedRoles.includes(userRole)) {
+    if (user && userRole && effectiveRoles && !effectiveRoles.includes(userRole)) {
       toast({
         title: "Access Denied",
         description: "You don't have permission to access this page.",
         variant: "destructive",
       });
     }
-  }, [user, userRole, allowedRoles]);
+  }, [user, userRole, effectiveRoles]);
   
   if (isLoading) {
     return (
@@ -44,7 +49,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
   
-  if (allowedRoles && userRole && !allowedRoles.includes(userRole)) {
+  if (effectiveRoles && userRole && !effectiveRoles.includes(userRole)) {
     // If user doesn't have the required role, redirect to their role-specific dashboard
     const roleBasedPath = 
       userRole === 'admin' ? '/admin/dashboard' : 

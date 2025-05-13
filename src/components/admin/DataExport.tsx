@@ -24,7 +24,6 @@ import { exportToCsv } from '@/lib/exportToCsv';
 import { format, subDays } from 'date-fns';
 import { toast } from 'sonner';
 import { Badge } from '@/components/ui/badge';
-import { SubjectType, AttendanceStatus } from '@/lib/types';
 
 const DataExport = () => {
   const [dateRange, setDateRange] = useState({
@@ -32,15 +31,15 @@ const DataExport = () => {
     to: new Date(),
   });
   
-  const [selectedSubjects, setSelectedSubjects] = useState<SubjectType[]>([]);
-  const [selectedStatuses, setSelectedStatuses] = useState<AttendanceStatus[]>([]);
+  const [selectedSubjects, setSelectedSubjects] = useState<string[]>([]);
+  const [selectedStatuses, setSelectedStatuses] = useState<string[]>([]);
   const [isExporting, setIsExporting] = useState(false);
   
   // These would come from API calls in a real implementation
   const subjects = ["Guitar", "Piano", "Drums", "Ukulele", "Vocal"];
   const statuses = ["Present", "Cancelled by Student", "Cancelled by Teacher", "Cancelled by School", "Scheduled"];
   
-  const handleSubjectToggle = (subject: SubjectType) => {
+  const handleSubjectToggle = (subject: string) => {
     if (selectedSubjects.includes(subject)) {
       setSelectedSubjects(selectedSubjects.filter(s => s !== subject));
     } else {
@@ -48,7 +47,7 @@ const DataExport = () => {
     }
   };
   
-  const handleStatusToggle = (status: AttendanceStatus) => {
+  const handleStatusToggle = (status: string) => {
     if (selectedStatuses.includes(status)) {
       setSelectedStatuses(selectedStatuses.filter(s => s !== status));
     } else {
@@ -129,8 +128,8 @@ const DataExport = () => {
                       <div key={subject} className="flex items-center space-x-2">
                         <Checkbox 
                           id={`instrument-${subject}`} 
-                          checked={selectedSubjects.includes(subject as SubjectType)}
-                          onCheckedChange={() => handleSubjectToggle(subject as SubjectType)}
+                          checked={selectedSubjects.includes(subject)}
+                          onCheckedChange={() => handleSubjectToggle(subject)}
                         />
                         <label 
                           htmlFor={`instrument-${subject}`}
@@ -205,8 +204,8 @@ const DataExport = () => {
                       <div key={status} className="flex items-center space-x-2">
                         <Checkbox 
                           id={`status-${status}`} 
-                          checked={selectedStatuses.includes(status as AttendanceStatus)}
-                          onCheckedChange={() => handleStatusToggle(status as AttendanceStatus)}
+                          checked={selectedStatuses.includes(status)}
+                          onCheckedChange={() => handleStatusToggle(status)}
                         />
                         <label 
                           htmlFor={`status-${status}`}
@@ -350,8 +349,8 @@ const DataExport = () => {
                       <div key={subject} className="flex items-center space-x-2">
                         <Checkbox 
                           id={`course-subject-${subject}`} 
-                          checked={selectedSubjects.includes(subject as SubjectType)}
-                          onCheckedChange={() => handleSubjectToggle(subject as SubjectType)}
+                          checked={selectedSubjects.includes(subject)}
+                          onCheckedChange={() => handleSubjectToggle(subject)}
                         />
                         <label 
                           htmlFor={`course-subject-${subject}`}
@@ -416,9 +415,9 @@ const DataExport = () => {
         <TabsContent value="invoices">
           <Card>
             <CardHeader>
-              <CardTitle>Export Invoice & Payment Data</CardTitle>
+              <CardTitle>Export Financial Data</CardTitle>
               <CardDescription>
-                Download a CSV file containing financial records and payment information.
+                Download a CSV file containing invoices, payments, and financial records.
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -429,87 +428,37 @@ const DataExport = () => {
                 </div>
                 
                 <div>
-                  <h3 className="text-sm font-medium mb-2">Filter by Status</h3>
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                    <div className="flex items-center space-x-2">
-                      <Checkbox id="status-paid" defaultChecked />
-                      <label 
-                        htmlFor="status-paid"
-                        className="text-sm font-medium leading-none cursor-pointer"
-                      >
-                        Paid
-                      </label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <Checkbox id="status-pending" defaultChecked />
-                      <label 
-                        htmlFor="status-pending"
-                        className="text-sm font-medium leading-none cursor-pointer"
-                      >
-                        Pending
-                      </label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <Checkbox id="status-overdue" defaultChecked />
-                      <label 
-                        htmlFor="status-overdue"
-                        className="text-sm font-medium leading-none cursor-pointer"
-                      >
-                        Overdue
-                      </label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <Checkbox id="status-cancelled" />
-                      <label 
-                        htmlFor="status-cancelled"
-                        className="text-sm font-medium leading-none cursor-pointer"
-                      >
-                        Cancelled
-                      </label>
-                    </div>
+                  <h3 className="text-sm font-medium mb-2">Invoice Status</h3>
+                  <div className="flex space-x-2">
+                    <Badge variant="outline" className="cursor-pointer hover:bg-secondary">
+                      All
+                    </Badge>
+                    <Badge variant="outline" className="cursor-pointer hover:bg-secondary">
+                      Paid
+                    </Badge>
+                    <Badge variant="outline" className="cursor-pointer hover:bg-secondary">
+                      Pending
+                    </Badge>
+                    <Badge variant="outline" className="cursor-pointer hover:bg-secondary">
+                      Overdue
+                    </Badge>
                   </div>
                 </div>
                 
                 <div>
                   <h3 className="text-sm font-medium mb-2">Report Type</h3>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                    <div className="flex items-center space-x-2">
-                      <Checkbox id="include-invoices" defaultChecked />
-                      <label 
-                        htmlFor="include-invoices"
-                        className="text-sm font-medium leading-none cursor-pointer"
-                      >
-                        Include invoices
-                      </label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <Checkbox id="include-payments" defaultChecked />
-                      <label 
-                        htmlFor="include-payments"
-                        className="text-sm font-medium leading-none cursor-pointer"
-                      >
-                        Include payment records
-                      </label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <Checkbox id="detailed-report" />
-                      <label 
-                        htmlFor="detailed-report"
-                        className="text-sm font-medium leading-none cursor-pointer"
-                      >
-                        Generate detailed report
-                      </label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <Checkbox id="include-summary" defaultChecked />
-                      <label 
-                        htmlFor="include-summary"
-                        className="text-sm font-medium leading-none cursor-pointer"
-                      >
-                        Include monthly summary
-                      </label>
-                    </div>
-                  </div>
+                  <Select defaultValue="summary">
+                    <SelectTrigger className="w-full md:w-[200px]">
+                      <SelectValue placeholder="Select report type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="summary">Summary Report</SelectItem>
+                      <SelectItem value="detailed">Detailed Report</SelectItem>
+                      <SelectItem value="student">By Student</SelectItem>
+                      <SelectItem value="payment-method">By Payment Method</SelectItem>
+                      <SelectItem value="date">By Date</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
                 
                 <div className="flex justify-end">
