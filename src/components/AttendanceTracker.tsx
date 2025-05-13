@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import {
   Table,
@@ -8,8 +9,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import { useSessions } from "@/hooks/use-sessions";
-import { SessionWithStudents } from "@/lib/types";
+import { useSessions, SessionWithStudents } from "@/hooks/use-sessions";
+import { AttendanceStatus } from "@/lib/types";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { MoreVertical, Pencil, User, Users } from "lucide-react";
@@ -23,7 +24,6 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button";
-import { AttendanceStatus } from "@/lib/types";
 
 interface AttendanceTrackerProps {
   teacherId?: string;
@@ -35,7 +35,7 @@ const AttendanceTracker: React.FC<AttendanceTrackerProps> = ({ teacherId }) => {
     sessions,
     isLoading,
     error,
-    refetch: refetchSessions,
+    refetchSessions,
     updateSessionStatus
   } = useSessions({ teacherId });
   
@@ -91,13 +91,13 @@ const AttendanceTracker: React.FC<AttendanceTrackerProps> = ({ teacherId }) => {
         <TableBody>
           {sessions.map((session) => (
             <TableRow key={session.id}>
-              <TableCell className="font-medium">{new Date(session.date_time).toLocaleDateString()}</TableCell>
+              <TableCell className="font-medium">{new Date(session.dateTime).toLocaleDateString()}</TableCell>
               <TableCell>{session.subject}</TableCell>
-              <TableCell>{session.session_type}</TableCell>
+              <TableCell>{session.sessionType}</TableCell>
               <TableCell>{session.location}</TableCell>
               <TableCell>
-                {session.students && session.students.length > 0 ? (
-                  <Badge variant="secondary">{session.students.length} <Users className="h-4 w-4 ml-1 inline-block" /></Badge>
+                {session.studentIds && session.studentIds.length > 0 ? (
+                  <Badge variant="secondary">{session.studentIds.length} <Users className="h-4 w-4 ml-1 inline-block" /></Badge>
                 ) : (
                   <Badge variant="outline">Solo <User className="h-4 w-4 ml-1 inline-block" /></Badge>
                 )}

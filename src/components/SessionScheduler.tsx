@@ -12,7 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Calendar } from "@/components/ui/calendar";
 import { Button } from "@/components/ui/button";
-import { CalendarIcon } from "@radix-ui/react-icons";
+import { CalendarIcon } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
@@ -168,7 +168,7 @@ const SessionScheduler: React.FC<SessionSchedulerProps> = ({ onSuccess }) => {
                   ) : (
                     packs?.map((pack) => (
                       <SelectItem key={pack.id} value={pack.id}>
-                        {pack.name}
+                        {pack.subject} - {pack.session_type}
                       </SelectItem>
                     ))
                   )}
@@ -190,7 +190,7 @@ const SessionScheduler: React.FC<SessionSchedulerProps> = ({ onSuccess }) => {
                   ) : (
                     teachers?.map((teacher) => (
                       <SelectItem key={teacher.id} value={teacher.id}>
-                        {teacher.profiles?.name}
+                        {teacher.name}
                       </SelectItem>
                     ))
                   )}
@@ -321,7 +321,7 @@ const SessionScheduler: React.FC<SessionSchedulerProps> = ({ onSuccess }) => {
                       }}
                     />
                     <Label htmlFor={`student-${student.id}`} className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
-                      {student.profiles?.name}
+                      {student.name}
                     </Label>
                   </div>
                 ))

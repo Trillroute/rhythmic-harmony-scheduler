@@ -2,6 +2,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { format, subMonths, subDays, parseISO } from 'date-fns';
+import { FilterOptions } from '@/lib/types';
 
 // Helper function to format dates
 const formatDate = (date: Date | string) => {
@@ -11,19 +12,58 @@ const formatDate = (date: Date | string) => {
   return format(date, 'yyyy-MM-dd');
 };
 
+interface ChartDataPoint {
+  date: string;
+  total: number;
+  present: number;
+  rate: number;
+}
+
+interface SubjectDataPoint {
+  subject: string;
+  sessions: number;
+  solo: number;
+  duo: number;
+  focus: number;
+}
+
+interface PackDataPoint {
+  name: string;
+  value: number;
+}
+
+interface AttendanceReportData {
+  chartData: ChartDataPoint[];
+  attendanceRate: number;
+  totalSessions: number;
+  presentSessions: number;
+}
+
+interface SessionsReportData {
+  chartData: SubjectDataPoint[];
+  totalSessions: number;
+  bySubject: Record<string, number>;
+}
+
+interface StudentProgressData {
+  chartData: PackDataPoint[];
+  activeStudents: number;
+  completionRate: number;
+}
+
 // Fetch attendance data for reporting
-export const useAttendanceData = (dateRange: { start: Date; end: Date } = {
-  start: subMonths(new Date(), 3),
-  end: new Date(),
-}) => {
+export const useAttendanceData = (options?: FilterOptions) => {
+  const startDate = options?.startDate || subMonths(new Date(), 3);
+  const endDate = options?.endDate || new Date();
+  
   return useQuery({
-    queryKey: ['attendanceData', dateRange],
+    queryKey: ['attendanceData', options],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('sessions')
         .select('date_time, status')
-        .gte('date_time', formatDate(dateRange.start))
-        .lte('date_time', formatDate(dateRange.end));
+        .gte('date_time', formatDate(startDate))
+        .lte('date_time', formatDate(endDate));
 
       if (error) throw error;
 
@@ -41,20 +81,32 @@ export const useAttendanceData = (dateRange: { start: Date; end: Date } = {
       }, {});
 
       // Convert to array format for charting
-      return Object.entries(attendanceByDate).map(([date, counts]) => ({
+      const chartData = Object.entries(attendanceByDate).map(([date, counts]) => ({
         date,
         total: counts.total,
         present: counts.present,
         rate: counts.total > 0 ? Math.round((counts.present / counts.total) * 100) / 100 : 0,
       }));
+      
+      // Calculate overall attendance rate
+      const totalSessions = chartData.reduce((sum, item) => sum + item.total, 0);
+      const presentSessions = chartData.reduce((sum, item) => sum + item.present, 0);
+      const attendanceRate = totalSessions > 0 ? Math.round((presentSessions / totalSessions) * 100) : 0;
+      
+      return {
+        chartData,
+        attendanceRate,
+        totalSessions,
+        presentSessions
+      };
     },
   });
 };
 
 // Fetch session distribution by subject
-export const useSessionsBySubject = () => {
+export const useSessionsBySubject = (options?: FilterOptions) => {
   return useQuery({
-    queryKey: ['sessionsBySubject'],
+    queryKey: ['sessionsBySubject', options],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('sessions')
@@ -84,13 +136,28 @@ export const useSessionsBySubject = () => {
       }, {});
 
       // Convert to array format for charting
-      return Object.entries(subjectStats).map(([subject, stats]) => ({
+      const chartData = Object.entries(subjectStats).map(([subject, stats]) => ({
         subject,
         sessions: stats.sessions,
         solo: stats.solo,
         duo: stats.duo,
         focus: stats.focus,
       }));
+      
+      // Calculate totals
+      const totalSessions = chartData.reduce((sum, item) => sum + item.sessions, 0);
+      
+      // Create by-subject breakdown
+      const bySubject: Record<string, number> = {};
+      chartData.forEach(item => {
+        bySubject[item.subject] = item.sessions;
+      });
+      
+      return {
+        chartData,
+        totalSessions,
+        bySubject
+      };
     },
   });
 };
@@ -118,34 +185,56 @@ export const usePackDistribution = () => {
       }, {});
 
       // Format for pie chart
-      return Object.entries(packCounts).map(([name, value]) => ({
+      const chartData = Object.entries(packCounts).map(([name, value]) => ({
         name: `${name} Sessions`,
         value,
       }));
+      
+      const { data: studentData, error: studentError } = await supabase
+        .from('students')
+        .select('id');
+        
+      if (studentError) throw studentError;
+      
+      return {
+        chartData,
+        activeStudents: studentData?.length || 0,
+        completionRate: 65 // Placeholder - would need actual completion data
+      };
     },
   });
 };
 
 // Export a combined reports hook for the dashboard
-export const useReports = () => {
-  const attendance = useAttendanceData();
-  const sessionsBySubject = useSessionsBySubject();
-  const packDistribution = usePackDistribution();
+export const useReports = (options?: FilterOptions) => {
+  const attendance = useAttendanceData(options);
+  const sessions = useSessionsBySubject(options);
+  const studentProgress = usePackDistribution();
   
   return {
-    attendanceData: attendance.data || [],
+    attendanceData: attendance.data || { 
+      chartData: [], 
+      attendanceRate: 0, 
+      totalSessions: 0, 
+      presentSessions: 0 
+    },
+    sessionsData: sessions.data || { 
+      chartData: [], 
+      totalSessions: 0, 
+      bySubject: {} 
+    },
+    studentProgressData: studentProgress.data || { 
+      chartData: [], 
+      activeStudents: 0, 
+      completionRate: 0 
+    },
     isLoadingAttendance: attendance.isLoading,
     errorAttendance: attendance.error,
-    
-    subjectData: sessionsBySubject.data || [],
-    isLoadingSubjects: sessionsBySubject.isLoading,
-    errorSubjects: sessionsBySubject.error,
-    
-    packData: packDistribution.data || [],
-    isLoadingPacks: packDistribution.isLoading,
-    errorPacks: packDistribution.error,
-    
-    isLoading: attendance.isLoading || sessionsBySubject.isLoading || packDistribution.isLoading,
-    isError: !!attendance.error || !!sessionsBySubject.error || !!packDistribution.error
+    isLoadingSubjects: sessions.isLoading,
+    errorSubjects: sessions.error,
+    isLoadingPacks: studentProgress.isLoading,
+    errorPacks: studentProgress.error,
+    isLoading: attendance.isLoading || sessions.isLoading || studentProgress.isLoading,
+    isError: !!attendance.error || !!sessions.error || !!studentProgress.error
   };
 };

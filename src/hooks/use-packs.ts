@@ -1,8 +1,7 @@
-
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { SubjectType, SessionType, LocationType, WeeklyFrequency } from '@/lib/types';
+import { SubjectType, SessionType, LocationType, WeeklyFrequency, SessionPack } from '@/lib/types';
 
 export interface PackWithRelations {
   id: string;
@@ -27,6 +26,25 @@ export interface PackWithRelations {
   };
 }
 
+// Helper function to transform snake_case to camelCase
+const transformPackData = (pack: PackWithRelations): SessionPack => {
+  return {
+    id: pack.id,
+    studentId: pack.student_id,
+    size: pack.size as any, // Type assertion to keep compatibility
+    subject: pack.subject,
+    sessionType: pack.session_type,
+    location: pack.location,
+    purchasedDate: pack.purchased_date,
+    expiryDate: pack.expiry_date,
+    remainingSessions: pack.remaining_sessions,
+    isActive: pack.is_active,
+    weeklyFrequency: pack.weekly_frequency,
+    createdAt: pack.created_at,
+    updatedAt: pack.updated_at
+  };
+};
+
 export const usePacks = () => {
   return useQuery({
     queryKey: ['packs'],
@@ -48,6 +66,7 @@ export const usePacks = () => {
         throw error;
       }
   
+      // Keep the original data format for now since components are using it
       return data as PackWithRelations[];
     }
   });
@@ -79,6 +98,7 @@ export const useSessionPacks = (studentId?: string) => {
         throw error;
       }
       
+      // Return data in the original format
       return data as PackWithRelations[];
     },
     enabled: !!studentId
@@ -90,7 +110,7 @@ export const useCreateSessionPack = () => {
   
   return useMutation({
     mutationFn: async (packData: {
-      name: string;
+      name?: string;
       student_id: string;
       size: number;
       subject: SubjectType;

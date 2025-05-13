@@ -1,3 +1,4 @@
+
 export type UserRole = 'admin' | 'teacher' | 'student';
 
 export type AttendanceStatus = 'Present' | 'Absent' | 'Scheduled' | 'Cancelled by Student' | 
@@ -134,19 +135,21 @@ export interface Reminder {
   created_at: string | Date;
 }
 
-// Add SessionWithStudents to exports
+// Add SessionWithStudents interface
 export interface SessionWithStudents {
   id: string;
-  teacher_id: string;
-  pack_id: string;
-  student_ids: string[];
-  studentIds: string[];
-  teacher_name: string;
+  teacherId: string;
+  teacherName: string;
+  packId: string;
   subject: string;
-  session_type: string;
+  sessionType: string;
   location: string;
-  date_time: string;
+  dateTime: string;
   duration: number;
   status: string;
   notes: string;
+  studentIds: string[];
+  rescheduleCount: number;
+  createdAt: string;
+  updatedAt: string;
 }

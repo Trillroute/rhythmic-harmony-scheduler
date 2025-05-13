@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -245,9 +244,9 @@ const ReportingDashboard = () => {
                   selectedChart === "sessions" ? "bar" : "pie"
                 }
                 data={
-                  selectedChart === "attendance" ? attendanceData?.chartData : 
-                  selectedChart === "sessions" ? sessionsData?.chartData :
-                  studentProgressData?.chartData
+                  selectedChart === "attendance" ? attendanceData.chartData : 
+                  selectedChart === "sessions" ? sessionsData.chartData :
+                  studentProgressData.chartData
                 }
                 options={{
                   responsive: true,

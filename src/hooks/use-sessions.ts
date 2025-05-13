@@ -1,22 +1,11 @@
+
 // Import React to use React.useMemo
 import React from 'react';
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { Session, FilterOptions, SubjectType, SessionType, LocationType, AttendanceStatus } from "@/lib/types";
+import { Session, FilterOptions, SubjectType, SessionType, LocationType, AttendanceStatus, SessionWithStudents } from "@/lib/types";
 import { format } from 'date-fns';
-
-export interface SessionWithStudents extends Session {
-  student_ids: string[];
-  teacher_name: string;
-  subject: string;
-  session_type: string;
-  location: string;
-  date_time: string;
-  duration: number;
-  status: string;
-  notes: string;
-}
 
 export const useSessions = (filter: FilterOptions = {}) => {
   const queryClient = useQueryClient();
@@ -84,26 +73,30 @@ export const useSessions = (filter: FilterOptions = {}) => {
         throw error;
       }
       
-      // Transform the data to include student IDs and other details
+      // Transform the data to include student IDs and convert from snake_case to camelCase
       const sessionsWithStudents = data?.map(session => {
-        const student_ids = session.session_students?.map(ss => ss.student_id) || [];
+        const studentIds = session.session_students?.map((ss: any) => ss.student_id) || [];
         
         return {
-          ...session,
-          student_ids,
-          studentIds: student_ids, // Add this for compatibility
-          teacher_name: session.teachers?.profiles?.name,
+          id: session.id,
+          teacherId: session.teacher_id,
+          teacherName: session.teachers?.profiles?.name,
+          packId: session.pack_id,
           subject: session.subject,
-          session_type: session.session_type,
+          sessionType: session.session_type,
           location: session.location,
-          date_time: format(new Date(session.date_time), 'PPP'),
+          dateTime: format(new Date(session.date_time), 'PPP'),
           duration: session.duration,
           status: session.status,
-          notes: session.notes
+          notes: session.notes || '',
+          rescheduleCount: session.reschedule_count,
+          studentIds: studentIds,
+          createdAt: session.created_at,
+          updatedAt: session.updated_at
         } as SessionWithStudents;
       });
       
-      return sessionsWithStudents;
+      return sessionsWithStudents || [];
     }
   });
 

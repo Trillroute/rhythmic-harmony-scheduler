@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -19,7 +18,7 @@ import {
   PackSize,
   WeeklyFrequency
 } from '@/lib/types';
-import { useSessionPacks, useCreateSessionPack } from '@/hooks/use-packs';
+import { useSessionPacks, useCreateSessionPack, PackWithRelations } from '@/hooks/use-packs';
 import { Filter } from 'lucide-react';
 
 interface StudentPacksProps {
@@ -64,15 +63,15 @@ const StudentPacks = ({ studentId, onNewPack }: StudentPacksProps) => {
     if (subjectFilter && pack.subject !== subjectFilter) return false;
     
     // Filter by active status
-    if (statusFilter === 'active' && !pack.isActive) return false;
-    if (statusFilter === 'inactive' && pack.isActive) return false;
+    if (statusFilter === 'active' && !pack.is_active) return false;
+    if (statusFilter === 'inactive' && pack.is_active) return false;
     
     return true;
   }) || [];
   
   // Separate active and inactive packs
-  const activePacks = filteredPacks.filter(pack => pack.isActive);
-  const inactivePacks = filteredPacks.filter(pack => !pack.isActive);
+  const activePacks = filteredPacks.filter(pack => pack.is_active);
+  const inactivePacks = filteredPacks.filter(pack => !pack.is_active);
   
   const handleCreatePack = () => {
     if (!newPackSubject || !newPackType || !newPackLocation || !newPackSize) {
@@ -96,15 +95,15 @@ const StudentPacks = ({ studentId, onNewPack }: StudentPacksProps) => {
     
     // Create new pack using the mutation
     createPackMutation.mutate({
-      studentId,
+      student_id: studentId,
       size: parseInt(newPackSize) as PackSize,
       subject: newPackSubject as SubjectType,
-      sessionType: newPackType as SessionType,
+      session_type: newPackType as SessionType,
       location: newPackLocation as LocationType,
-      purchasedDate: new Date(),
-      remainingSessions: parseInt(newPackSize),
-      isActive: true,
-      weeklyFrequency: newPackFrequency,
+      purchased_date: new Date(),
+      remaining_sessions: parseInt(newPackSize),
+      is_active: true,
+      weekly_frequency: newPackFrequency,
     }, {
       onSuccess: (data) => {
         // Call the callback if provided with the pack ID
@@ -235,7 +234,7 @@ const StudentPacks = ({ studentId, onNewPack }: StudentPacksProps) => {
                     <div>
                       <h3 className="font-medium">{pack.subject}</h3>
                       <div className="text-sm text-muted-foreground">
-                        {pack.sessionType} - {pack.location}
+                        {pack.session_type} - {pack.location}
                       </div>
                     </div>
                     <div className="px-2 py-1 bg-green-100 text-green-800 rounded-full text-xs font-medium">
@@ -250,20 +249,20 @@ const StudentPacks = ({ studentId, onNewPack }: StudentPacksProps) => {
                     </div>
                     <div className="flex justify-between text-sm">
                       <span>Remaining:</span>
-                      <span className="font-medium">{pack.remainingSessions} sessions</span>
+                      <span className="font-medium">{pack.remaining_sessions} sessions</span>
                     </div>
                     <div className="flex justify-between text-sm">
                       <span>Purchased:</span>
-                      <span className="font-medium">{new Date(pack.purchasedDate).toLocaleDateString()}</span>
+                      <span className="font-medium">{new Date(pack.purchased_date).toLocaleDateString()}</span>
                     </div>
                     <div className="flex justify-between text-sm">
                       <span>Frequency:</span>
-                      <span className="font-medium">Weekly {pack.weeklyFrequency}</span>
+                      <span className="font-medium">Weekly {pack.weekly_frequency}</span>
                     </div>
-                    {pack.expiryDate && (
+                    {pack.expiry_date && (
                       <div className="flex justify-between text-sm">
                         <span>Expires:</span>
-                        <span className="font-medium">{new Date(pack.expiryDate).toLocaleDateString()}</span>
+                        <span className="font-medium">{new Date(pack.expiry_date).toLocaleDateString()}</span>
                       </div>
                     )}
                   </div>
@@ -272,7 +271,7 @@ const StudentPacks = ({ studentId, onNewPack }: StudentPacksProps) => {
                     <Button variant="outline" size="sm" className="flex-1">
                       View Sessions
                     </Button>
-                    {pack.remainingSessions === 0 && (
+                    {pack.remaining_sessions === 0 && (
                       <Button size="sm" className="flex-1">
                         Renew Pack
                       </Button>
@@ -421,9 +420,9 @@ const StudentPacks = ({ studentId, onNewPack }: StudentPacksProps) => {
               {inactivePacks.map(pack => (
                 <div key={pack.id} className="flex items-center justify-between p-2 border-b last:border-0">
                   <div>
-                    <div className="font-medium">{pack.subject} - {pack.sessionType}</div>
+                    <div className="font-medium">{pack.subject} - {pack.session_type}</div>
                     <div className="text-sm text-muted-foreground">
-                      {pack.size} sessions, purchased {new Date(pack.purchasedDate).toLocaleDateString()}
+                      {pack.size} sessions, purchased {new Date(pack.purchased_date).toLocaleDateString()}
                     </div>
                   </div>
                   <div className="px-2 py-1 bg-gray-100 text-gray-800 rounded-full text-xs">
