@@ -5,9 +5,10 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
 import { User, LogOut } from 'lucide-react';
+import { Outlet } from 'react-router-dom';
 
 interface LayoutProps {
-  children: React.ReactNode;
+  children?: React.ReactNode;
 }
 
 const Layout: React.FC<LayoutProps> = ({ children }) => {
@@ -69,7 +70,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
         {/* Main content */}
         <main className="flex-1 overflow-x-hidden overflow-y-auto bg-gray-100">
           <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
-            {children}
+            {children || <Outlet />}
           </div>
         </main>
       </div>

@@ -1,88 +1,114 @@
 
-import { useMutation } from '@tanstack/react-query';
+import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
-interface UploadOptions {
-  file: File;
-  path: string;
-  bucket: string;
-  onProgress?: (progress: number) => void;
-}
-
-interface DeleteOptions {
-  path: string;
-  bucket: string;
-}
-
 export const useStorage = () => {
-  // Upload file mutation
-  const uploadFile = useMutation({
-    mutationFn: async ({ file, path, bucket, onProgress }: UploadOptions) => {
-      try {
-        const { data, error } = await supabase.storage
-          .from(bucket)
-          .upload(path, file, {
-            cacheControl: '3600',
-            upsert: true,
-            onUploadProgress: (progress) => {
-              if (onProgress) {
-                const percent = Math.round((progress.loaded / progress.total) * 100);
-                onProgress(percent);
-              }
-            }
-          });
-          
-        if (error) throw error;
-        
-        // Get the public URL
-        const { data: publicUrlData } = supabase.storage
-          .from(bucket)
-          .getPublicUrl(data.path);
-          
-        return {
-          path: data.path,
-          url: publicUrlData.publicUrl
-        };
-      } catch (error: any) {
-        toast.error(`Upload failed: ${error.message}`);
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
+
+  /**
+   * Upload a file to Supabase Storage
+   */
+  const uploadFile = async (
+    bucket: string,
+    path: string,
+    file: File,
+    options?: {
+      cacheControl?: string;
+      upsert?: boolean;
+    }
+  ) => {
+    if (!file) {
+      throw new Error('No file provided');
+    }
+
+    setIsUploading(true);
+    setUploadProgress(0);
+
+    try {
+      // Upload the file to Supabase Storage
+      const { data, error } = await supabase.storage
+        .from(bucket)
+        .upload(path, file, {
+          cacheControl: options?.cacheControl || '3600',
+          upsert: options?.upsert || false,
+        });
+
+      if (error) {
         throw error;
       }
-    },
-  });
-  
-  // Delete file mutation
-  const deleteFile = useMutation({
-    mutationFn: async ({ path, bucket }: DeleteOptions) => {
-      try {
-        const { error } = await supabase.storage
-          .from(bucket)
-          .remove([path]);
-          
-        if (error) throw error;
-        return { success: true, path };
-      } catch (error: any) {
-        toast.error(`Delete failed: ${error.message}`);
-        throw error;
-      }
-    },
-  });
-  
-  // Get public URL from path
-  const getPublicUrl = (bucket: string, path: string) => {
-    const { data } = supabase.storage
-      .from(bucket)
-      .getPublicUrl(path);
+
+      // Get the public URL for the uploaded file
+      const { data: { publicUrl } } = supabase.storage
+        .from(bucket)
+        .getPublicUrl(data.path);
+
+      setUploadProgress(100);
       
-    return data.publicUrl;
+      return {
+        path: data.path,
+        publicUrl,
+      };
+    } catch (error: any) {
+      toast.error(`Upload failed: ${error.message}`);
+      throw error;
+    } finally {
+      setIsUploading(false);
+    }
   };
-  
+
+  /**
+   * Delete a file from Supabase Storage
+   */
+  const deleteFile = async (
+    bucket: string,
+    path: string
+  ) => {
+    try {
+      const { error } = await supabase.storage
+        .from(bucket)
+        .remove([path]);
+
+      if (error) {
+        throw error;
+      }
+
+      return true;
+    } catch (error: any) {
+      toast.error(`Delete failed: ${error.message}`);
+      throw error;
+    }
+  };
+
+  /**
+   * Get a list of files from a Supabase Storage bucket
+   */
+  const listFiles = async (
+    bucket: string,
+    path?: string
+  ) => {
+    try {
+      const { data, error } = await supabase.storage
+        .from(bucket)
+        .list(path || '');
+
+      if (error) {
+        throw error;
+      }
+
+      return data;
+    } catch (error: any) {
+      toast.error(`Failed to list files: ${error.message}`);
+      throw error;
+    }
+  };
+
   return {
-    uploadFile: uploadFile.mutateAsync,
-    deleteFile: deleteFile.mutateAsync,
-    getPublicUrl,
-    isUploading: uploadFile.isPending,
-    isDeleting: deleteFile.isPending,
-    uploadProgress: 0, // This would need to be managed with state in the component
+    uploadFile,
+    deleteFile,
+    listFiles,
+    isUploading,
+    uploadProgress,
   };
 };

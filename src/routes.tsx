@@ -26,9 +26,7 @@ import StudentPacks from '@/components/StudentPacks';
 const routes = createBrowserRouter([
   {
     path: '/',
-    element: <Layout>
-      <Index />
-    </Layout>,
+    element: <Layout><Index /></Layout>,
     children: [
       {
         index: true,
@@ -37,9 +35,7 @@ const routes = createBrowserRouter([
       // Admin routes
       {
         path: 'admin',
-        element: <ProtectedRoute requiredRole="admin">
-          <Layout />
-        </ProtectedRoute>,
+        element: <ProtectedRoute requiredRole="admin"><Layout><Outlet /></Layout></ProtectedRoute>,
         children: [
           {
             path: 'dashboard',
@@ -67,11 +63,11 @@ const routes = createBrowserRouter([
           },
           {
             path: 'attendance',
-            element: <AttendanceTracker teacherId={null} />,
+            element: <AttendanceTracker teacherId={undefined} />,
           },
           {
             path: 'packs',
-            element: <StudentPacks studentId={null} />,
+            element: <StudentPacks studentId={undefined} />,
           },
           {
             path: 'courses',
@@ -98,9 +94,7 @@ const routes = createBrowserRouter([
       // Teacher routes
       {
         path: 'teacher',
-        element: <ProtectedRoute requiredRole="teacher">
-          <Layout />
-        </ProtectedRoute>,
+        element: <ProtectedRoute requiredRole="teacher"><Layout><Outlet /></Layout></ProtectedRoute>,
         children: [
           {
             path: 'dashboard',
@@ -112,16 +106,14 @@ const routes = createBrowserRouter([
           },
           {
             path: 'attendance',
-            element: <AttendanceTracker teacherId={null} />,
+            element: <AttendanceTracker teacherId={undefined} />,
           }
         ]
       },
       // Student routes
       {
         path: 'student',
-        element: <ProtectedRoute requiredRole="student">
-          <Layout />
-        </ProtectedRoute>,
+        element: <ProtectedRoute requiredRole="student"><Layout><Outlet /></Layout></ProtectedRoute>,
         children: [
           {
             path: 'dashboard',
@@ -129,7 +121,7 @@ const routes = createBrowserRouter([
           },
           {
             path: 'packs',
-            element: <StudentPacks studentId={null} />,
+            element: <StudentPacks studentId={undefined} />,
           }
         ]
       }
@@ -148,6 +140,9 @@ const routes = createBrowserRouter([
     element: <NotFound />,
   }
 ]);
+
+// Need to import Outlet
+import { Outlet } from 'react-router-dom';
 
 export default function Router() {
   return <RouterProvider router={routes} />;

@@ -1,90 +1,110 @@
 
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
-import { Reminder } from '@/lib/models';
-import { useAuth } from '@/contexts/AuthContext';
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
+import { Reminder } from "@/lib/models";
 
-export const useReminders = () => {
+export interface ReminderWithRelations extends Reminder {
+  recipient?: {
+    id: string;
+    name: string;
+    email: string;
+  };
+}
+
+export const useReminders = (recipientId?: string) => {
   const queryClient = useQueryClient();
-  const { user } = useAuth();
 
+  // Fetch reminders for a specific recipient
   const { data: reminders, isLoading, error } = useQuery({
-    queryKey: ['reminders'],
+    queryKey: ['reminders', recipientId],
     queryFn: async () => {
-      const { data, error } = await supabase
+      let query = supabase
         .from('reminders')
         .select(`
           *,
-          recipient:profiles!reminders_recipient_id_fkey (
+          profiles!recipient_id (
+            id,
             name,
             email
           )
         `)
         .order('send_at', { ascending: true });
       
+      if (recipientId) {
+        query = query.eq('recipient_id', recipientId);
+      }
+      
+      const { data, error } = await query;
+      
       if (error) throw error;
       
-      return data.map((reminder: any) => ({
+      return data.map((reminder) => ({
         id: reminder.id,
         type: reminder.type,
         recipient_id: reminder.recipient_id,
-        recipientName: reminder.recipient?.name,
-        recipientEmail: reminder.recipient?.email,
         related_id: reminder.related_id,
         message: reminder.message,
         send_at: new Date(reminder.send_at),
         sent_at: reminder.sent_at ? new Date(reminder.sent_at) : undefined,
         status: reminder.status,
         channel: reminder.channel,
-        created_at: new Date(reminder.created_at)
-      }));
+        created_at: new Date(reminder.created_at),
+        recipient: reminder.profiles ? {
+          id: reminder.profiles.id,
+          name: reminder.profiles.name,
+          email: reminder.profiles.email
+        } : undefined
+      } as ReminderWithRelations));
     }
   });
 
+  // Create a new reminder
   const createReminder = useMutation({
     mutationFn: async (reminderData: Partial<Reminder>) => {
       const { data, error } = await supabase
         .from('reminders')
         .insert([reminderData])
-        .select()
+        .select('id')
         .single();
       
       if (error) throw error;
+      
       return data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['reminders'] });
-      toast.success('Reminder scheduled successfully');
+      toast.success("Reminder created successfully");
     },
     onError: (error: any) => {
-      toast.error(`Failed to schedule reminder: ${error.message}`);
+      toast.error(`Error creating reminder: ${error.message}`);
     }
   });
 
-  const updateReminderStatus = useMutation({
-    mutationFn: async ({ id, status, sent_at = new Date() }: { id: string; status: string; sent_at?: Date }) => {
-      const { data, error } = await supabase
+  // Update an existing reminder
+  const updateReminder = useMutation({
+    mutationFn: async (reminderData: Partial<Reminder> & { id: string }) => {
+      const { id, ...updateFields } = reminderData;
+      
+      const { error } = await supabase
         .from('reminders')
-        .update({ 
-          status,
-          sent_at: status === 'sent' ? sent_at.toISOString() : null
-        })
-        .eq('id', id)
-        .select()
-        .single();
+        .update(updateFields)
+        .eq('id', id);
       
       if (error) throw error;
-      return data;
+      
+      return { id };
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['reminders'] });
+      toast.success("Reminder updated successfully");
     },
     onError: (error: any) => {
-      toast.error(`Failed to update reminder status: ${error.message}`);
+      toast.error(`Error updating reminder: ${error.message}`);
     }
   });
 
+  // Delete a reminder
   const deleteReminder = useMutation({
     mutationFn: async (id: string) => {
       const { error } = await supabase
@@ -93,14 +113,38 @@ export const useReminders = () => {
         .eq('id', id);
       
       if (error) throw error;
+      
       return { id };
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['reminders'] });
-      toast.success('Reminder deleted successfully');
+      toast.success("Reminder deleted successfully");
     },
     onError: (error: any) => {
-      toast.error(`Failed to delete reminder: ${error.message}`);
+      toast.error(`Error deleting reminder: ${error.message}`);
+    }
+  });
+
+  // Mark reminder as sent
+  const markReminderAsSent = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase
+        .from('reminders')
+        .update({
+          status: 'sent',
+          sent_at: new Date().toISOString()
+        })
+        .eq('id', id);
+      
+      if (error) throw error;
+      
+      return { id };
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['reminders'] });
+    },
+    onError: (error: any) => {
+      toast.error(`Error marking reminder as sent: ${error.message}`);
     }
   });
 
@@ -109,30 +153,39 @@ export const useReminders = () => {
     isLoading,
     error,
     createReminder: createReminder.mutateAsync,
-    updateReminderStatus: updateReminderStatus.mutateAsync,
+    updateReminder: updateReminder.mutateAsync,
     deleteReminder: deleteReminder.mutateAsync,
+    markReminderAsSent: markReminderAsSent.mutateAsync,
     isPendingCreate: createReminder.isPending,
-    isPendingUpdate: updateReminderStatus.isPending,
+    isPendingUpdate: updateReminder.isPending,
     isPendingDelete: deleteReminder.isPending
   };
 };
 
-export const useUserReminders = (userId: string | undefined) => {
-  const { data: reminders, isLoading, error } = useQuery({
-    queryKey: ['user-reminders', userId],
+// Fetch pending reminders that need to be sent
+export const usePendingReminders = () => {
+  return useQuery({
+    queryKey: ['pending-reminders'],
     queryFn: async () => {
-      if (!userId) return [];
+      const now = new Date();
       
       const { data, error } = await supabase
         .from('reminders')
-        .select('*')
-        .eq('recipient_id', userId)
+        .select(`
+          *,
+          profiles!recipient_id (
+            id,
+            name,
+            email
+          )
+        `)
         .eq('status', 'pending')
+        .lte('send_at', now.toISOString())
         .order('send_at', { ascending: true });
       
       if (error) throw error;
       
-      return data.map((reminder: any) => ({
+      return data.map((reminder) => ({
         id: reminder.id,
         type: reminder.type,
         recipient_id: reminder.recipient_id,
@@ -141,15 +194,13 @@ export const useUserReminders = (userId: string | undefined) => {
         send_at: new Date(reminder.send_at),
         status: reminder.status,
         channel: reminder.channel,
-        created_at: new Date(reminder.created_at)
-      }));
-    },
-    enabled: !!userId
+        created_at: new Date(reminder.created_at),
+        recipient: reminder.profiles ? {
+          id: reminder.profiles.id,
+          name: reminder.profiles.name,
+          email: reminder.profiles.email
+        } : undefined
+      } as ReminderWithRelations));
+    }
   });
-
-  return {
-    reminders,
-    isLoading,
-    error
-  };
 };

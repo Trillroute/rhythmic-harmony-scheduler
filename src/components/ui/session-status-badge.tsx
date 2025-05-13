@@ -5,33 +5,32 @@ import { AttendanceStatus } from '@/lib/types';
 
 interface SessionStatusBadgeProps {
   status: AttendanceStatus;
-  size?: 'default' | 'sm';
+  className?: string;
 }
 
-export const getStatusBadgeVariant = (status: string) => {
+export function SessionStatusBadge({ status, className }: SessionStatusBadgeProps) {
+  let variant: "default" | "secondary" | "destructive" | "outline" | "success" = "outline";
+  
   switch (status) {
     case 'Present':
-      return 'success';
-    case 'Cancelled by Student':
-      return 'warning';
-    case 'Cancelled by Teacher':
-      return 'destructive';
-    case 'Cancelled by School':
-      return 'outline';
+      variant = 'success';
+      break;
     case 'Scheduled':
-      return 'secondary';
-    default:
-      return 'default';
+      variant = 'default';
+      break;
+    case 'Cancelled by Student':
+    case 'Cancelled by Teacher':
+    case 'Cancelled by School':
+      variant = 'destructive';
+      break;
+    case 'No Show':
+      variant = 'secondary';
+      break;
   }
-};
-
-const SessionStatusBadge: React.FC<SessionStatusBadgeProps> = ({ status, size = 'default' }) => {
-  const variant = getStatusBadgeVariant(status);
-  const className = size === 'sm' ? 'text-xs py-0 px-1.5' : '';
-
+  
   return (
-    <Badge variant={variant as any} className={className}>{status}</Badge>
+    <Badge variant={variant} className={className}>
+      {status}
+    </Badge>
   );
-};
-
-export default SessionStatusBadge;
+}

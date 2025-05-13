@@ -9,16 +9,17 @@ import { format, subDays, startOfMonth, endOfMonth } from "date-fns";
 import { useReports } from "@/hooks/use-reports";
 import { Chart } from "@/components/ui/chart";
 import { SubjectType, AttendanceStatus } from "@/lib/types";
+import { DateRange } from "react-day-picker";
 
 const ReportingDashboard = () => {
-  const [dateRange, setDateRange] = useState({
+  const [dateRange, setDateRange] = useState<DateRange>({
     from: subDays(new Date(), 30),
     to: new Date(),
   });
   
   const [selectedChart, setSelectedChart] = useState<"attendance" | "sessions" | "students">("attendance");
   
-  // Fix TypeScript errors by explicitly casting types
+  // Make sure these are explicitly typed as the correct enum types
   const [selectedSubjects, setSelectedSubjects] = useState<SubjectType[]>([]);
   const [selectedStatuses, setSelectedStatuses] = useState<AttendanceStatus[]>([]);
   
@@ -37,7 +38,7 @@ const ReportingDashboard = () => {
   const handleSubjectChange = (value: string) => {
     // Filter out if already selected
     if (selectedSubjects.includes(value as SubjectType)) {
-      setSelectedSubjects(selectedSubjects.filter(subject => subject !== value as SubjectType));
+      setSelectedSubjects(selectedSubjects.filter(subject => subject !== value));
     } else {
       setSelectedSubjects([...selectedSubjects, value as SubjectType]);
     }
@@ -46,7 +47,7 @@ const ReportingDashboard = () => {
   const handleStatusChange = (value: string) => {
     // Filter out if already selected
     if (selectedStatuses.includes(value as AttendanceStatus)) {
-      setSelectedStatuses(selectedStatuses.filter(status => status !== value as AttendanceStatus));
+      setSelectedStatuses(selectedStatuses.filter(status => status !== value));
     } else {
       setSelectedStatuses([...selectedStatuses, value as AttendanceStatus]);
     }
@@ -128,7 +129,7 @@ const ReportingDashboard = () => {
           <p className="text-sm font-medium mb-2">Date Range</p>
           <DatePickerWithRange
             date={dateRange}
-            setDate={setDateRange}
+            setDate={(newDate) => setDateRange(newDate)}
           />
         </div>
         
@@ -227,7 +228,7 @@ const ReportingDashboard = () => {
               {selectedChart === "students" && "Student Progress"}
             </CardTitle>
             <CardDescription>
-              {selectedChart === "attendance" && `Data from ${format(dateRange.from, 'MMM d, yyyy')} to ${format(dateRange.to, 'MMM d, yyyy')}`}
+              {selectedChart === "attendance" && dateRange.from && dateRange.to && `Data from ${format(dateRange.from, 'MMM d, yyyy')} to ${format(dateRange.to, 'MMM d, yyyy')}`}
               {selectedChart === "sessions" && `Distribution of sessions across instruments and types`}
               {selectedChart === "students" && `Course completion rates and active students`}
             </CardDescription>

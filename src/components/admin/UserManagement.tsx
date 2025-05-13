@@ -61,10 +61,19 @@ const UserManagement = () => {
   const [editingUser, setEditingUser] = useState<any | null>(null);
   const [filters, setFilters] = useState<{ role?: UserRole; email?: string }>({});
   const [searchQuery, setSearchQuery] = useState("");
-  // Fix TypeScript error by explicitly typing roleFilter as UserRole or undefined
   const [roleFilter, setRoleFilter] = useState<UserRole | undefined>(undefined);
   
   const { users, isLoading, updateUser, deleteUser, isPendingUpdate, isPendingDelete } = useUsers(filters);
+  
+  const form = useForm<z.infer<typeof formSchema>>({
+    resolver: zodResolver(formSchema),
+    defaultValues: {
+      name: "",
+      email: "",
+      role: "student",
+      notes: "",
+    },
+  });
   
   // Update form when editing user changes
   useEffect(() => {
@@ -105,22 +114,14 @@ const UserManagement = () => {
     });
   }, [roleFilter]);
   
-  const form = useForm<z.infer<typeof formSchema>>({
-    resolver: zodResolver(formSchema),
-    defaultValues: {
-      name: "",
-      email: "",
-      role: "student",
-      notes: "",
-    },
-  });
-  
   function onSubmit(values: z.infer<typeof formSchema>) {
     if (editingUser) {
       updateUser({
         id: editingUser.id,
         ...values,
         studentData: values.role === "student" ? {
+          preferredSubjects: editingUser.studentData?.preferredSubjects || [],
+          packs: [],
           notes: values.notes
         } : undefined
       });
@@ -246,7 +247,7 @@ const UserManagement = () => {
         <div className="sm:w-1/3">
           <Select
             value={roleFilter}
-            onValueChange={(value) => setRoleFilter(value as UserRole | undefined)}
+            onValueChange={(value) => setRoleFilter(value as UserRole)}
           >
             <SelectTrigger>
               <SelectValue placeholder="Filter by role" />

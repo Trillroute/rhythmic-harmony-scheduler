@@ -24,9 +24,10 @@ import { exportToCsv } from '@/lib/exportToCsv';
 import { format, subDays } from 'date-fns';
 import { toast } from 'sonner';
 import { Badge } from '@/components/ui/badge';
+import { DateRange } from "react-day-picker";
 
 const DataExport = () => {
-  const [dateRange, setDateRange] = useState({
+  const [dateRange, setDateRange] = useState<DateRange>({
     from: subDays(new Date(), 30),
     to: new Date(),
   });
@@ -60,7 +61,7 @@ const DataExport = () => {
     
     // Simulate export delay
     setTimeout(() => {
-      const dateRangeStr = `${format(dateRange.from, 'yyyy-MM-dd')}_to_${format(dateRange.to, 'yyyy-MM-dd')}`;
+      const dateRangeStr = `${format(dateRange.from!, 'yyyy-MM-dd')}_to_${format(dateRange.to!, 'yyyy-MM-dd')}`;
       const filename = `${type}_export_${dateRangeStr}.csv`;
       
       // In a real implementation, we would fetch data from the API and export it
@@ -118,7 +119,10 @@ const DataExport = () => {
               <div className="space-y-6">
                 <div>
                   <h3 className="text-sm font-medium mb-2">Date Range</h3>
-                  <DatePickerWithRange date={dateRange} setDate={setDateRange} />
+                  <DatePickerWithRange 
+                    date={dateRange} 
+                    setDate={(newDate) => setDateRange(newDate)}
+                  />
                 </div>
                 
                 <div>
@@ -194,7 +198,10 @@ const DataExport = () => {
               <div className="space-y-6">
                 <div>
                   <h3 className="text-sm font-medium mb-2">Date Range</h3>
-                  <DatePickerWithRange date={dateRange} setDate={setDateRange} />
+                  <DatePickerWithRange 
+                    date={dateRange} 
+                    setDate={(newDate) => setDateRange(newDate)}
+                  />
                 </div>
                 
                 <div>
@@ -417,21 +424,24 @@ const DataExport = () => {
             <CardHeader>
               <CardTitle>Export Financial Data</CardTitle>
               <CardDescription>
-                Download a CSV file containing invoices, payments, and financial records.
+                Download a CSV file with invoices and payment information.
               </CardDescription>
             </CardHeader>
             <CardContent>
               <div className="space-y-6">
                 <div>
                   <h3 className="text-sm font-medium mb-2">Date Range</h3>
-                  <DatePickerWithRange date={dateRange} setDate={setDateRange} />
+                  <DatePickerWithRange 
+                    date={dateRange} 
+                    setDate={(newDate) => setDateRange(newDate)}
+                  />
                 </div>
                 
                 <div>
-                  <h3 className="text-sm font-medium mb-2">Invoice Status</h3>
-                  <div className="flex space-x-2">
+                  <h3 className="text-sm font-medium mb-2">Filter by Status</h3>
+                  <div className="flex flex-wrap gap-2">
                     <Badge variant="outline" className="cursor-pointer hover:bg-secondary">
-                      All
+                      All Invoices
                     </Badge>
                     <Badge variant="outline" className="cursor-pointer hover:bg-secondary">
                       Paid
@@ -447,18 +457,38 @@ const DataExport = () => {
                 
                 <div>
                   <h3 className="text-sm font-medium mb-2">Report Type</h3>
-                  <Select defaultValue="summary">
+                  <Select defaultValue="invoices">
                     <SelectTrigger className="w-full md:w-[200px]">
                       <SelectValue placeholder="Select report type" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="summary">Summary Report</SelectItem>
-                      <SelectItem value="detailed">Detailed Report</SelectItem>
-                      <SelectItem value="student">By Student</SelectItem>
-                      <SelectItem value="payment-method">By Payment Method</SelectItem>
-                      <SelectItem value="date">By Date</SelectItem>
+                      <SelectItem value="invoices">Invoices</SelectItem>
+                      <SelectItem value="payments">Payments</SelectItem>
+                      <SelectItem value="both">Invoices & Payments</SelectItem>
+                      <SelectItem value="summary">Financial Summary</SelectItem>
                     </SelectContent>
                   </Select>
+                </div>
+                
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  <div className="flex items-center space-x-2">
+                    <Checkbox id="include-student-details" defaultChecked />
+                    <label 
+                      htmlFor="include-student-details"
+                      className="text-sm font-medium leading-none cursor-pointer"
+                    >
+                      Include student details
+                    </label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <Checkbox id="include-payment-methods" defaultChecked />
+                    <label 
+                      htmlFor="include-payment-methods"
+                      className="text-sm font-medium leading-none cursor-pointer"
+                    >
+                      Include payment methods
+                    </label>
+                  </div>
                 </div>
                 
                 <div className="flex justify-end">
