@@ -21,12 +21,14 @@ export const useSessionTypeReport = (filters?: ReportPeriod) => {
     
     // Apply subject filter if provided
     if (filters?.subjects && filters.subjects.length > 0) {
-      query = query.in('subject', filters.subjects as string[]);
+      // Cast to string array for the query
+      query = query.in('subject', filters.subjects.map(s => s.toString()) as string[]);
     }
     
     // Apply status filter if provided
     if (filters?.status && filters.status.length > 0) {
-      query = query.in('status', filters.status as string[]);
+      // Cast to string array for the query
+      query = query.in('status', filters.status.map(s => s.toString()) as string[]);
     }
       
     const { data, error } = await query;

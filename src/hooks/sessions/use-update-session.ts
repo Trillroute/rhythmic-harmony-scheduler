@@ -1,35 +1,36 @@
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { SessionUpdateProps } from "./types";
+import { Session } from "@/lib/types";
 import { toast } from "sonner";
-import { AttendanceStatus } from "@/lib/types";
 
-// Hook for updating session status
-export const useUpdateSession = (queryKey: any[]) => {
+export const useUpdateSession = () => {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
-    mutationFn: async (sessionUpdate: SessionUpdateProps) => {
-      const { id, status } = sessionUpdate;
+    mutationFn: async ({ id, ...sessionData }: Partial<Session> & { id: string }) => {
+      // Cast status to string for the Supabase query if provided
+      const dataToUpdate = {
+        ...sessionData,
+        status: sessionData.status ? sessionData.status.toString() : undefined,
+      };
       
       const { data, error } = await supabase
         .from("sessions")
-        .update({ status: status as AttendanceStatus })
+        .update(dataToUpdate)
         .eq("id", id)
-        .select();
-        
-      if (error) {
-        throw error;
-      }
-      
+        .select()
+        .single();
+
+      if (error) throw error;
       return data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey });
+      queryClient.invalidateQueries({ queryKey: ["sessions"] });
+      toast.success("Session updated successfully");
     },
     onError: (error) => {
-      toast.error(`Failed to update session status: ${error.message}`);
-    }
+      toast.error(`Failed to update session: ${error.message}`);
+    },
   });
 };

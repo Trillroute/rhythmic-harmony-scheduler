@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { format, startOfMonth, endOfMonth, subMonths } from "date-fns";
 import { AttendanceData, ReportPeriod } from "./types";
+import { AttendanceStatus, SubjectType } from "@/lib/types";
 
 // Fetch attendance data for reports
 export const useAttendanceReport = (period: 'week' | 'month' | 'quarter' = 'month', filters?: ReportPeriod) => {
@@ -35,12 +36,14 @@ export const useAttendanceReport = (period: 'week' | 'month' | 'quarter' = 'mont
     
     // Apply subject filter if provided  
     if (filters?.subjects && filters.subjects.length > 0) {
-      query = query.in('subject', filters.subjects as string[]);
+      // Cast to string array for the query
+      query = query.in('subject', filters.subjects.map(s => s.toString()) as string[]);
     }
     
     // Apply status filter if provided
     if (filters?.status && filters.status.length > 0) {
-      query = query.in('status', filters.status as string[]);
+      // Cast to string array for the query
+      query = query.in('status', filters.status.map(s => s.toString()) as string[]);
     }
       
     const { data, error } = await query;

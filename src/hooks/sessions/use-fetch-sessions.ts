@@ -1,68 +1,78 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { SessionsProps } from "./types";
-import { transformSessionData } from "./session-transformers";
-import { AttendanceStatus } from "@/lib/types";
+import { FilterOptions } from "@/lib/types";
+import { transformSessionsFromDB } from "./session-transformers";
+import { Session } from "@/lib/types";
 
-// Hook for fetching sessions with filters
-export const useFetchSessions = (props: SessionsProps = {}) => {
-  const queryKey = ["sessions", props];
-  
-  const fetchSessions = async () => {
-    // Build query based on props
-    let query = supabase.from("sessions").select(`
-      id, 
-      teacher_id, 
-      pack_id, 
-      subject, 
-      session_type, 
-      location, 
-      date_time, 
-      duration, 
-      notes, 
-      status, 
-      reschedule_count, 
-      created_at, 
-      updated_at,
-      session_students(student_id)
-    `);
-    
-    // Apply filters
-    if (props.teacherId) {
-      query = query.eq("teacher_id", props.teacherId);
+export const useFetchSessions = (
+  filters: FilterOptions = {},
+  enabled: boolean = true
+) => {
+  const fetchSessions = async (): Promise<Session[]> => {
+    let query = supabase
+      .from("sessions")
+      .select("*, session_students(student_id)");
+
+    // Apply filters if present
+    if (filters.teacherId) {
+      query = query.eq("teacher_id", filters.teacherId);
     }
-    
-    if (props.fromDate) {
-      query = query.gte("date_time", props.fromDate.toISOString());
+
+    if (filters.startDate) {
+      query = query.gte("date_time", new Date(filters.startDate).toISOString());
     }
-    
-    if (props.toDate) {
-      query = query.lte("date_time", props.toDate.toISOString());
+
+    if (filters.endDate) {
+      query = query.lte("date_time", new Date(filters.endDate).toISOString());
     }
-    
-    if (props.status && props.status.length > 0) {
-      // Cast the array to AttendanceStatus[] to fix the type error
-      query = query.in("status", props.status as AttendanceStatus[]);
+
+    if (filters.subject) {
+      query = query.eq("subject", filters.subject);
     }
-    
-    // If studentId is provided, we need to filter by session_students
-    if (props.studentId) {
-      query = query.eq("session_students.student_id", props.studentId);
+
+    if (filters.subjects && filters.subjects.length > 0) {
+      query = query.in("subject", filters.subjects.map(s => s.toString()) as string[]);
     }
-    
-    const { data, error } = await query.order('date_time', { ascending: false });
-    
+
+    if (filters.sessionType) {
+      query = query.eq("session_type", filters.sessionType);
+    }
+
+    if (filters.sessionTypes && filters.sessionTypes.length > 0) {
+      query = query.in("session_type", filters.sessionTypes);
+    }
+
+    if (filters.location) {
+      query = query.eq("location", filters.location);
+    }
+
+    if (filters.status) {
+      if (Array.isArray(filters.status)) {
+        // Cast status array to string[] for Supabase query
+        query = query.in("status", filters.status.map(s => s.toString()) as string[]);
+      } else {
+        query = query.eq("status", filters.status);
+      }
+    }
+
+    // Always order by date_time
+    query = query.order("date_time", { ascending: true });
+
+    const { data, error } = await query;
+
     if (error) {
-      throw error;
+      throw new Error(error.message);
     }
-    
-    // Transform data to match our interface
-    return transformSessionData(data);
+
+    if (!data) return [];
+
+    return transformSessionsFromDB(data);
   };
-  
+
   return useQuery({
-    queryKey,
+    queryKey: ["sessions", filters],
     queryFn: fetchSessions,
+    enabled,
   });
 };

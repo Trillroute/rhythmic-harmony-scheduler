@@ -90,6 +90,86 @@ const ReportingDashboard = () => {
     }
   };
 
+  // Transform the chart data to match Chart.js requirements
+  const getChartData = () => {
+    if (selectedChart === "attendance" && attendanceData?.chartData) {
+      return {
+        labels: attendanceData.chartData.map(d => d.date),
+        datasets: [
+          {
+            label: 'Present',
+            data: attendanceData.chartData.map(d => d.present),
+            backgroundColor: 'rgba(34, 197, 94, 0.5)',
+            borderColor: 'rgb(34, 197, 94)',
+            borderWidth: 1
+          },
+          {
+            label: 'Total',
+            data: attendanceData.chartData.map(d => d.total),
+            backgroundColor: 'rgba(59, 130, 246, 0.5)',
+            borderColor: 'rgb(59, 130, 246)',
+            borderWidth: 1
+          }
+        ]
+      };
+    }
+    else if (selectedChart === "sessions" && sessionsData?.chartData) {
+      return {
+        labels: sessionsData.chartData.map(d => d.subject),
+        datasets: [
+          {
+            label: 'Sessions',
+            data: sessionsData.chartData.map(d => d.count),
+            backgroundColor: [
+              'rgba(255, 99, 132, 0.5)',
+              'rgba(54, 162, 235, 0.5)',
+              'rgba(255, 206, 86, 0.5)',
+              'rgba(75, 192, 192, 0.5)',
+              'rgba(153, 102, 255, 0.5)'
+            ],
+            borderColor: [
+              'rgba(255, 99, 132, 1)',
+              'rgba(54, 162, 235, 1)',
+              'rgba(255, 206, 86, 1)',
+              'rgba(75, 192, 192, 1)',
+              'rgba(153, 102, 255, 1)'
+            ],
+            borderWidth: 1
+          }
+        ]
+      };
+    }
+    else if (selectedChart === "students" && studentProgressData?.chartData) {
+      return {
+        labels: studentProgressData.chartData.map(d => d.name),
+        datasets: [
+          {
+            label: 'Students',
+            data: studentProgressData.chartData.map(d => d.value),
+            backgroundColor: [
+              'rgba(255, 99, 132, 0.5)',
+              'rgba(54, 162, 235, 0.5)',
+              'rgba(255, 206, 86, 0.5)',
+              'rgba(75, 192, 192, 0.5)'
+            ],
+            borderColor: [
+              'rgba(255, 99, 132, 1)',
+              'rgba(54, 162, 235, 1)',
+              'rgba(255, 206, 86, 1)',
+              'rgba(75, 192, 192, 1)'
+            ],
+            borderWidth: 1
+          }
+        ]
+      };
+    }
+    
+    return {
+      labels: [],
+      datasets: []
+    };
+  };
+
   return (
     <div className="p-4 md:p-8">
       <h1 className="text-2xl font-bold mb-6">Reporting Dashboard</h1>
@@ -246,11 +326,7 @@ const ReportingDashboard = () => {
                   selectedChart === "attendance" ? "line" : 
                   selectedChart === "sessions" ? "bar" : "pie"
                 }
-                data={
-                  selectedChart === "attendance" ? attendanceData.chartData : 
-                  selectedChart === "sessions" ? sessionsData.chartData :
-                  studentProgressData.chartData
-                }
+                data={getChartData()}
                 options={{
                   responsive: true,
                   maintainAspectRatio: false,
