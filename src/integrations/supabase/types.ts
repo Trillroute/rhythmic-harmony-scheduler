@@ -9,7 +9,406 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      [_ in never]: never
+      admins: {
+        Row: {
+          id: string
+          permissions: string[] | null
+        }
+        Insert: {
+          id: string
+          permissions?: string[] | null
+        }
+        Update: {
+          id?: string
+          permissions?: string[] | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "admins_id_fkey"
+            columns: ["id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      attendance_events: {
+        Row: {
+          created_at: string
+          id: string
+          marked_at: string
+          marked_by_user_id: string
+          notes: string | null
+          session_id: string
+          status: Database["public"]["Enums"]["attendance_status_enum"]
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          marked_at?: string
+          marked_by_user_id: string
+          notes?: string | null
+          session_id: string
+          status: Database["public"]["Enums"]["attendance_status_enum"]
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          marked_at?: string
+          marked_by_user_id?: string
+          notes?: string | null
+          session_id?: string
+          status?: Database["public"]["Enums"]["attendance_status_enum"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "attendance_events_marked_by_user_id_fkey"
+            columns: ["marked_by_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "attendance_events_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          created_at: string
+          email: string
+          id: string
+          name: string
+          role: Database["public"]["Enums"]["user_role_enum"]
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          id: string
+          name: string
+          role: Database["public"]["Enums"]["user_role_enum"]
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          id?: string
+          name?: string
+          role?: Database["public"]["Enums"]["user_role_enum"]
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      reschedule_history: {
+        Row: {
+          created_at: string
+          id: string
+          new_date_time: string
+          original_date_time: string
+          reason: string
+          rescheduled_at: string
+          rescheduled_by_user_id: string
+          session_id: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          new_date_time: string
+          original_date_time: string
+          reason: string
+          rescheduled_at?: string
+          rescheduled_by_user_id: string
+          session_id: string
+          status: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          new_date_time?: string
+          original_date_time?: string
+          reason?: string
+          rescheduled_at?: string
+          rescheduled_by_user_id?: string
+          session_id?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reschedule_history_rescheduled_by_user_id_fkey"
+            columns: ["rescheduled_by_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reschedule_history_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      session_packs: {
+        Row: {
+          created_at: string
+          expiry_date: string | null
+          id: string
+          is_active: boolean
+          location: Database["public"]["Enums"]["location_type_enum"]
+          purchased_date: string
+          remaining_sessions: number
+          session_type: Database["public"]["Enums"]["session_type_enum"]
+          size: Database["public"]["Enums"]["pack_size_enum"]
+          student_id: string
+          subject: Database["public"]["Enums"]["subject_type_enum"]
+          updated_at: string
+          weekly_frequency: Database["public"]["Enums"]["weekly_frequency_enum"]
+        }
+        Insert: {
+          created_at?: string
+          expiry_date?: string | null
+          id?: string
+          is_active?: boolean
+          location: Database["public"]["Enums"]["location_type_enum"]
+          purchased_date?: string
+          remaining_sessions: number
+          session_type: Database["public"]["Enums"]["session_type_enum"]
+          size: Database["public"]["Enums"]["pack_size_enum"]
+          student_id: string
+          subject: Database["public"]["Enums"]["subject_type_enum"]
+          updated_at?: string
+          weekly_frequency: Database["public"]["Enums"]["weekly_frequency_enum"]
+        }
+        Update: {
+          created_at?: string
+          expiry_date?: string | null
+          id?: string
+          is_active?: boolean
+          location?: Database["public"]["Enums"]["location_type_enum"]
+          purchased_date?: string
+          remaining_sessions?: number
+          session_type?: Database["public"]["Enums"]["session_type_enum"]
+          size?: Database["public"]["Enums"]["pack_size_enum"]
+          student_id?: string
+          subject?: Database["public"]["Enums"]["subject_type_enum"]
+          updated_at?: string
+          weekly_frequency?: Database["public"]["Enums"]["weekly_frequency_enum"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "session_packs_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "students"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      session_students: {
+        Row: {
+          session_id: string
+          student_id: string
+        }
+        Insert: {
+          session_id: string
+          student_id: string
+        }
+        Update: {
+          session_id?: string
+          student_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "session_students_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "sessions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "session_students_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "students"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sessions: {
+        Row: {
+          created_at: string
+          date_time: string
+          duration: number
+          id: string
+          location: Database["public"]["Enums"]["location_type_enum"]
+          notes: string | null
+          pack_id: string
+          reschedule_count: number
+          session_type: Database["public"]["Enums"]["session_type_enum"]
+          status: Database["public"]["Enums"]["attendance_status_enum"]
+          subject: Database["public"]["Enums"]["subject_type_enum"]
+          teacher_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          date_time: string
+          duration: number
+          id?: string
+          location: Database["public"]["Enums"]["location_type_enum"]
+          notes?: string | null
+          pack_id: string
+          reschedule_count?: number
+          session_type: Database["public"]["Enums"]["session_type_enum"]
+          status?: Database["public"]["Enums"]["attendance_status_enum"]
+          subject: Database["public"]["Enums"]["subject_type_enum"]
+          teacher_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          date_time?: string
+          duration?: number
+          id?: string
+          location?: Database["public"]["Enums"]["location_type_enum"]
+          notes?: string | null
+          pack_id?: string
+          reschedule_count?: number
+          session_type?: Database["public"]["Enums"]["session_type_enum"]
+          status?: Database["public"]["Enums"]["attendance_status_enum"]
+          subject?: Database["public"]["Enums"]["subject_type_enum"]
+          teacher_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sessions_pack_id_fkey"
+            columns: ["pack_id"]
+            isOneToOne: false
+            referencedRelation: "session_packs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sessions_teacher_id_fkey"
+            columns: ["teacher_id"]
+            isOneToOne: false
+            referencedRelation: "teachers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      students: {
+        Row: {
+          id: string
+          notes: string | null
+          preferred_subjects: Database["public"]["Enums"]["subject_type_enum"][]
+          preferred_teachers: string[] | null
+        }
+        Insert: {
+          id: string
+          notes?: string | null
+          preferred_subjects?: Database["public"]["Enums"]["subject_type_enum"][]
+          preferred_teachers?: string[] | null
+        }
+        Update: {
+          id?: string
+          notes?: string | null
+          preferred_subjects?: Database["public"]["Enums"]["subject_type_enum"][]
+          preferred_teachers?: string[] | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "students_id_fkey"
+            columns: ["id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      teachers: {
+        Row: {
+          id: string
+          max_weekly_sessions: number | null
+          subjects: Database["public"]["Enums"]["subject_type_enum"][]
+        }
+        Insert: {
+          id: string
+          max_weekly_sessions?: number | null
+          subjects?: Database["public"]["Enums"]["subject_type_enum"][]
+        }
+        Update: {
+          id?: string
+          max_weekly_sessions?: number | null
+          subjects?: Database["public"]["Enums"]["subject_type_enum"][]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "teachers_id_fkey"
+            columns: ["id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      time_slots: {
+        Row: {
+          created_at: string
+          day: number
+          end_time: string
+          id: string
+          is_recurring: boolean
+          location: Database["public"]["Enums"]["location_type_enum"]
+          start_time: string
+          teacher_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          day: number
+          end_time: string
+          id?: string
+          is_recurring?: boolean
+          location: Database["public"]["Enums"]["location_type_enum"]
+          start_time: string
+          teacher_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          day?: number
+          end_time?: string
+          id?: string
+          is_recurring?: boolean
+          location?: Database["public"]["Enums"]["location_type_enum"]
+          start_time?: string
+          teacher_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "time_slots_teacher_id_fkey"
+            columns: ["teacher_id"]
+            isOneToOne: false
+            referencedRelation: "teachers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -18,7 +417,18 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      [_ in never]: never
+      attendance_status_enum:
+        | "Present"
+        | "Cancelled by Student"
+        | "Cancelled by Teacher"
+        | "Cancelled by School"
+        | "Scheduled"
+      location_type_enum: "Online" | "Offline"
+      pack_size_enum: "4" | "10" | "20" | "30"
+      session_type_enum: "Solo" | "Duo" | "Focus"
+      subject_type_enum: "Guitar" | "Piano" | "Drums" | "Ukulele" | "Vocal"
+      user_role_enum: "admin" | "teacher" | "student"
+      weekly_frequency_enum: "once" | "twice"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -133,6 +543,20 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      attendance_status_enum: [
+        "Present",
+        "Cancelled by Student",
+        "Cancelled by Teacher",
+        "Cancelled by School",
+        "Scheduled",
+      ],
+      location_type_enum: ["Online", "Offline"],
+      pack_size_enum: ["4", "10", "20", "30"],
+      session_type_enum: ["Solo", "Duo", "Focus"],
+      subject_type_enum: ["Guitar", "Piano", "Drums", "Ukulele", "Vocal"],
+      user_role_enum: ["admin", "teacher", "student"],
+      weekly_frequency_enum: ["once", "twice"],
+    },
   },
 } as const

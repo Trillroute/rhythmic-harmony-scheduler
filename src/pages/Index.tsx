@@ -5,15 +5,15 @@ import Dashboard from '@/components/Dashboard';
 import AttendanceTracker from '@/components/AttendanceTracker';
 import SessionScheduler from '@/components/SessionScheduler';
 import StudentPacks from '@/components/StudentPacks';
-import { teachers } from '@/lib/data';
+import { useAuth } from '@/contexts/AuthContext';
+import { UserRole } from '@/lib/types';
 
 const Index = () => {
-  // For demo purposes, use the first teacher's ID
-  const demoTeacherId = teachers[0].id;
-  const demoStudentId = 's1';
+  // Get the user role from auth context
+  const { userRole } = useAuth();
   
-  // Role would typically come from authentication
-  const [activeRole, setActiveRole] = useState<'admin' | 'teacher' | 'student'>('admin');
+  // Role selection only for demo purposes (will default to actual user role)
+  const [activeRole, setActiveRole] = useState<UserRole>(userRole || 'student');
   
   return (
     <Layout>
@@ -64,7 +64,7 @@ const Index = () => {
           <>
             <Dashboard userRole="teacher" />
             <div className="mt-10">
-              <AttendanceTracker teacherId={demoTeacherId} />
+              <AttendanceTracker />
             </div>
           </>
         )}
@@ -73,7 +73,7 @@ const Index = () => {
           <>
             <Dashboard userRole="student" />
             <div className="mt-10">
-              <StudentPacks studentId={demoStudentId} />
+              <StudentPacks />
             </div>
           </>
         )}
