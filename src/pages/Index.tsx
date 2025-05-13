@@ -37,7 +37,7 @@ const Index: React.FC = () => {
           </TabsList>
           
           <TabsContent value="dashboard" className="pt-4">
-            <Dashboard />
+            <Dashboard userRole={userRole!} />
           </TabsContent>
           
           <TabsContent value="scheduler" className="pt-4">

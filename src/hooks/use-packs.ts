@@ -86,11 +86,14 @@ export const useCreateSessionPack = () => {
       const expiryDate = new Date(purchasedDate);
       expiryDate.setMonth(expiryDate.getMonth() + 6);
       
+      // Convert numeric size to string to match the pack_size_enum type
+      const sizeAsString = packData.size?.toString() as "4" | "10" | "20" | "30";
+      
       const { data, error } = await supabase
         .from('session_packs')
         .insert({
           student_id: packData.studentId,
-          size: packData.size?.toString(),
+          size: sizeAsString,
           subject: packData.subject,
           session_type: packData.sessionType,
           location: packData.location,
