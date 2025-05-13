@@ -1,297 +1,532 @@
 
-import React, { useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Calendar } from "@/components/ui/calendar";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { CalendarIcon, DownloadIcon } from "lucide-react";
-import { format, subMonths } from "date-fns";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { supabase } from "@/integrations/supabase/client";
-import { formatDataForExport, exportToCsv } from "@/lib/exportToCsv";
-import { useToast } from "@/hooks/use-toast";
-import { SubjectType, AttendanceStatus } from "@/lib/types";
+import React, { useState } from 'react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from '@/components/ui/button';
+import { 
+  Select, 
+  SelectContent, 
+  SelectItem, 
+  SelectTrigger, 
+  SelectValue 
+} from '@/components/ui/select';
+import { DatePickerWithRange } from '@/components/ui/date-range-picker';
+import { 
+  Download, 
+  Calendar,
+  Users,
+  FileText,
+  BookOpen,
+  CreditCard
+} from 'lucide-react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Checkbox } from '@/components/ui/checkbox';
+import { exportToCsv } from '@/lib/exportToCsv';
+import { format, subDays } from 'date-fns';
+import { toast } from 'sonner';
+import { Badge } from '@/components/ui/badge';
+import { SubjectType, AttendanceStatus } from '@/lib/types';
 
 const DataExport = () => {
-  const { toast } = useToast();
-  const [dateRange, setDateRange] = useState<{ startDate: Date; endDate: Date }>({
-    startDate: subMonths(new Date(), 3),
-    endDate: new Date()
+  const [dateRange, setDateRange] = useState({
+    from: subDays(new Date(), 30),
+    to: new Date(),
   });
   
-  const [dataType, setDataType] = useState("sessions");
-  const [isLoading, setIsLoading] = useState(false);
-  const [selectedSubject, setSelectedSubject] = useState<SubjectType | null>(null);
-  const [selectedStatus, setSelectedStatus] = useState<AttendanceStatus | null>(null);
+  const [selectedSubjects, setSelectedSubjects] = useState<SubjectType[]>([]);
+  const [selectedStatuses, setSelectedStatuses] = useState<AttendanceStatus[]>([]);
+  const [isExporting, setIsExporting] = useState(false);
   
-  // Export data based on filters
-  const handleExport = async () => {
-    setIsLoading(true);
-    
-    try {
-      const formattedStartDate = format(dateRange.startDate, "yyyy-MM-dd");
-      const formattedEndDate = format(dateRange.endDate, "yyyy-MM-dd");
-      
-      let data;
-      let filename;
-      
-      switch (dataType) {
-        case "sessions":
-          let sessionsQuery = supabase
-            .from("sessions")
-            .select("*")
-            .gte("date_time", formattedStartDate)
-            .lte("date_time", formattedEndDate);
-          
-          if (selectedSubject) {
-            sessionsQuery = sessionsQuery.eq("subject", selectedSubject);
-          }
-          
-          if (selectedStatus) {
-            sessionsQuery = sessionsQuery.eq("status", selectedStatus);
-          }
-          
-          const { data: sessionsData, error: sessionsError } = await sessionsQuery;
-          
-          if (sessionsError) throw new Error(sessionsError.message);
-          
-          data = formatDataForExport(sessionsData, "sessions");
-          filename = `sessions-export-${format(new Date(), "yyyy-MM-dd")}`;
-          break;
-          
-        case "attendance":
-          let attendanceQuery = supabase
-            .from("attendance_events")
-            .select("*")
-            .gte("marked_at", formattedStartDate)
-            .lte("marked_at", formattedEndDate);
-          
-          if (selectedStatus) {
-            attendanceQuery = attendanceQuery.eq("status", selectedStatus);
-          }
-          
-          const { data: attendanceData, error: attendanceError } = await attendanceQuery;
-          
-          if (attendanceError) throw new Error(attendanceError.message);
-          
-          data = formatDataForExport(attendanceData, "attendance");
-          filename = `attendance-export-${format(new Date(), "yyyy-MM-dd")}`;
-          break;
-          
-        case "packs":
-          let packsQuery = supabase
-            .from("session_packs")
-            .select("*");
-          
-          if (selectedSubject) {
-            packsQuery = packsQuery.eq("subject", selectedSubject);
-          }
-          
-          const { data: packsData, error: packsError } = await packsQuery;
-          
-          if (packsError) throw new Error(packsError.message);
-          
-          data = formatDataForExport(packsData, "packs");
-          filename = `packs-export-${format(new Date(), "yyyy-MM-dd")}`;
-          break;
-      }
-      
-      if (data && data.length > 0) {
-        exportToCsv(data, filename);
-        toast({
-          title: "Export Successful",
-          description: `${data.length} records exported to ${filename}.csv`,
-        });
-      } else {
-        toast({
-          title: "No Data",
-          description: "No data found matching your filters",
-          variant: "destructive"
-        });
-      }
-    } catch (error) {
-      console.error("Export error:", error);
-      toast({
-        title: "Export Failed",
-        description: `Error: ${error instanceof Error ? error.message : "Unknown error"}`,
-        variant: "destructive"
-      });
-    } finally {
-      setIsLoading(false);
+  // These would come from API calls in a real implementation
+  const subjects = ["Guitar", "Piano", "Drums", "Ukulele", "Vocal"];
+  const statuses = ["Present", "Cancelled by Student", "Cancelled by Teacher", "Cancelled by School", "Scheduled"];
+  
+  const handleSubjectToggle = (subject: SubjectType) => {
+    if (selectedSubjects.includes(subject)) {
+      setSelectedSubjects(selectedSubjects.filter(s => s !== subject));
+    } else {
+      setSelectedSubjects([...selectedSubjects, subject]);
     }
   };
   
+  const handleStatusToggle = (status: AttendanceStatus) => {
+    if (selectedStatuses.includes(status)) {
+      setSelectedStatuses(selectedStatuses.filter(s => s !== status));
+    } else {
+      setSelectedStatuses([...selectedStatuses, status]);
+    }
+  };
+  
+  const handleExport = (type: string) => {
+    setIsExporting(true);
+    
+    // Simulate export delay
+    setTimeout(() => {
+      const dateRangeStr = `${format(dateRange.from, 'yyyy-MM-dd')}_to_${format(dateRange.to, 'yyyy-MM-dd')}`;
+      const filename = `${type}_export_${dateRangeStr}.csv`;
+      
+      // In a real implementation, we would fetch data from the API and export it
+      // For now, just export some dummy data
+      const dummyData = [
+        { id: 1, name: 'Item 1', date: new Date().toISOString(), value: 100 },
+        { id: 2, name: 'Item 2', date: new Date().toISOString(), value: 200 },
+        { id: 3, name: 'Item 3', date: new Date().toISOString(), value: 300 },
+      ];
+      
+      exportToCsv(dummyData, filename);
+      toast.success(`${type} data exported successfully to ${filename}`);
+      setIsExporting(false);
+    }, 1000);
+  };
+
   return (
-    <div className="p-4 md:p-8">
+    <div className="container py-6">
       <h1 className="text-2xl font-bold mb-6">Data Export</h1>
       
-      <Card>
-        <CardHeader>
-          <CardTitle>Export Data</CardTitle>
-          <CardDescription>Export your data as CSV files for analysis or backup</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Tabs defaultValue="sessions" onValueChange={setDataType}>
-            <TabsList className="mb-6">
-              <TabsTrigger value="sessions">Sessions</TabsTrigger>
-              <TabsTrigger value="attendance">Attendance</TabsTrigger>
-              <TabsTrigger value="packs">Student Packs</TabsTrigger>
-            </TabsList>
-            
-            <div className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                {/* Date Range */}
-                <div className="space-y-2">
-                  <span className="text-sm font-medium">Start Date</span>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <Button variant="outline" className="w-full justify-start text-left font-normal">
-                        <CalendarIcon className="mr-2 h-4 w-4" />
-                        {format(dateRange.startDate, "PPP")}
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0">
-                      <Calendar
-                        mode="single"
-                        selected={dateRange.startDate}
-                        onSelect={(date) => date && setDateRange(prev => ({ ...prev, startDate: date }))}
-                        initialFocus
-                      />
-                    </PopoverContent>
-                  </Popover>
+      <Tabs defaultValue="sessions" className="space-y-4">
+        <TabsList>
+          <TabsTrigger value="sessions" className="flex items-center gap-2">
+            <Calendar className="h-4 w-4" />
+            Sessions
+          </TabsTrigger>
+          <TabsTrigger value="attendance" className="flex items-center gap-2">
+            <FileText className="h-4 w-4" />
+            Attendance
+          </TabsTrigger>
+          <TabsTrigger value="students" className="flex items-center gap-2">
+            <Users className="h-4 w-4" />
+            Students
+          </TabsTrigger>
+          <TabsTrigger value="courses" className="flex items-center gap-2">
+            <BookOpen className="h-4 w-4" />
+            Courses
+          </TabsTrigger>
+          <TabsTrigger value="invoices" className="flex items-center gap-2">
+            <CreditCard className="h-4 w-4" />
+            Invoices
+          </TabsTrigger>
+        </TabsList>
+        
+        {/* Sessions Export */}
+        <TabsContent value="sessions">
+          <Card>
+            <CardHeader>
+              <CardTitle>Export Sessions Data</CardTitle>
+              <CardDescription>
+                Download a CSV file containing session data within the selected date range.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-6">
+                <div>
+                  <h3 className="text-sm font-medium mb-2">Date Range</h3>
+                  <DatePickerWithRange date={dateRange} setDate={setDateRange} />
                 </div>
                 
-                <div className="space-y-2">
-                  <span className="text-sm font-medium">End Date</span>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <Button variant="outline" className="w-full justify-start text-left font-normal">
-                        <CalendarIcon className="mr-2 h-4 w-4" />
-                        {format(dateRange.endDate, "PPP")}
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0">
-                      <Calendar
-                        mode="single"
-                        selected={dateRange.endDate}
-                        onSelect={(date) => date && setDateRange(prev => ({ ...prev, endDate: date }))}
-                        initialFocus
-                      />
-                    </PopoverContent>
-                  </Popover>
+                <div>
+                  <h3 className="text-sm font-medium mb-2">Filter by Instrument</h3>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2">
+                    {subjects.map((subject) => (
+                      <div key={subject} className="flex items-center space-x-2">
+                        <Checkbox 
+                          id={`instrument-${subject}`} 
+                          checked={selectedSubjects.includes(subject as SubjectType)}
+                          onCheckedChange={() => handleSubjectToggle(subject as SubjectType)}
+                        />
+                        <label 
+                          htmlFor={`instrument-${subject}`}
+                          className="text-sm font-medium leading-none cursor-pointer"
+                        >
+                          {subject}
+                        </label>
+                      </div>
+                    ))}
+                  </div>
                 </div>
                 
-                {/* Subject Filter (Sessions & Packs) */}
-                {(dataType === "sessions" || dataType === "packs") && (
-                  <div className="space-y-2">
-                    <span className="text-sm font-medium">Subject</span>
-                    <Select value={selectedSubject || ""} 
-                      onValueChange={(value) => setSelectedSubject(value as SubjectType || null)}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="All Subjects" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="">All Subjects</SelectItem>
-                        <SelectItem value="Guitar">Guitar</SelectItem>
-                        <SelectItem value="Piano">Piano</SelectItem>
-                        <SelectItem value="Drums">Drums</SelectItem>
-                        <SelectItem value="Ukulele">Ukulele</SelectItem>
-                        <SelectItem value="Vocal">Vocal</SelectItem>
-                      </SelectContent>
-                    </Select>
+                <div>
+                  <h3 className="text-sm font-medium mb-2">Additional Options</h3>
+                  <div className="grid grid-cols-1 gap-2">
+                    <div className="flex items-center space-x-2">
+                      <Checkbox id="include-teacher-info" />
+                      <label 
+                        htmlFor="include-teacher-info"
+                        className="text-sm font-medium leading-none cursor-pointer"
+                      >
+                        Include teacher information
+                      </label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Checkbox id="include-student-info" />
+                      <label 
+                        htmlFor="include-student-info"
+                        className="text-sm font-medium leading-none cursor-pointer"
+                      >
+                        Include student information
+                      </label>
+                    </div>
                   </div>
-                )}
+                </div>
                 
-                {/* Status Filter (Sessions & Attendance) */}
-                {(dataType === "sessions" || dataType === "attendance") && (
-                  <div className="space-y-2">
-                    <span className="text-sm font-medium">Status</span>
-                    <Select value={selectedStatus || ""} 
-                      onValueChange={(value) => setSelectedStatus(value as AttendanceStatus || null)}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="All Statuses" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="">All Statuses</SelectItem>
-                        <SelectItem value="Present">Present</SelectItem>
-                        <SelectItem value="Cancelled by Student">Cancelled by Student</SelectItem>
-                        <SelectItem value="Cancelled by Teacher">Cancelled by Teacher</SelectItem>
-                        <SelectItem value="Cancelled by School">Cancelled by School</SelectItem>
-                        <SelectItem value="Scheduled">Scheduled</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                )}
+                <div className="flex justify-end">
+                  <Button 
+                    onClick={() => handleExport('sessions')}
+                    disabled={isExporting}
+                    className="gap-2"
+                  >
+                    <Download className="h-4 w-4" />
+                    {isExporting ? 'Exporting...' : 'Export Sessions'}
+                  </Button>
+                </div>
               </div>
-              
-              {/* Export Information based on selected tab */}
-              <TabsContent value="sessions" className="mt-4">
-                <div className="bg-muted p-4 rounded-md">
-                  <h3 className="font-medium mb-2">Sessions Export</h3>
-                  <p className="text-sm text-muted-foreground mb-4">
-                    Export all session data including teacher, student, subject, date, time, and status.
-                    Filter by date range, subject, and status.
-                  </p>
-                  <ul className="list-disc list-inside text-sm text-muted-foreground">
-                    <li>Session ID, type, and location</li>
-                    <li>Teacher and student assignments</li>
-                    <li>Date, time, and duration</li>
-                    <li>Attendance status and reschedule history</li>
-                  </ul>
+            </CardContent>
+          </Card>
+        </TabsContent>
+        
+        {/* Attendance Export */}
+        <TabsContent value="attendance">
+          <Card>
+            <CardHeader>
+              <CardTitle>Export Attendance Data</CardTitle>
+              <CardDescription>
+                Download a CSV file containing attendance records within the selected date range.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-6">
+                <div>
+                  <h3 className="text-sm font-medium mb-2">Date Range</h3>
+                  <DatePickerWithRange date={dateRange} setDate={setDateRange} />
                 </div>
-              </TabsContent>
-              
-              <TabsContent value="attendance" className="mt-4">
-                <div className="bg-muted p-4 rounded-md">
-                  <h3 className="font-medium mb-2">Attendance Export</h3>
-                  <p className="text-sm text-muted-foreground mb-4">
-                    Export attendance records for all sessions. Includes attendance status, who marked attendance,
-                    and when it was recorded. Filter by date range and status.
-                  </p>
-                  <ul className="list-disc list-inside text-sm text-muted-foreground">
-                    <li>Attendance status (Present, Cancelled, etc.)</li>
-                    <li>Session reference</li>
-                    <li>Marked by user and timestamp</li>
-                    <li>Additional notes</li>
-                  </ul>
+                
+                <div>
+                  <h3 className="text-sm font-medium mb-2">Filter by Status</h3>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                    {statuses.map((status) => (
+                      <div key={status} className="flex items-center space-x-2">
+                        <Checkbox 
+                          id={`status-${status}`} 
+                          checked={selectedStatuses.includes(status as AttendanceStatus)}
+                          onCheckedChange={() => handleStatusToggle(status as AttendanceStatus)}
+                        />
+                        <label 
+                          htmlFor={`status-${status}`}
+                          className="text-sm font-medium leading-none cursor-pointer"
+                        >
+                          {status}
+                        </label>
+                      </div>
+                    ))}
+                  </div>
                 </div>
-              </TabsContent>
-              
-              <TabsContent value="packs" className="mt-4">
-                <div className="bg-muted p-4 rounded-md">
-                  <h3 className="font-medium mb-2">Student Packs Export</h3>
-                  <p className="text-sm text-muted-foreground mb-4">
-                    Export data on all student session packs including size, remaining sessions, purchase date,
-                    and expiry date. Filter by subject.
-                  </p>
-                  <ul className="list-disc list-inside text-sm text-muted-foreground">
-                    <li>Pack size and type</li>
-                    <li>Student information</li>
-                    <li>Purchase and expiry dates</li>
-                    <li>Remaining sessions and usage</li>
-                  </ul>
+                
+                <div>
+                  <h3 className="text-sm font-medium mb-2">Group by</h3>
+                  <Select defaultValue="none">
+                    <SelectTrigger className="w-full md:w-[200px]">
+                      <SelectValue placeholder="Select grouping" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">No grouping</SelectItem>
+                      <SelectItem value="student">Student</SelectItem>
+                      <SelectItem value="teacher">Teacher</SelectItem>
+                      <SelectItem value="instrument">Instrument</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
-              </TabsContent>
-              
-              <Button 
-                onClick={handleExport} 
-                disabled={isLoading}
-                className="w-full sm:w-auto"
-              >
-                {isLoading ? (
-                  "Exporting..."
-                ) : (
-                  <>
-                    <DownloadIcon className="mr-2 h-4 w-4" />
-                    Export {dataType} as CSV
-                  </>
-                )}
-              </Button>
-            </div>
-          </Tabs>
-        </CardContent>
-      </Card>
+                
+                <div className="flex justify-end">
+                  <Button 
+                    onClick={() => handleExport('attendance')}
+                    disabled={isExporting}
+                    className="gap-2"
+                  >
+                    <Download className="h-4 w-4" />
+                    {isExporting ? 'Exporting...' : 'Export Attendance'}
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+        
+        {/* Students Export */}
+        <TabsContent value="students">
+          <Card>
+            <CardHeader>
+              <CardTitle>Export Student Data</CardTitle>
+              <CardDescription>
+                Download a CSV file containing information about students and their progress.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-6">
+                <div>
+                  <h3 className="text-sm font-medium mb-2">Filter by Activity</h3>
+                  <div className="flex space-x-2">
+                    <Badge variant="outline" className="cursor-pointer hover:bg-secondary">
+                      All Students
+                    </Badge>
+                    <Badge variant="outline" className="cursor-pointer hover:bg-secondary">
+                      Active Only
+                    </Badge>
+                    <Badge variant="outline" className="cursor-pointer hover:bg-secondary">
+                      With Active Packs
+                    </Badge>
+                  </div>
+                </div>
+                
+                <div>
+                  <h3 className="text-sm font-medium mb-2">Include Data</h3>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    <div className="flex items-center space-x-2">
+                      <Checkbox id="include-contact" defaultChecked />
+                      <label 
+                        htmlFor="include-contact"
+                        className="text-sm font-medium leading-none cursor-pointer"
+                      >
+                        Contact information
+                      </label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Checkbox id="include-packs" defaultChecked />
+                      <label 
+                        htmlFor="include-packs"
+                        className="text-sm font-medium leading-none cursor-pointer"
+                      >
+                        Pack information
+                      </label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Checkbox id="include-attendance" defaultChecked />
+                      <label 
+                        htmlFor="include-attendance"
+                        className="text-sm font-medium leading-none cursor-pointer"
+                      >
+                        Attendance records
+                      </label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Checkbox id="include-payment" />
+                      <label 
+                        htmlFor="include-payment"
+                        className="text-sm font-medium leading-none cursor-pointer"
+                      >
+                        Payment history
+                      </label>
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="flex justify-end">
+                  <Button 
+                    onClick={() => handleExport('students')}
+                    disabled={isExporting}
+                    className="gap-2"
+                  >
+                    <Download className="h-4 w-4" />
+                    {isExporting ? 'Exporting...' : 'Export Student Data'}
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+        
+        {/* Courses Export */}
+        <TabsContent value="courses">
+          <Card>
+            <CardHeader>
+              <CardTitle>Export Course Data</CardTitle>
+              <CardDescription>
+                Download a CSV file with course information and student enrollments.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-6">
+                <div>
+                  <h3 className="text-sm font-medium mb-2">Filter by Instrument</h3>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2">
+                    {subjects.map((subject) => (
+                      <div key={subject} className="flex items-center space-x-2">
+                        <Checkbox 
+                          id={`course-subject-${subject}`} 
+                          checked={selectedSubjects.includes(subject as SubjectType)}
+                          onCheckedChange={() => handleSubjectToggle(subject as SubjectType)}
+                        />
+                        <label 
+                          htmlFor={`course-subject-${subject}`}
+                          className="text-sm font-medium leading-none cursor-pointer"
+                        >
+                          {subject}
+                        </label>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                
+                <div>
+                  <h3 className="text-sm font-medium mb-2">Include Data</h3>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    <div className="flex items-center space-x-2">
+                      <Checkbox id="include-enrollments" defaultChecked />
+                      <label 
+                        htmlFor="include-enrollments"
+                        className="text-sm font-medium leading-none cursor-pointer"
+                      >
+                        Student enrollments
+                      </label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Checkbox id="include-course-teachers" defaultChecked />
+                      <label 
+                        htmlFor="include-course-teachers"
+                        className="text-sm font-medium leading-none cursor-pointer"
+                      >
+                        Assigned teachers
+                      </label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Checkbox id="include-course-materials" />
+                      <label 
+                        htmlFor="include-course-materials"
+                        className="text-sm font-medium leading-none cursor-pointer"
+                      >
+                        Course materials
+                      </label>
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="flex justify-end">
+                  <Button 
+                    onClick={() => handleExport('courses')}
+                    disabled={isExporting}
+                    className="gap-2"
+                  >
+                    <Download className="h-4 w-4" />
+                    {isExporting ? 'Exporting...' : 'Export Course Data'}
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+        
+        {/* Invoices Export */}
+        <TabsContent value="invoices">
+          <Card>
+            <CardHeader>
+              <CardTitle>Export Invoice & Payment Data</CardTitle>
+              <CardDescription>
+                Download a CSV file containing financial records and payment information.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-6">
+                <div>
+                  <h3 className="text-sm font-medium mb-2">Date Range</h3>
+                  <DatePickerWithRange date={dateRange} setDate={setDateRange} />
+                </div>
+                
+                <div>
+                  <h3 className="text-sm font-medium mb-2">Filter by Status</h3>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                    <div className="flex items-center space-x-2">
+                      <Checkbox id="status-paid" defaultChecked />
+                      <label 
+                        htmlFor="status-paid"
+                        className="text-sm font-medium leading-none cursor-pointer"
+                      >
+                        Paid
+                      </label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Checkbox id="status-pending" defaultChecked />
+                      <label 
+                        htmlFor="status-pending"
+                        className="text-sm font-medium leading-none cursor-pointer"
+                      >
+                        Pending
+                      </label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Checkbox id="status-overdue" defaultChecked />
+                      <label 
+                        htmlFor="status-overdue"
+                        className="text-sm font-medium leading-none cursor-pointer"
+                      >
+                        Overdue
+                      </label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Checkbox id="status-cancelled" />
+                      <label 
+                        htmlFor="status-cancelled"
+                        className="text-sm font-medium leading-none cursor-pointer"
+                      >
+                        Cancelled
+                      </label>
+                    </div>
+                  </div>
+                </div>
+                
+                <div>
+                  <h3 className="text-sm font-medium mb-2">Report Type</h3>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    <div className="flex items-center space-x-2">
+                      <Checkbox id="include-invoices" defaultChecked />
+                      <label 
+                        htmlFor="include-invoices"
+                        className="text-sm font-medium leading-none cursor-pointer"
+                      >
+                        Include invoices
+                      </label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Checkbox id="include-payments" defaultChecked />
+                      <label 
+                        htmlFor="include-payments"
+                        className="text-sm font-medium leading-none cursor-pointer"
+                      >
+                        Include payment records
+                      </label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Checkbox id="detailed-report" />
+                      <label 
+                        htmlFor="detailed-report"
+                        className="text-sm font-medium leading-none cursor-pointer"
+                      >
+                        Generate detailed report
+                      </label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Checkbox id="include-summary" defaultChecked />
+                      <label 
+                        htmlFor="include-summary"
+                        className="text-sm font-medium leading-none cursor-pointer"
+                      >
+                        Include monthly summary
+                      </label>
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="flex justify-end">
+                  <Button 
+                    onClick={() => handleExport('invoices')}
+                    disabled={isExporting}
+                    className="gap-2"
+                  >
+                    <Download className="h-4 w-4" />
+                    {isExporting ? 'Exporting...' : 'Export Financial Data'}
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 };

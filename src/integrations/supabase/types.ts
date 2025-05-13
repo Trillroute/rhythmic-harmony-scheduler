@@ -80,6 +80,320 @@ export type Database = {
           },
         ]
       }
+      course_materials: {
+        Row: {
+          course_id: string
+          created_at: string
+          description: string | null
+          file_type: string
+          file_url: string | null
+          id: string
+          is_public: boolean
+          module_number: number | null
+          session_number: number | null
+          storage_path: string | null
+          title: string
+          updated_at: string
+          uploaded_by: string
+        }
+        Insert: {
+          course_id: string
+          created_at?: string
+          description?: string | null
+          file_type: string
+          file_url?: string | null
+          id?: string
+          is_public?: boolean
+          module_number?: number | null
+          session_number?: number | null
+          storage_path?: string | null
+          title: string
+          updated_at?: string
+          uploaded_by: string
+        }
+        Update: {
+          course_id?: string
+          created_at?: string
+          description?: string | null
+          file_type?: string
+          file_url?: string | null
+          id?: string
+          is_public?: boolean
+          module_number?: number | null
+          session_number?: number | null
+          storage_path?: string | null
+          title?: string
+          updated_at?: string
+          uploaded_by?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "course_materials_course_id_fkey"
+            columns: ["course_id"]
+            isOneToOne: false
+            referencedRelation: "courses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "course_materials_uploaded_by_fkey"
+            columns: ["uploaded_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      course_teachers: {
+        Row: {
+          course_id: string
+          created_at: string
+          teacher_id: string
+        }
+        Insert: {
+          course_id: string
+          created_at?: string
+          teacher_id: string
+        }
+        Update: {
+          course_id?: string
+          created_at?: string
+          teacher_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "course_teachers_course_id_fkey"
+            columns: ["course_id"]
+            isOneToOne: false
+            referencedRelation: "courses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "course_teachers_teacher_id_fkey"
+            columns: ["teacher_id"]
+            isOneToOne: false
+            referencedRelation: "teachers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      courses: {
+        Row: {
+          created_at: string
+          description: string | null
+          duration_type: string
+          duration_value: number
+          id: string
+          instrument: Database["public"]["Enums"]["subject_type_enum"]
+          name: string
+          session_duration: number
+          session_type: Database["public"]["Enums"]["session_type_enum"]
+          status: string
+          syllabus: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          duration_type: string
+          duration_value: number
+          id?: string
+          instrument: Database["public"]["Enums"]["subject_type_enum"]
+          name: string
+          session_duration: number
+          session_type: Database["public"]["Enums"]["session_type_enum"]
+          status?: string
+          syllabus?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          duration_type?: string
+          duration_value?: number
+          id?: string
+          instrument?: Database["public"]["Enums"]["subject_type_enum"]
+          name?: string
+          session_duration?: number
+          session_type?: Database["public"]["Enums"]["session_type_enum"]
+          status?: string
+          syllabus?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      enrollments: {
+        Row: {
+          course_id: string
+          created_at: string
+          end_date: string | null
+          id: string
+          notes: string | null
+          plan_id: string | null
+          start_date: string
+          status: string
+          student_id: string
+          updated_at: string
+        }
+        Insert: {
+          course_id: string
+          created_at?: string
+          end_date?: string | null
+          id?: string
+          notes?: string | null
+          plan_id?: string | null
+          start_date: string
+          status?: string
+          student_id: string
+          updated_at?: string
+        }
+        Update: {
+          course_id?: string
+          created_at?: string
+          end_date?: string | null
+          id?: string
+          notes?: string | null
+          plan_id?: string | null
+          start_date?: string
+          status?: string
+          student_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "enrollments_course_id_fkey"
+            columns: ["course_id"]
+            isOneToOne: false
+            referencedRelation: "courses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "enrollments_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "session_plans"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "enrollments_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "students"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      invoices: {
+        Row: {
+          amount: number
+          created_at: string
+          due_date: string
+          id: string
+          notes: string | null
+          pack_id: string | null
+          plan_id: string | null
+          status: string
+          student_id: string
+          updated_at: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          due_date: string
+          id?: string
+          notes?: string | null
+          pack_id?: string | null
+          plan_id?: string | null
+          status?: string
+          student_id: string
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          due_date?: string
+          id?: string
+          notes?: string | null
+          pack_id?: string | null
+          plan_id?: string | null
+          status?: string
+          student_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invoices_pack_id_fkey"
+            columns: ["pack_id"]
+            isOneToOne: false
+            referencedRelation: "session_packs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoices_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "session_plans"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoices_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "students"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      payment_records: {
+        Row: {
+          amount: number
+          created_at: string
+          id: string
+          invoice_id: string
+          notes: string | null
+          payment_date: string
+          payment_method: string
+          recorded_by_user_id: string
+          reference_number: string | null
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          id?: string
+          invoice_id: string
+          notes?: string | null
+          payment_date: string
+          payment_method: string
+          recorded_by_user_id: string
+          reference_number?: string | null
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          id?: string
+          invoice_id?: string
+          notes?: string | null
+          payment_date?: string
+          payment_method?: string
+          recorded_by_user_id?: string
+          reference_number?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payment_records_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "invoices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payment_records_recorded_by_user_id_fkey"
+            columns: ["recorded_by_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           created_at: string
@@ -106,6 +420,53 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      reminders: {
+        Row: {
+          channel: string
+          created_at: string
+          id: string
+          message: string
+          recipient_id: string
+          related_id: string | null
+          send_at: string
+          sent_at: string | null
+          status: string
+          type: string
+        }
+        Insert: {
+          channel: string
+          created_at?: string
+          id?: string
+          message: string
+          recipient_id: string
+          related_id?: string | null
+          send_at: string
+          sent_at?: string | null
+          status?: string
+          type: string
+        }
+        Update: {
+          channel?: string
+          created_at?: string
+          id?: string
+          message?: string
+          recipient_id?: string
+          related_id?: string | null
+          send_at?: string
+          sent_at?: string | null
+          status?: string
+          type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reminders_recipient_id_fkey"
+            columns: ["recipient_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       reschedule_history: {
         Row: {
@@ -217,6 +578,53 @@ export type Database = {
           },
         ]
       }
+      session_plans: {
+        Row: {
+          course_id: string | null
+          created_at: string
+          description: string | null
+          id: string
+          name: string
+          price: number
+          sessions_count: number
+          status: string
+          updated_at: string
+          validity_days: number
+        }
+        Insert: {
+          course_id?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          name: string
+          price: number
+          sessions_count: number
+          status?: string
+          updated_at?: string
+          validity_days: number
+        }
+        Update: {
+          course_id?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          name?: string
+          price?: number
+          sessions_count?: number
+          status?: string
+          updated_at?: string
+          validity_days?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "session_plans_course_id_fkey"
+            columns: ["course_id"]
+            isOneToOne: false
+            referencedRelation: "courses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       session_students: {
         Row: {
           session_id: string
@@ -306,6 +714,60 @@ export type Database = {
             columns: ["teacher_id"]
             isOneToOne: false
             referencedRelation: "teachers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      student_progress: {
+        Row: {
+          completion_percentage: number
+          created_at: string
+          enrollment_id: string
+          id: string
+          last_updated_by: string
+          module_number: number | null
+          session_number: number | null
+          student_notes: string | null
+          teacher_notes: string | null
+          updated_at: string
+        }
+        Insert: {
+          completion_percentage?: number
+          created_at?: string
+          enrollment_id: string
+          id?: string
+          last_updated_by: string
+          module_number?: number | null
+          session_number?: number | null
+          student_notes?: string | null
+          teacher_notes?: string | null
+          updated_at?: string
+        }
+        Update: {
+          completion_percentage?: number
+          created_at?: string
+          enrollment_id?: string
+          id?: string
+          last_updated_by?: string
+          module_number?: number | null
+          session_number?: number | null
+          student_notes?: string | null
+          teacher_notes?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "student_progress_enrollment_id_fkey"
+            columns: ["enrollment_id"]
+            isOneToOne: false
+            referencedRelation: "enrollments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "student_progress_last_updated_by_fkey"
+            columns: ["last_updated_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
