@@ -1,240 +1,207 @@
 
-import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
-import { format, subMonths, subDays, parseISO } from 'date-fns';
-import { FilterOptions } from '@/lib/types';
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "../integrations/supabase/client";
+import { format, startOfMonth, endOfMonth, subMonths } from "date-fns";
+import { AttendanceStatus, SubjectType } from "@/lib/types";
 
-// Helper function to format dates
-const formatDate = (date: Date | string) => {
-  if (typeof date === 'string') {
-    return format(parseISO(date), 'yyyy-MM-dd');
-  }
-  return format(date, 'yyyy-MM-dd');
-};
-
-interface ChartDataPoint {
-  date: string;
-  total: number;
-  present: number;
-  rate: number;
-}
-
-interface SubjectDataPoint {
-  subject: string;
-  sessions: number;
-  solo: number;
-  duo: number;
-  focus: number;
-}
-
-interface PackDataPoint {
-  name: string;
-  value: number;
-}
-
-interface AttendanceReportData {
-  chartData: ChartDataPoint[];
+interface AttendanceData {
   attendanceRate: number;
-  totalSessions: number;
-  presentSessions: number;
+  chartData: {
+    date: string;
+    total: number;
+    present: number;
+    rate: number;
+  }[];
 }
 
-interface SessionsReportData {
-  chartData: SubjectDataPoint[];
-  totalSessions: number;
-  bySubject: Record<string, number>;
+interface SubjectDistributionData {
+  chartData: {
+    subject: string;
+    sessions: number;
+    solo: number;
+    duo: number;
+    focus: number;
+  }[];
 }
 
-interface StudentProgressData {
-  chartData: PackDataPoint[];
-  activeStudents: number;
-  completionRate: number;
+interface SessionTypeData {
+  chartData: {
+    name: string;
+    value: number;
+  }[];
 }
 
-// Fetch attendance data for reporting
-export const useAttendanceData = (options?: FilterOptions) => {
-  const startDate = options?.startDate || subMonths(new Date(), 3);
-  const endDate = options?.endDate || new Date();
+export const useReports = (period: 'week' | 'month' | 'quarter' = 'month') => {
+  // Get attendance data
+  const fetchAttendanceData = async (): Promise<AttendanceData> => {
+    const endDate = new Date();
+    let startDate;
+    
+    switch (period) {
+      case 'week':
+        startDate = new Date(endDate);
+        startDate.setDate(endDate.getDate() - 7);
+        break;
+      case 'quarter':
+        startDate = subMonths(endDate, 3);
+        break;
+      case 'month':
+      default:
+        startDate = startOfMonth(endDate);
+        startDate = subMonths(startDate, 1); // Get last month data too
+        break;
+    }
+    
+    const { data, error } = await supabase
+      .from('sessions')
+      .select('date_time, status')
+      .gte('date_time', startDate.toISOString())
+      .lte('date_time', endDate.toISOString());
+      
+    if (error) throw error;
+    
+    // Group by date
+    const groupedByDate: Record<string, { total: number, present: number }> = {};
+    
+    data.forEach(session => {
+      const dateKey = format(new Date(session.date_time), 'yyyy-MM-dd');
+      
+      if (!groupedByDate[dateKey]) {
+        groupedByDate[dateKey] = { total: 0, present: 0 };
+      }
+      
+      groupedByDate[dateKey].total += 1;
+      if (session.status === 'Present') {
+        groupedByDate[dateKey].present += 1;
+      }
+    });
+    
+    // Calculate overall attendance rate
+    let totalSessions = 0;
+    let totalPresent = 0;
+    
+    Object.values(groupedByDate).forEach(val => {
+      totalSessions += val.total;
+      totalPresent += val.present;
+    });
+    
+    const attendanceRate = totalSessions > 0 ? (totalPresent / totalSessions) * 100 : 0;
+    
+    // Format for chart
+    const chartData = Object.entries(groupedByDate).map(([date, stats]) => ({
+      date: format(new Date(date), 'MMM dd'),
+      total: stats.total,
+      present: stats.present,
+      rate: stats.total > 0 ? (stats.present / stats.total) * 100 : 0
+    })).sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+    
+    return {
+      attendanceRate,
+      chartData
+    };
+  };
   
-  return useQuery({
-    queryKey: ['attendanceData', options],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('sessions')
-        .select('date_time, status')
-        .gte('date_time', formatDate(startDate))
-        .lte('date_time', formatDate(endDate));
-
-      if (error) throw error;
-
-      // Transform data for chart display
-      const attendanceByDate = data.reduce((acc: { [key: string]: { total: number; present: number } }, session) => {
-        const date = formatDate(session.date_time);
-        if (!acc[date]) {
-          acc[date] = { total: 0, present: 0 };
-        }
-        acc[date].total += 1;
-        if (session.status === 'Present') {
-          acc[date].present += 1;
-        }
-        return acc;
-      }, {});
-
-      // Convert to array format for charting
-      const chartData = Object.entries(attendanceByDate).map(([date, counts]) => ({
-        date,
-        total: counts.total,
-        present: counts.present,
-        rate: counts.total > 0 ? Math.round((counts.present / counts.total) * 100) / 100 : 0,
-      }));
+  // Get subject distribution data
+  const fetchSubjectDistribution = async (): Promise<SubjectDistributionData> => {
+    const { data, error } = await supabase
+      .from('sessions')
+      .select('subject, session_type');
       
-      // Calculate overall attendance rate
-      const totalSessions = chartData.reduce((sum, item) => sum + item.total, 0);
-      const presentSessions = chartData.reduce((sum, item) => sum + item.present, 0);
-      const attendanceRate = totalSessions > 0 ? Math.round((presentSessions / totalSessions) * 100) : 0;
+    if (error) throw error;
+    
+    const subjectCounts: Record<SubjectType, { total: number, solo: number, duo: number, focus: number }> = {} as any;
+    
+    data.forEach(session => {
+      if (!subjectCounts[session.subject]) {
+        subjectCounts[session.subject] = { total: 0, solo: 0, duo: 0, focus: 0 };
+      }
       
-      return {
-        chartData,
-        attendanceRate,
-        totalSessions,
-        presentSessions
-      };
-    },
+      subjectCounts[session.subject].total += 1;
+      
+      // Count by session type
+      if (session.session_type === 'Solo') {
+        subjectCounts[session.subject].solo += 1;
+      } else if (session.session_type === 'Duo') {
+        subjectCounts[session.subject].duo += 1;
+      } else if (session.session_type === 'Focus') {
+        subjectCounts[session.subject].focus += 1;
+      }
+    });
+    
+    const chartData = Object.entries(subjectCounts).map(([subject, counts]) => ({
+      subject,
+      sessions: counts.total,
+      solo: counts.solo,
+      duo: counts.duo,
+      focus: counts.focus
+    }));
+    
+    return {
+      chartData
+    };
+  };
+  
+  // Get session type distribution
+  const fetchSessionTypeDistribution = async (): Promise<SessionTypeData> => {
+    const { data, error } = await supabase
+      .from('sessions')
+      .select('session_type');
+      
+    if (error) throw error;
+    
+    const typeCounts: Record<string, number> = {
+      'Solo': 0,
+      'Duo': 0,
+      'Focus': 0
+    };
+    
+    data.forEach(session => {
+      typeCounts[session.session_type] += 1;
+    });
+    
+    const chartData = Object.entries(typeCounts).map(([name, value]) => ({
+      name,
+      value
+    }));
+    
+    return {
+      chartData
+    };
+  };
+  
+  // Queries
+  const attendanceQuery = useQuery({
+    queryKey: ['reports', 'attendance', period],
+    queryFn: fetchAttendanceData,
   });
-};
-
-// Fetch session distribution by subject
-export const useSessionsBySubject = (options?: FilterOptions) => {
-  return useQuery({
-    queryKey: ['sessionsBySubject', options],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('sessions')
-        .select('subject, session_type')
-        .gte('date_time', formatDate(subMonths(new Date(), 6)));
-
-      if (error) throw error;
-
-      // Transform data for chart display
-      const subjectStats = data.reduce((acc: { [key: string]: { sessions: number; solo: number; duo: number; focus: number } }, session) => {
-        const subject = session.subject;
-        if (!acc[subject]) {
-          acc[subject] = { sessions: 0, solo: 0, duo: 0, focus: 0 };
-        }
-        acc[subject].sessions += 1;
-        
-        // Count by session type
-        if (session.session_type === 'Solo') {
-          acc[subject].solo += 1;
-        } else if (session.session_type === 'Duo') {
-          acc[subject].duo += 1;
-        } else if (session.session_type === 'Focus') {
-          acc[subject].focus += 1;
-        }
-        
-        return acc;
-      }, {});
-
-      // Convert to array format for charting
-      const chartData = Object.entries(subjectStats).map(([subject, stats]) => ({
-        subject,
-        sessions: stats.sessions,
-        solo: stats.solo,
-        duo: stats.duo,
-        focus: stats.focus,
-      }));
-      
-      // Calculate totals
-      const totalSessions = chartData.reduce((sum, item) => sum + item.sessions, 0);
-      
-      // Create by-subject breakdown
-      const bySubject: Record<string, number> = {};
-      chartData.forEach(item => {
-        bySubject[item.subject] = item.sessions;
-      });
-      
-      return {
-        chartData,
-        totalSessions,
-        bySubject
-      };
-    },
+  
+  const subjectQuery = useQuery({
+    queryKey: ['reports', 'subjects'],
+    queryFn: fetchSubjectDistribution,
   });
-};
-
-// Fetch pack distribution data
-export const usePackDistribution = () => {
-  return useQuery({
-    queryKey: ['packDistribution'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('session_packs')
-        .select('size, count')
-        .order('purchased_date', { ascending: false });
-
-      if (error) throw error;
-
-      // Count packs by size
-      const packCounts = data.reduce((acc: { [key: string]: number }, pack) => {
-        const size = pack.size.toString();
-        if (!acc[size]) {
-          acc[size] = 0;
-        }
-        acc[size] += 1;
-        return acc;
-      }, {});
-
-      // Format for pie chart
-      const chartData = Object.entries(packCounts).map(([name, value]) => ({
-        name: `${name} Sessions`,
-        value,
-      }));
-      
-      const { data: studentData, error: studentError } = await supabase
-        .from('students')
-        .select('id');
-        
-      if (studentError) throw studentError;
-      
-      return {
-        chartData,
-        activeStudents: studentData?.length || 0,
-        completionRate: 65 // Placeholder - would need actual completion data
-      };
-    },
+  
+  const sessionTypeQuery = useQuery({
+    queryKey: ['reports', 'sessionTypes'],
+    queryFn: fetchSessionTypeDistribution,
   });
-};
-
-// Export a combined reports hook for the dashboard
-export const useReports = (options?: FilterOptions) => {
-  const attendance = useAttendanceData(options);
-  const sessions = useSessionsBySubject(options);
-  const studentProgress = usePackDistribution();
   
   return {
-    attendanceData: attendance.data || { 
-      chartData: [], 
-      attendanceRate: 0, 
-      totalSessions: 0, 
-      presentSessions: 0 
-    },
-    sessionsData: sessions.data || { 
-      chartData: [], 
-      totalSessions: 0, 
-      bySubject: {} 
-    },
-    studentProgressData: studentProgress.data || { 
-      chartData: [], 
-      activeStudents: 0, 
-      completionRate: 0 
-    },
-    isLoadingAttendance: attendance.isLoading,
-    errorAttendance: attendance.error,
-    isLoadingSubjects: sessions.isLoading,
-    errorSubjects: sessions.error,
-    isLoadingPacks: studentProgress.isLoading,
-    errorPacks: studentProgress.error,
-    isLoading: attendance.isLoading || sessions.isLoading || studentProgress.isLoading,
-    isError: !!attendance.error || !!sessions.error || !!studentProgress.error
+    attendanceData: attendanceQuery.data,
+    isLoadingAttendance: attendanceQuery.isLoading,
+    attendanceError: attendanceQuery.error,
+    
+    subjectData: subjectQuery.data,
+    isLoadingSubject: subjectQuery.isLoading,
+    subjectError: subjectQuery.error,
+    
+    sessionTypeData: sessionTypeQuery.data,
+    isLoadingSessionType: sessionTypeQuery.isLoading,
+    sessionTypeError: sessionTypeQuery.error,
+    
+    refetchReports: () => {
+      attendanceQuery.refetch();
+      subjectQuery.refetch();
+      sessionTypeQuery.refetch();
+    }
   };
 };

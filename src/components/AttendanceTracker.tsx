@@ -9,7 +9,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import { useSessions, SessionWithStudents } from "@/hooks/use-sessions";
+import { useSessions } from "@/hooks/use-sessions";
 import { AttendanceStatus } from "@/lib/types";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
@@ -30,7 +30,7 @@ interface AttendanceTrackerProps {
 }
 
 const AttendanceTracker: React.FC<AttendanceTrackerProps> = ({ teacherId }) => {
-  const [selectedSession, setSelectedSession] = useState<SessionWithStudents | null>(null);
+  const [selectedSession, setSelectedSession] = useState<any | null>(null);
   const {
     sessions,
     isLoading,
@@ -55,7 +55,7 @@ const AttendanceTracker: React.FC<AttendanceTrackerProps> = ({ teacherId }) => {
     return <Alert><AlertTitle>No Sessions</AlertTitle><AlertDescription>No sessions found for the selected criteria.</AlertDescription></Alert>;
   }
   
-  const handleMarkAttendance = async (session: SessionWithStudents, status: AttendanceStatus) => {
+  const handleMarkAttendance = async (session: any, status: AttendanceStatus) => {
     try {
       await updateSessionStatus({
         id: session.id,

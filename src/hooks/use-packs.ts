@@ -1,107 +1,128 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
-import { SubjectType, SessionType, LocationType, WeeklyFrequency, SessionPack } from '@/lib/types';
+
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { supabase } from "../integrations/supabase/client";
+import { SubjectType, SessionType, LocationType, WeeklyFrequency, PackSize } from "@/lib/types";
+import { toast } from "sonner";
 
 export interface PackWithRelations {
   id: string;
-  name: string;
+  studentId: string;
+  size: PackSize;
+  subject: SubjectType;
+  sessionType: SessionType;
+  location: LocationType;
+  remainingSessions: number;
+  isActive: boolean;
+  weeklyFrequency: WeeklyFrequency;
+  purchasedDate: string;
+  expiryDate?: string;
+  createdAt: string;
+  updatedAt: string;
+  studentName?: string;
+}
+
+interface CreatePackProps {
   student_id: string;
-  size: number;
+  size: PackSize;
   subject: SubjectType;
   session_type: SessionType;
   location: LocationType;
-  purchased_date: string;
-  expiry_date?: string;
   remaining_sessions: number;
   is_active: boolean;
   weekly_frequency: WeeklyFrequency;
-  created_at: string;
-  updated_at: string;
-  students?: {
-    id: string;
-    profiles: {
-      name: string;
-    };
-  };
+  purchased_date: Date;
+  expiry_date?: Date;
 }
 
-// Helper function to transform snake_case to camelCase
-const transformPackData = (pack: PackWithRelations): SessionPack => {
-  return {
-    id: pack.id,
-    studentId: pack.student_id,
-    size: pack.size as any, // Type assertion to keep compatibility
-    subject: pack.subject,
-    sessionType: pack.session_type,
-    location: pack.location,
-    purchasedDate: pack.purchased_date,
-    expiryDate: pack.expiry_date,
-    remainingSessions: pack.remaining_sessions,
-    isActive: pack.is_active,
-    weeklyFrequency: pack.weekly_frequency,
-    createdAt: pack.created_at,
-    updatedAt: pack.updated_at
-  };
-};
+interface UpdatePackProps {
+  id: string;
+  remaining_sessions?: number;
+  is_active?: boolean;
+}
 
-export const usePacks = () => {
-  return useQuery({
-    queryKey: ['packs'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('session_packs')
-        .select(`
-          *,
-          students (
-            id,
-            profiles (
-              name
-            )
-          )
-        `)
-        .order('created_at', { ascending: false });
+export const useSessionPacks = (studentId?: string) => {
+  const queryKey = ["session_packs", studentId];
   
-      if (error) {
-        throw error;
-      }
-  
-      // Keep the original data format for now since components are using it
-      return data as PackWithRelations[];
+  const fetchPacks = async (): Promise<PackWithRelations[]> => {
+    let query = supabase.from("session_packs").select(`
+      *,
+      profiles:student_id(name)
+    `);
+    
+    if (studentId) {
+      query = query.eq("student_id", studentId);
     }
+    
+    const { data, error } = await query.order('is_active', { ascending: false });
+    
+    if (error) {
+      throw error;
+    }
+    
+    // Transform data to match our interface
+    return data.map(pack => ({
+      id: pack.id,
+      studentId: pack.student_id,
+      size: pack.size,
+      subject: pack.subject,
+      sessionType: pack.session_type,
+      location: pack.location,
+      remainingSessions: pack.remaining_sessions,
+      isActive: pack.is_active,
+      weeklyFrequency: pack.weekly_frequency,
+      purchasedDate: pack.purchased_date,
+      expiryDate: pack.expiry_date,
+      createdAt: pack.created_at,
+      updatedAt: pack.updated_at,
+      studentName: pack.profiles?.name
+    }));
+  };
+  
+  return useQuery({
+    queryKey,
+    queryFn: fetchPacks,
   });
 };
 
-export const useSessionPacks = (studentId?: string) => {
+// Hook to fetch all packs (for admin usage)
+export const useAllSessionPacks = () => {
+  const queryKey = ["all_session_packs"];
+  
+  const fetchAllPacks = async (): Promise<PackWithRelations[]> => {
+    const { data, error } = await supabase
+      .from("session_packs")
+      .select(`
+        *,
+        profiles:student_id(name)
+      `)
+      .order('is_active', { ascending: false });
+    
+    if (error) {
+      throw error;
+    }
+    
+    // Transform data to match our interface
+    return data.map(pack => ({
+      id: pack.id,
+      studentId: pack.student_id,
+      size: pack.size,
+      subject: pack.subject,
+      sessionType: pack.session_type,
+      location: pack.location,
+      remainingSessions: pack.remaining_sessions,
+      isActive: pack.is_active,
+      weeklyFrequency: pack.weekly_frequency,
+      purchasedDate: pack.purchased_date,
+      expiryDate: pack.expiry_date,
+      createdAt: pack.created_at,
+      updatedAt: pack.updated_at,
+      studentName: pack.profiles?.name
+    }));
+  };
+  
   return useQuery({
-    queryKey: ['packs', studentId],
-    queryFn: async () => {
-      let query = supabase
-        .from('session_packs')
-        .select(`
-          *,
-          students (
-            id,
-            profiles (
-              name
-            )
-          )
-        `);
-      
-      if (studentId) {
-        query = query.eq('student_id', studentId);
-      }
-      
-      const { data, error } = await query.order('created_at', { ascending: false });
-      
-      if (error) {
-        throw error;
-      }
-      
-      // Return data in the original format
-      return data as PackWithRelations[];
-    },
-    enabled: !!studentId
+    queryKey,
+    queryFn: fetchAllPacks,
   });
 };
 
@@ -109,52 +130,32 @@ export const useCreateSessionPack = () => {
   const queryClient = useQueryClient();
   
   return useMutation({
-    mutationFn: async (packData: {
-      name?: string;
-      student_id: string;
-      size: number;
-      subject: SubjectType;
-      session_type: SessionType;
-      location: LocationType;
-      remaining_sessions: number;
-      weekly_frequency: WeeklyFrequency;
-      purchased_date?: string | Date;
-      expiry_date?: string | Date;
-      is_active?: boolean;
-    }) => {
+    mutationFn: async (packData: CreatePackProps) => {
+      // Format the dates as ISO strings for Supabase
       const formattedData = {
         ...packData,
-        purchased_date: packData.purchased_date 
-          ? typeof packData.purchased_date === 'string'
-            ? packData.purchased_date
-            : packData.purchased_date.toISOString()
-          : new Date().toISOString(),
-        expiry_date: packData.expiry_date
-          ? typeof packData.expiry_date === 'string'
-            ? packData.expiry_date
-            : packData.expiry_date.toISOString()
-          : null,
-        is_active: packData.is_active !== undefined ? packData.is_active : true
+        purchased_date: packData.purchased_date.toISOString(),
+        expiry_date: packData.expiry_date ? packData.expiry_date.toISOString() : null
       };
       
       const { data, error } = await supabase
-        .from('session_packs')
-        .insert(formattedData)
-        .select('*')
-        .single();
+        .from("session_packs")
+        .insert([formattedData])
+        .select();
         
       if (error) {
         throw error;
       }
       
-      return data;
+      return data[0];
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['packs'] });
-      toast.success('Session pack created successfully');
+    onSuccess: (data, variables) => {
+      queryClient.invalidateQueries({ queryKey: ["session_packs", variables.student_id] });
+      queryClient.invalidateQueries({ queryKey: ["all_session_packs"] });
+      toast.success("Pack created successfully");
     },
-    onError: (error: any) => {
-      toast.error(`Error creating session pack: ${error.message}`);
+    onError: (error) => {
+      toast.error(`Error creating pack: ${error.message}`);
     }
   });
 };
@@ -163,56 +164,26 @@ export const useUpdateSessionPack = () => {
   const queryClient = useQueryClient();
   
   return useMutation({
-    mutationFn: async ({ id, packData }: { 
-      id: string;
-      packData: Partial<{
-        name: string;
-        student_id: string;
-        size: number;
-        subject: SubjectType;
-        session_type: SessionType;
-        location: LocationType;
-        remaining_sessions: number;
-        weekly_frequency: WeeklyFrequency;
-        purchased_date: string | Date;
-        expiry_date: string | Date;
-        is_active: boolean;
-      }>;
-    }) => {
-      // Format dates if they're Date objects
-      const formattedData = {
-        ...packData,
-        purchased_date: packData.purchased_date 
-          ? typeof packData.purchased_date === 'string'
-            ? packData.purchased_date
-            : packData.purchased_date.toISOString()
-          : undefined,
-        expiry_date: packData.expiry_date
-          ? typeof packData.expiry_date === 'string'
-            ? packData.expiry_date
-            : packData.expiry_date.toISOString()
-          : undefined
-      };
-      
+    mutationFn: async ({ id, ...updateData }: UpdatePackProps) => {
       const { data, error } = await supabase
-        .from('session_packs')
-        .update(formattedData)
-        .eq('id', id)
-        .select('*')
-        .single();
+        .from("session_packs")
+        .update(updateData)
+        .eq("id", id)
+        .select();
         
       if (error) {
         throw error;
       }
       
-      return data;
+      return data[0];
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['packs'] });
-      toast.success('Session pack updated successfully');
+      queryClient.invalidateQueries({ queryKey: ["session_packs"] });
+      queryClient.invalidateQueries({ queryKey: ["all_session_packs"] });
+      toast.success("Pack updated successfully");
     },
-    onError: (error: any) => {
-      toast.error(`Error updating session pack: ${error.message}`);
+    onError: (error) => {
+      toast.error(`Error updating pack: ${error.message}`);
     }
   });
 };

@@ -22,9 +22,12 @@ import InvoiceManagement from '@/components/admin/InvoiceManagement';
 import CourseMaterials from '@/components/admin/CourseMaterials';
 import AdvancedScheduler from '@/components/admin/AdvancedScheduler';
 import StudentManagement from '@/components/admin/StudentManagement';
+import { useAuth } from '@/contexts/AuthContext';
 
 // Use Routes directly instead of createBrowserRouter
 export default function Router() {
+  const { user } = useAuth();
+  
   return (
     <Routes>
       {/* Public routes */}
@@ -90,7 +93,7 @@ export default function Router() {
             path="attendance" 
             element={
               <ProtectedRoute requiredRole="admin">
-                <AttendanceTracker teacherId={undefined} />
+                <AttendanceTracker teacherId={user?.id} />
               </ProtectedRoute>
             }
           />
@@ -98,7 +101,7 @@ export default function Router() {
             path="packs" 
             element={
               <ProtectedRoute requiredRole="admin">
-                <StudentPacks studentId={undefined} />
+                <StudentPacks studentId={user?.id} />
               </ProtectedRoute>
             }
           />
@@ -166,7 +169,7 @@ export default function Router() {
             path="attendance" 
             element={
               <ProtectedRoute requiredRole="teacher">
-                <AttendanceTracker teacherId={undefined} />
+                <AttendanceTracker teacherId={user?.id} />
               </ProtectedRoute>
             }
           />
@@ -174,7 +177,7 @@ export default function Router() {
             path="students" 
             element={
               <ProtectedRoute requiredRole="teacher">
-                <div>My Students Component (Teacher View)</div>
+                <StudentManagement />
               </ProtectedRoute>
             }
           />
@@ -182,7 +185,7 @@ export default function Router() {
             path="materials" 
             element={
               <ProtectedRoute requiredRole="teacher">
-                <div>Course Materials Component (Teacher View)</div>
+                <CourseMaterials />
               </ProtectedRoute>
             }
           />
@@ -202,7 +205,7 @@ export default function Router() {
             path="packs" 
             element={
               <ProtectedRoute requiredRole="student">
-                <StudentPacks studentId={undefined} />
+                <StudentPacks studentId={user?.id} />
               </ProtectedRoute>
             }
           />
@@ -210,7 +213,7 @@ export default function Router() {
             path="courses" 
             element={
               <ProtectedRoute requiredRole="student">
-                <div>My Courses Component (Student View)</div>
+                <CourseManagement />
               </ProtectedRoute>
             }
           />
@@ -218,7 +221,7 @@ export default function Router() {
             path="resources" 
             element={
               <ProtectedRoute requiredRole="student">
-                <div>Learning Resources Component (Student View)</div>
+                <CourseMaterials />
               </ProtectedRoute>
             }
           />
@@ -226,7 +229,7 @@ export default function Router() {
             path="payments" 
             element={
               <ProtectedRoute requiredRole="student">
-                <div>Payments Component (Student View)</div>
+                <InvoiceManagement />
               </ProtectedRoute>
             }
           />
