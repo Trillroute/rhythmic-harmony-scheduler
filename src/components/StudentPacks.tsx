@@ -17,7 +17,8 @@ import {
   SubjectType, 
   SessionType, 
   LocationType,
-  PackSize
+  PackSize,
+  WeeklyFrequency
 } from '@/lib/types';
 import { sessionPacks } from '@/lib/data';
 
@@ -37,11 +38,13 @@ const StudentPacks = ({ studentId, onNewPack }: StudentPacksProps) => {
   const [newPackType, setNewPackType] = useState<SessionType | ''>('');
   const [newPackLocation, setNewPackLocation] = useState<LocationType | ''>('');
   const [newPackSize, setNewPackSize] = useState<string>('');
+  const [newPackFrequency, setNewPackFrequency] = useState<WeeklyFrequency>('once');
   
   const subjectOptions: SubjectType[] = ['Guitar', 'Piano', 'Drums', 'Ukulele', 'Vocal'];
   const sessionTypeOptions: SessionType[] = ['Solo', 'Duo', 'Focus'];
   const locationOptions: LocationType[] = ['Online', 'Offline'];
   const packSizeOptions: PackSize[] = [4, 10, 20, 30];
+  const frequencyOptions: WeeklyFrequency[] = ['once', 'twice'];
   
   // Check if selected options are valid
   // Focus sessions can be online or offline, but Solo and Duo must be offline
@@ -71,6 +74,8 @@ const StudentPacks = ({ studentId, onNewPack }: StudentPacksProps) => {
       return;
     }
     
+    const now = new Date();
+    
     // Create new pack
     const newPack: SessionPack = {
       id: `pack_${Date.now()}`,
@@ -79,9 +84,13 @@ const StudentPacks = ({ studentId, onNewPack }: StudentPacksProps) => {
       subject: newPackSubject as SubjectType,
       sessionType: newPackType as SessionType,
       location: newPackLocation as LocationType,
-      purchasedDate: new Date(),
+      purchasedDate: now,
       remainingSessions: parseInt(newPackSize),
       isActive: true,
+      weeklyFrequency: newPackFrequency,
+      sessions: [],
+      createdAt: now,
+      updatedAt: now,
     };
     
     // Call callback if provided
@@ -99,6 +108,7 @@ const StudentPacks = ({ studentId, onNewPack }: StudentPacksProps) => {
     setNewPackType('');
     setNewPackLocation('');
     setNewPackSize('');
+    setNewPackFrequency('once');
   };
   
   return (
@@ -150,6 +160,10 @@ const StudentPacks = ({ studentId, onNewPack }: StudentPacksProps) => {
                     <div className="flex justify-between text-sm">
                       <span>Purchased:</span>
                       <span className="font-medium">{new Date(pack.purchasedDate).toLocaleDateString()}</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span>Frequency:</span>
+                      <span className="font-medium">Weekly {pack.weeklyFrequency}</span>
                     </div>
                   </div>
                   
@@ -255,6 +269,22 @@ const StudentPacks = ({ studentId, onNewPack }: StudentPacksProps) => {
                       {size} sessions
                     </SelectItem>
                   ))}
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="frequency">Weekly Frequency</Label>
+              <Select
+                value={newPackFrequency}
+                onValueChange={(value) => setNewPackFrequency(value as WeeklyFrequency)}
+              >
+                <SelectTrigger id="frequency">
+                  <SelectValue placeholder="Select frequency" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="once">Once a week</SelectItem>
+                  <SelectItem value="twice">Twice a week</SelectItem>
                 </SelectContent>
               </Select>
             </div>

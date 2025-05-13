@@ -10,8 +10,12 @@ import {
   SessionType,
   LocationType,
   AttendanceStatus,
-  User
+  User,
+  TimeSlot
 } from './types';
+
+// Create default dates for all entities
+const now = new Date();
 
 // Sample users (teachers, students, admins)
 export const teachers: Teacher[] = [
@@ -21,6 +25,9 @@ export const teachers: Teacher[] = [
     email: 'john.davis@musicschool.com',
     role: 'teacher',
     subjects: ['Guitar', 'Ukulele'],
+    availableTimes: generateDefaultTimeSlots('t1'),
+    createdAt: now,
+    updatedAt: now,
   },
   {
     id: 't2',
@@ -28,6 +35,9 @@ export const teachers: Teacher[] = [
     email: 'sarah.wilson@musicschool.com',
     role: 'teacher',
     subjects: ['Piano', 'Vocal'],
+    availableTimes: generateDefaultTimeSlots('t2'),
+    createdAt: now,
+    updatedAt: now,
   },
   {
     id: 't3',
@@ -35,6 +45,9 @@ export const teachers: Teacher[] = [
     email: 'michael.chen@musicschool.com',
     role: 'teacher',
     subjects: ['Drums'],
+    availableTimes: generateDefaultTimeSlots('t3'),
+    createdAt: now,
+    updatedAt: now,
   },
   {
     id: 't4',
@@ -42,6 +55,9 @@ export const teachers: Teacher[] = [
     email: 'emma.r@musicschool.com',
     role: 'teacher',
     subjects: ['Guitar', 'Piano'],
+    availableTimes: generateDefaultTimeSlots('t4'),
+    createdAt: now,
+    updatedAt: now,
   },
   {
     id: 't5',
@@ -49,6 +65,9 @@ export const teachers: Teacher[] = [
     email: 'david.kim@musicschool.com',
     role: 'teacher',
     subjects: ['Vocal', 'Piano'],
+    availableTimes: generateDefaultTimeSlots('t5'),
+    createdAt: now,
+    updatedAt: now,
   },
   {
     id: 't6',
@@ -56,6 +75,9 @@ export const teachers: Teacher[] = [
     email: 'lisa.p@musicschool.com',
     role: 'teacher',
     subjects: ['Ukulele', 'Guitar'],
+    availableTimes: generateDefaultTimeSlots('t6'),
+    createdAt: now,
+    updatedAt: now,
   },
   {
     id: 't7',
@@ -63,6 +85,9 @@ export const teachers: Teacher[] = [
     email: 'james.s@musicschool.com',
     role: 'teacher',
     subjects: ['Drums', 'Guitar'],
+    availableTimes: generateDefaultTimeSlots('t7'),
+    createdAt: now,
+    updatedAt: now,
   },
   {
     id: 't8',
@@ -70,6 +95,9 @@ export const teachers: Teacher[] = [
     email: 'olivia.b@musicschool.com',
     role: 'teacher',
     subjects: ['Vocal'],
+    availableTimes: generateDefaultTimeSlots('t8'),
+    createdAt: now,
+    updatedAt: now,
   },
   {
     id: 't9',
@@ -77,6 +105,9 @@ export const teachers: Teacher[] = [
     email: 'robert.j@musicschool.com',
     role: 'teacher',
     subjects: ['Piano', 'Vocal'],
+    availableTimes: generateDefaultTimeSlots('t9'),
+    createdAt: now,
+    updatedAt: now,
   },
   {
     id: 't10',
@@ -84,6 +115,9 @@ export const teachers: Teacher[] = [
     email: 'sophia.l@musicschool.com',
     role: 'teacher',
     subjects: ['Guitar', 'Drums', 'Ukulele'],
+    availableTimes: generateDefaultTimeSlots('t10'),
+    createdAt: now,
+    updatedAt: now,
   },
 ];
 
@@ -95,6 +129,8 @@ export const students: Student[] = [
     role: 'student',
     preferredSubjects: ['Guitar'],
     packs: [],
+    createdAt: now,
+    updatedAt: now,
   },
   {
     id: 's2',
@@ -103,6 +139,8 @@ export const students: Student[] = [
     role: 'student',
     preferredSubjects: ['Piano'],
     packs: [],
+    createdAt: now,
+    updatedAt: now,
   },
   {
     id: 's3',
@@ -111,6 +149,8 @@ export const students: Student[] = [
     role: 'student',
     preferredSubjects: ['Drums'],
     packs: [],
+    createdAt: now,
+    updatedAt: now,
   },
   {
     id: 's4',
@@ -119,6 +159,8 @@ export const students: Student[] = [
     role: 'student',
     preferredSubjects: ['Ukulele', 'Guitar'],
     packs: [],
+    createdAt: now,
+    updatedAt: now,
   },
   {
     id: 's5',
@@ -127,6 +169,8 @@ export const students: Student[] = [
     role: 'student',
     preferredSubjects: ['Vocal'],
     packs: [],
+    createdAt: now,
+    updatedAt: now,
   }
 ];
 
@@ -136,8 +180,55 @@ export const admins: Admin[] = [
     name: 'Admin User',
     email: 'admin@musicschool.com',
     role: 'admin',
+    createdAt: now,
+    updatedAt: now,
   }
 ];
+
+// Helper function to generate default time slots for teachers
+function generateDefaultTimeSlots(teacherId: string): TimeSlot[] {
+  const slots: TimeSlot[] = [];
+  
+  // Generate slots for each weekday (Monday-Friday)
+  for (let day = 1; day <= 5; day++) {
+    // Morning slot
+    slots.push({
+      id: `slot_${teacherId}_${day}_morning`,
+      teacherId,
+      day,
+      startTime: '09:00',
+      endTime: '12:00',
+      isRecurring: true,
+      location: 'Offline',
+    });
+    
+    // Afternoon slot
+    slots.push({
+      id: `slot_${teacherId}_${day}_afternoon`,
+      teacherId,
+      day,
+      startTime: '13:00',
+      endTime: '17:00',
+      isRecurring: true,
+      location: 'Offline',
+    });
+    
+    // Online slot (only for some teachers)
+    if (['t1', 't3', 't5', 't7', 't9'].includes(teacherId)) {
+      slots.push({
+        id: `slot_${teacherId}_${day}_online`,
+        teacherId,
+        day,
+        startTime: '18:00',
+        endTime: '20:00',
+        isRecurring: true,
+        location: 'Online',
+      });
+    }
+  }
+  
+  return slots;
+}
 
 // Session Packs for students
 export const sessionPacks: SessionPack[] = [
@@ -151,6 +242,10 @@ export const sessionPacks: SessionPack[] = [
     purchasedDate: new Date('2023-05-01'),
     remainingSessions: 8,
     isActive: true,
+    weeklyFrequency: 'once',
+    sessions: [],
+    createdAt: now,
+    updatedAt: now,
   },
   {
     id: 'pack2',
@@ -162,6 +257,10 @@ export const sessionPacks: SessionPack[] = [
     purchasedDate: new Date('2023-05-15'),
     remainingSessions: 17,
     isActive: true,
+    weeklyFrequency: 'twice',
+    sessions: [],
+    createdAt: now,
+    updatedAt: now,
   },
   {
     id: 'pack3',
@@ -173,6 +272,10 @@ export const sessionPacks: SessionPack[] = [
     purchasedDate: new Date('2023-06-01'),
     remainingSessions: 2,
     isActive: true,
+    weeklyFrequency: 'once',
+    sessions: [],
+    createdAt: now,
+    updatedAt: now,
   },
   {
     id: 'pack4',
@@ -184,6 +287,10 @@ export const sessionPacks: SessionPack[] = [
     purchasedDate: new Date('2023-04-15'),
     remainingSessions: 24,
     isActive: true,
+    weeklyFrequency: 'twice',
+    sessions: [],
+    createdAt: now,
+    updatedAt: now,
   },
   {
     id: 'pack5',
@@ -195,6 +302,10 @@ export const sessionPacks: SessionPack[] = [
     purchasedDate: new Date('2023-05-20'),
     remainingSessions: 9,
     isActive: true,
+    weeklyFrequency: 'once',
+    sessions: [],
+    createdAt: now,
+    updatedAt: now,
   },
 ];
 
@@ -258,6 +369,8 @@ export const generateSessions = (): Session[] => {
         duration: pack.sessionType === 'Focus' ? 45 : 60, // Focus sessions are 45 min, others are 60
         status: status,
         rescheduleCount: 0,
+        createdAt: now,
+        updatedAt: now,
       };
 
       // If it's a duo session, add another student
@@ -283,6 +396,11 @@ export const generateSessions = (): Session[] => {
 };
 
 export const sessions = generateSessions();
+
+// Update pack sessions
+sessionPacks.forEach(pack => {
+  pack.sessions = sessions.filter(session => session.packId === pack.id);
+});
 
 // Helper function to get all users
 export const getAllUsers = (): User[] => {

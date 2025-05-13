@@ -95,6 +95,8 @@ const SessionScheduler = ({ onScheduleSession }: SessionSchedulerProps) => {
     const sessionDateTime = new Date(selectedDate);
     sessionDateTime.setHours(hours, minutes, 0, 0);
     
+    const now = new Date();
+    
     // Create the session
     const newSession: Session = {
       id: `session_${Date.now()}`,
@@ -108,6 +110,8 @@ const SessionScheduler = ({ onScheduleSession }: SessionSchedulerProps) => {
       duration: pack.sessionType === 'Focus' ? 45 : 60,
       status: 'Scheduled',
       rescheduleCount: 0,
+      createdAt: now,
+      updatedAt: now,
     };
     
     // If it's a Duo session, we'd need to add another student
@@ -329,6 +333,11 @@ const SessionScheduler = ({ onScheduleSession }: SessionSchedulerProps) => {
                       <div className="font-medium">{pack.remainingSessions}</div>
                     </div>
                   </div>
+                </div>
+                
+                <div className="space-y-1">
+                  <h3 className="font-medium">Frequency</h3>
+                  <p>Weekly {pack.weeklyFrequency}</p>
                 </div>
                 
                 <div className="space-y-1">
