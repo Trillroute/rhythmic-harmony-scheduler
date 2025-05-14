@@ -16,6 +16,7 @@ interface AuthContextProps {
   login: (email: string, password: string) => Promise<void>;
   signup: (email: string, password: string, name: string, role: UserRole) => Promise<void>;
   logout: () => Promise<void>;
+  signIn?: (email: string, password: string) => Promise<void>; // Alias for backward compatibility
 }
 
 export const AuthContext = createContext<AuthContextProps>({
@@ -28,6 +29,7 @@ export const AuthContext = createContext<AuthContextProps>({
   login: async () => {},
   signup: async () => {},
   logout: async () => {},
+  signIn: async () => {},
 });
 
 export const useAuth = () => useContext(AuthContext);
@@ -159,6 +161,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         console.log('Global sign out failed, continuing with login');
       }
       
+      // Explicitly call signInWithPassword with the correct object structure
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
@@ -181,6 +184,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         
         setUserRole(profileData.role as UserRole);
         
+        // Show success toast
+        toast({
+          title: "Success",
+          description: "Logged in successfully",
+          variant: "default"
+        });
+        
         // Navigate based on role
         if (profileData.role === 'admin') {
           navigate('/admin');
@@ -193,11 +203,22 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     } catch (err) {
       console.error('Login error:', err);
       setError(err instanceof Error ? err : new Error('Failed to login'));
+      
+      // Show error toast with specific message
+      toast({
+        title: "Login failed",
+        description: err instanceof Error ? err.message : "An unexpected error occurred",
+        variant: "destructive"
+      });
+      
       throw err;
     } finally {
       setLoading(false);
     }
   };
+  
+  // Create signIn as an alias to login for backward compatibility
+  const signIn = login;
   
   const signup = async (email: string, password: string, name: string, role: UserRole) => {
     try {
@@ -223,12 +244,24 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       
       if (data.user) {
         // Show success message
-        toast.success('Account created successfully! You can now log in.');
+        toast({
+          title: "Success",
+          description: "Account created successfully! You can now log in.",
+          variant: "default"
+        });
         navigate('/login');
       }
     } catch (err) {
       console.error('Signup error:', err);
       setError(err instanceof Error ? err : new Error('Failed to sign up'));
+      
+      // Show error toast
+      toast({
+        title: "Signup failed",
+        description: err instanceof Error ? err.message : "An unexpected error occurred",
+        variant: "destructive"
+      });
+      
       throw err;
     } finally {
       setLoading(false);
@@ -252,11 +285,25 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       setUserRole(null);
       setSession(null);
       
+      // Show success toast
+      toast({
+        title: "Success",
+        description: "Logged out successfully",
+        variant: "default"
+      });
+      
       // Force page reload for a clean state
       navigate('/login');
     } catch (err) {
       console.error('Logout error:', err);
       setError(err instanceof Error ? err : new Error('Failed to logout'));
+      
+      // Show error toast
+      toast({
+        title: "Logout failed",
+        description: err instanceof Error ? err.message : "An unexpected error occurred",
+        variant: "destructive"
+      });
     } finally {
       setLoading(false);
     }
@@ -267,12 +314,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     session,
     loading,
     isLoading: loading, // Add isLoading as an alias for loading
-    signOut: logout,
     error,
     userRole,
     login,
+    signIn, // Add signIn as an alias to login
     signup,
     logout,
+    signOut: logout, // Add signOut as an alias to logout
   };
   
   return (
