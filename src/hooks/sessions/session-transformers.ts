@@ -13,12 +13,6 @@ export const transformSession = (apiSession: any): SessionWithStudents => {
     apiSession.session_students.map((ss: any) => ss.student_id) : 
     [];
   
-  const studentNames = apiSession.session_students ? 
-    apiSession.session_students
-      .filter((ss: any) => ss.profiles && ss.profiles.name)
-      .map((ss: any) => ss.profiles.name) : 
-    [];
-    
   const teacherName = apiSession.profiles ? apiSession.profiles.name : "";
   
   return {
@@ -35,9 +29,11 @@ export const transformSession = (apiSession: any): SessionWithStudents => {
     notes: apiSession.notes || "",
     rescheduleCount: apiSession.reschedule_count,
     studentIds: studentIds,
-    studentNames: studentNames,
     createdAt: apiSession.created_at,
-    updatedAt: apiSession.updated_at
+    updatedAt: apiSession.updated_at,
+    recurrenceRule: apiSession.recurrence_rule,
+    originalSessionId: apiSession.original_session_id,
+    rescheduledFrom: apiSession.rescheduled_from
   };
 };
 
@@ -51,6 +47,7 @@ export const transformSessionUpdate = (update: any) => {
   if (update.dateTime !== undefined) apiUpdate.date_time = update.dateTime;
   if (update.teacherId !== undefined) apiUpdate.teacher_id = update.teacherId;
   if (update.duration !== undefined) apiUpdate.duration = update.duration;
+  if (update.recurrenceRule !== undefined) apiUpdate.recurrence_rule = update.recurrenceRule;
   
   return apiUpdate;
 };

@@ -663,8 +663,11 @@ export type Database = {
           id: string
           location: Database["public"]["Enums"]["location_type_enum"]
           notes: string | null
+          original_session_id: string | null
           pack_id: string
+          recurrence_rule: string | null
           reschedule_count: number
+          rescheduled_from: string | null
           session_type: Database["public"]["Enums"]["session_type_enum"]
           status: Database["public"]["Enums"]["attendance_status_enum"]
           subject: Database["public"]["Enums"]["subject_type_enum"]
@@ -678,8 +681,11 @@ export type Database = {
           id?: string
           location: Database["public"]["Enums"]["location_type_enum"]
           notes?: string | null
+          original_session_id?: string | null
           pack_id: string
+          recurrence_rule?: string | null
           reschedule_count?: number
+          rescheduled_from?: string | null
           session_type: Database["public"]["Enums"]["session_type_enum"]
           status?: Database["public"]["Enums"]["attendance_status_enum"]
           subject: Database["public"]["Enums"]["subject_type_enum"]
@@ -693,8 +699,11 @@ export type Database = {
           id?: string
           location?: Database["public"]["Enums"]["location_type_enum"]
           notes?: string | null
+          original_session_id?: string | null
           pack_id?: string
+          recurrence_rule?: string | null
           reschedule_count?: number
+          rescheduled_from?: string | null
           session_type?: Database["public"]["Enums"]["session_type_enum"]
           status?: Database["public"]["Enums"]["attendance_status_enum"]
           subject?: Database["public"]["Enums"]["subject_type_enum"]
@@ -703,10 +712,24 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "sessions_original_session_id_fkey"
+            columns: ["original_session_id"]
+            isOneToOne: false
+            referencedRelation: "sessions"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "sessions_pack_id_fkey"
             columns: ["pack_id"]
             isOneToOne: false
             referencedRelation: "session_packs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sessions_rescheduled_from_fkey"
+            columns: ["rescheduled_from"]
+            isOneToOne: false
+            referencedRelation: "sessions"
             referencedColumns: ["id"]
           },
           {
@@ -903,6 +926,30 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      check_teacher_session_conflict: {
+        Args: {
+          teacher_id_param: string
+          start_time: string
+          duration_minutes: number
+          session_id_param?: string
+        }
+        Returns: boolean
+      }
+      create_recurring_sessions: {
+        Args: {
+          teacher_id_param: string
+          pack_id_param: string
+          subject_param: string
+          session_type_param: string
+          location_param: string
+          start_date_time: string
+          duration_param: number
+          notes_param: string
+          recurrence_rule_param: string
+          student_ids_param: string[]
+        }
+        Returns: string[]
+      }
       get_user_role: {
         Args: Record<PropertyKey, never>
         Returns: string
@@ -918,6 +965,16 @@ export type Database = {
       is_teacher: {
         Args: Record<PropertyKey, never>
         Returns: boolean
+      }
+      reschedule_session: {
+        Args: {
+          session_id_param: string
+          new_date_time: string
+          new_duration_param?: number
+          new_teacher_id_param?: string
+          new_notes_param?: string
+        }
+        Returns: string
       }
     }
     Enums: {

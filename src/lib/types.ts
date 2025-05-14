@@ -48,6 +48,9 @@ export interface Session {
   studentNames?: string[];
   createdAt: string | Date;
   updatedAt: string | Date;
+  recurrenceRule?: string;
+  originalSessionId?: string;
+  rescheduledFrom?: string;
 }
 
 export interface SessionPack {
@@ -152,4 +155,7 @@ export interface SessionWithStudents {
   rescheduleCount: number;
   createdAt: string;
   updatedAt: string;
+  recurrenceRule?: string;
+  originalSessionId?: string;
+  rescheduledFrom?: string;
 }

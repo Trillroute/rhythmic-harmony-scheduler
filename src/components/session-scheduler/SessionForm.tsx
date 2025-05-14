@@ -9,6 +9,7 @@ import { SessionStudentSelector } from "./SessionStudentSelector";
 import { SessionSubjectSelector } from "./SessionSubjectSelector";
 import { SessionTypeSelector } from "./SessionTypeSelector";
 import { SessionLocationSelector } from "./SessionLocationSelector";
+import { SessionRecurrenceSelector } from "./SessionRecurrenceSelector";
 import { toast } from "sonner";
 import { useSessions } from "@/hooks/use-sessions";
 import { SubjectType, SessionType, LocationType } from "@/lib/types";
@@ -26,6 +27,8 @@ export const SessionForm: React.FC<SessionFormProps> = ({ onSuccess }) => {
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
   const [selectedStudents, setSelectedStudents] = useState<string[]>([]);
   const [notes, setNotes] = useState<string>("");
+  const [isRecurring, setIsRecurring] = useState<boolean>(false);
+  const [recurrenceCount, setRecurrenceCount] = useState<number>(4);
   
   const { createBulkSessions, isPendingCreate } = useSessions();
   
@@ -48,14 +51,16 @@ export const SessionForm: React.FC<SessionFormProps> = ({ onSuccess }) => {
         dateTime: selectedDate,
         duration: selectedType === "Focus" ? 45 : 60,
         notes: notes,
-        studentIds: selectedStudents
+        studentIds: selectedStudents,
+        recurrenceRule: isRecurring ? `FREQ=WEEKLY;COUNT=${recurrenceCount}` : undefined
       };
       
-      // Create session
+      // Create session(s)
       const data = await createBulkSessions([sessionData]);
       
       // Success notification
-      toast.success("Session scheduled successfully");
+      const sessionText = isRecurring ? `${recurrenceCount} recurring sessions` : "session";
+      toast.success(`${sessionText} scheduled successfully`);
       
       // Reset form
       setSelectedTeacher("");
@@ -66,6 +71,8 @@ export const SessionForm: React.FC<SessionFormProps> = ({ onSuccess }) => {
       setSelectedDate(undefined);
       setSelectedStudents([]);
       setNotes("");
+      setIsRecurring(false);
+      setRecurrenceCount(4);
       
       // Call onSuccess callback
       if (onSuccess && data) {
@@ -116,6 +123,13 @@ export const SessionForm: React.FC<SessionFormProps> = ({ onSuccess }) => {
         />
       </div>
       
+      <SessionRecurrenceSelector
+        enabled={isRecurring}
+        setEnabled={setIsRecurring}
+        recurrenceCount={recurrenceCount}
+        setRecurrenceCount={setRecurrenceCount}
+      />
+      
       <SessionStudentSelector 
         selectedStudents={selectedStudents} 
         onSelectStudents={setSelectedStudents} 
@@ -131,7 +145,7 @@ export const SessionForm: React.FC<SessionFormProps> = ({ onSuccess }) => {
       </div>
       
       <Button type="submit" className="w-full" disabled={isPendingCreate}>
-        {isPendingCreate ? "Scheduling..." : "Schedule Session"}
+        {isPendingCreate ? "Scheduling..." : `Schedule ${isRecurring ? 'Recurring Sessions' : 'Session'}`}
       </Button>
     </form>
   );

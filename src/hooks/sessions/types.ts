@@ -13,11 +13,14 @@ export interface SessionWithStudents {
   duration: number;
   notes?: string;
   status: AttendanceStatus;
-  rescheduleCount: number; // Changed from optional to required
+  rescheduleCount: number;
   createdAt: string;
   updatedAt: string;
   studentIds: string[];
   teacherName?: string;
+  recurrenceRule?: string;
+  originalSessionId?: string;
+  rescheduledFrom?: string;
 }
 
 export interface SessionsProps {
@@ -30,7 +33,11 @@ export interface SessionsProps {
 
 export interface SessionUpdateProps {
   id: string;
-  status: AttendanceStatus;
+  status?: AttendanceStatus;
+  notes?: string;
+  dateTime?: Date;
+  teacherId?: string;
+  duration?: number;
 }
 
 export interface SessionCreateProps {
@@ -43,4 +50,13 @@ export interface SessionCreateProps {
   duration: number;
   notes?: string;
   studentIds?: string[];
+  recurrenceRule?: string;
+}
+
+export interface SessionRescheduleProps {
+  sessionId: string;
+  newDateTime: Date;
+  newDuration?: number;
+  newTeacherId?: string;
+  newNotes?: string;
 }
