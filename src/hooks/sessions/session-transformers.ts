@@ -1,92 +1,56 @@
 
-import { SessionType, SubjectType, LocationType, AttendanceStatus, Session } from "@/lib/types";
-import { assertSubjectType, assertSessionType, assertLocationType, assertAttendanceStatus } from "@/lib/type-utils";
+import { SessionWithStudents } from "@/lib/types";
+import { 
+  assertSubjectType, 
+  assertSessionType, 
+  assertLocationType,
+  assertAttendanceStatus
+} from "@/lib/type-utils";
 
-// Add a type definition for the database session
-export interface DbSession {
-  id: string;
-  teacher_id: string;
-  pack_id: string;
-  subject: string;
-  session_type: string;
-  location: string;
-  date_time: string;
-  duration: number;
-  status: string;
-  notes?: string;
-  reschedule_count: number;
-  created_at: string;
-  updated_at: string;
-  profiles?: { name: string };
-  session_students?: Array<{ student_id: string, profiles: { name: string } }>;
-}
-
-// Transform database session to frontend session
-export function transformSession(dbSession: DbSession): Session {
-  // Extract student IDs and names from session_students if available
-  const studentIds: string[] = [];
-  const studentNames: string[] = [];
+// Function to transform API session data to frontend SessionWithStudents model
+export const transformSession = (apiSession: any): SessionWithStudents => {
+  const studentIds = apiSession.session_students ? 
+    apiSession.session_students.map((ss: any) => ss.student_id) : 
+    [];
   
-  if (dbSession.session_students && Array.isArray(dbSession.session_students)) {
-    dbSession.session_students.forEach(student => {
-      if (student.student_id) {
-        studentIds.push(student.student_id);
-      }
-      if (student.profiles?.name) {
-        studentNames.push(student.profiles.name);
-      }
-    });
-  }
+  const studentNames = apiSession.session_students ? 
+    apiSession.session_students
+      .filter((ss: any) => ss.profiles && ss.profiles.name)
+      .map((ss: any) => ss.profiles.name) : 
+    [];
+    
+  const teacherName = apiSession.profiles ? apiSession.profiles.name : "";
   
   return {
-    id: dbSession.id,
-    teacherId: dbSession.teacher_id,
-    teacherName: dbSession.profiles?.name,
-    packId: dbSession.pack_id,
-    subject: assertSubjectType(dbSession.subject),
-    sessionType: assertSessionType(dbSession.session_type),
-    location: assertLocationType(dbSession.location),
-    dateTime: dbSession.date_time,
-    duration: dbSession.duration,
-    status: assertAttendanceStatus(dbSession.status),
-    notes: dbSession.notes,
-    rescheduleCount: dbSession.reschedule_count,
+    id: apiSession.id,
+    teacherId: apiSession.teacher_id,
+    teacherName: teacherName,
+    packId: apiSession.pack_id,
+    subject: assertSubjectType(apiSession.subject),
+    sessionType: assertSessionType(apiSession.session_type),
+    location: assertLocationType(apiSession.location),
+    dateTime: apiSession.date_time,
+    duration: apiSession.duration,
+    status: assertAttendanceStatus(apiSession.status),
+    notes: apiSession.notes || "",
+    rescheduleCount: apiSession.reschedule_count,
     studentIds: studentIds,
     studentNames: studentNames,
-    createdAt: dbSession.created_at,
-    updatedAt: dbSession.updated_at
+    createdAt: apiSession.created_at,
+    updatedAt: apiSession.updated_at
   };
-}
+};
 
-// Add the missing transformSessionUpdate function
-export function transformSessionUpdate(updates: {
-  status?: AttendanceStatus;
-  notes?: string;
-  dateTime?: Date;
-  teacherId?: string;
-  duration?: number;
-}) {
-  const apiUpdates: Record<string, any> = {};
+// Function to transform frontend session update to API format
+export const transformSessionUpdate = (update: any) => {
+  const apiUpdate: Record<string, any> = {};
   
-  if (updates.status) {
-    apiUpdates.status = updates.status;
-  }
+  // Map keys to snake_case for the API
+  if (update.status !== undefined) apiUpdate.status = update.status;
+  if (update.notes !== undefined) apiUpdate.notes = update.notes;
+  if (update.dateTime !== undefined) apiUpdate.date_time = update.dateTime;
+  if (update.teacherId !== undefined) apiUpdate.teacher_id = update.teacherId;
+  if (update.duration !== undefined) apiUpdate.duration = update.duration;
   
-  if (updates.notes !== undefined) {
-    apiUpdates.notes = updates.notes;
-  }
-  
-  if (updates.dateTime) {
-    apiUpdates.date_time = updates.dateTime.toISOString();
-  }
-  
-  if (updates.teacherId) {
-    apiUpdates.teacher_id = updates.teacherId;
-  }
-  
-  if (updates.duration) {
-    apiUpdates.duration = updates.duration;
-  }
-  
-  return apiUpdates;
-}
+  return apiUpdate;
+};

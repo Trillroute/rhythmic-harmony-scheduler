@@ -2,7 +2,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { SubjectType, SessionType, LocationType, AttendanceStatus } from "@/lib/types";
+import { SubjectType, SessionType, LocationType } from "@/lib/types";
 
 interface SessionCreateProps {
   teacherId: string;
@@ -22,7 +22,7 @@ export function useCreateSessions(queryKey: any[]) {
   return useMutation({
     mutationFn: async (sessionDataArray: SessionCreateProps[]) => {
       try {
-        // Create array of session objects with proper snake_case for database
+        // Create array of session objects
         const sessionObjects = sessionDataArray.map(session => ({
           teacher_id: session.teacherId,
           pack_id: session.packId,
@@ -32,7 +32,7 @@ export function useCreateSessions(queryKey: any[]) {
           date_time: session.dateTime.toISOString(),
           duration: session.duration,
           notes: session.notes || null,
-          status: 'Scheduled', // Using string literal instead of enum for db compatibility
+          status: "Scheduled",
           reschedule_count: 0
         }));
 
@@ -68,20 +68,9 @@ export function useCreateSessions(queryKey: any[]) {
           }
 
           // Update session pack to decrement remaining_sessions
-          const { data: packData, error: packFetchError } = await supabase
-            .from("session_packs")
-            .select("remaining_sessions")
-            .eq('id', session.pack_id)
-            .single();
-            
-          if (packFetchError) {
-            console.warn(`Warning: Could not fetch pack for session ${i}:`, packFetchError);
-            continue;
-          }
-            
           const { error: packUpdateError } = await supabase
             .from("session_packs")
-            .update({ remaining_sessions: packData.remaining_sessions - 1 })
+            .update({ remaining_sessions: supabase.rpc('decrement', { x: 1 }) })
             .eq('id', session.pack_id);
 
           if (packUpdateError) {

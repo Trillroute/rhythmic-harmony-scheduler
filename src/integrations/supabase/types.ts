@@ -907,18 +907,6 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: string
       }
-      is_admin: {
-        Args: Record<PropertyKey, never>
-        Returns: boolean
-      }
-      is_student: {
-        Args: Record<PropertyKey, never>
-        Returns: boolean
-      }
-      is_teacher: {
-        Args: Record<PropertyKey, never>
-        Returns: boolean
-      }
     }
     Enums: {
       attendance_status_enum:
