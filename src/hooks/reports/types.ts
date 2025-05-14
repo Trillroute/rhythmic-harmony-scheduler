@@ -16,13 +16,15 @@ export interface AttendanceData {
     present: number;
     absent: number;
     total: number;
+    cancelled?: number;
+    noShow?: number;
   };
 }
 
 // Subject distribution data types
 export interface SubjectDistributionPoint {
-  subject: string;
-  count: number;
+  name: string;  // Changed from subject to name
+  value: number; // Changed from count to value
 }
 
 export type SubjectDistributionData = SubjectDistributionPoint[];
@@ -56,7 +58,4 @@ export interface StudentProgressPoint {
   completionPercentage: number;
 }
 
-export interface StudentProgressData {
-  activeStudents: number;
-  chartData: StudentProgressPoint[];
-}
+export type StudentProgressData = StudentProgressPoint[];

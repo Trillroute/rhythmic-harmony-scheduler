@@ -138,18 +138,18 @@ export interface Reminder {
 export interface SessionWithStudents {
   id: string;
   teacherId: string;
-  teacherName: string;
+  teacherName?: string;
   packId: string;
-  subject: string;
-  sessionType: string;
-  location: string;
-  dateTime: string;
+  subject: SubjectType;
+  sessionType: SessionType;
+  location: LocationType;
+  dateTime: string | Date;
   duration: number;
-  status: string;
+  status: AttendanceStatus;
   notes?: string;
+  rescheduleCount: number;
   studentIds: string[];
   studentNames?: string[];
-  rescheduleCount: number;
-  createdAt: string;
-  updatedAt: string;
+  createdAt: string | Date;
+  updatedAt: string | Date;
 }

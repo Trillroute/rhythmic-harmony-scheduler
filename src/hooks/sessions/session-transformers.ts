@@ -17,17 +17,31 @@ export interface DbSession {
   reschedule_count: number;
   created_at: string;
   updated_at: string;
-  teacher_name?: string;
-  student_ids?: string[];
-  student_names?: string[];
+  profiles?: { name: string };
+  session_students?: Array<{ student_id: string, profiles: { name: string } }>;
 }
 
 // Transform database session to frontend session
-export function transformDbSessionToSession(dbSession: DbSession): Session {
+export function transformSession(dbSession: DbSession): Session {
+  // Extract student IDs and names from session_students if available
+  const studentIds: string[] = [];
+  const studentNames: string[] = [];
+  
+  if (dbSession.session_students && Array.isArray(dbSession.session_students)) {
+    dbSession.session_students.forEach(student => {
+      if (student.student_id) {
+        studentIds.push(student.student_id);
+      }
+      if (student.profiles?.name) {
+        studentNames.push(student.profiles.name);
+      }
+    });
+  }
+  
   return {
     id: dbSession.id,
     teacherId: dbSession.teacher_id,
-    teacherName: dbSession.teacher_name,
+    teacherName: dbSession.profiles?.name,
     packId: dbSession.pack_id,
     subject: assertSubjectType(dbSession.subject),
     sessionType: assertSessionType(dbSession.session_type),
@@ -37,8 +51,8 @@ export function transformDbSessionToSession(dbSession: DbSession): Session {
     status: assertAttendanceStatus(dbSession.status),
     notes: dbSession.notes,
     rescheduleCount: dbSession.reschedule_count,
-    studentIds: dbSession.student_ids || [],
-    studentNames: dbSession.student_names,
+    studentIds: studentIds,
+    studentNames: studentNames,
     createdAt: dbSession.created_at,
     updatedAt: dbSession.updated_at
   };
