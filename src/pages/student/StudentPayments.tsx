@@ -1,10 +1,8 @@
 
 import React, { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { supabase } from '@/integrations/supabase/client';
 import { useSessionPacks } from '@/hooks/use-packs';
 import { Badge } from '@/components/ui/badge';
-import { Separator } from '@/components/ui/separator';
 import { Button } from '@/components/ui/button';
 
 interface PaymentHistory {
@@ -18,7 +16,7 @@ interface PaymentHistory {
 const StudentPayments = () => {
   const [payments, setPayments] = useState<PaymentHistory[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const { packs } = useSessionPacks();
+  const { packs, isLoading: isPacksLoading } = useSessionPacks();
 
   useEffect(() => {
     const fetchPayments = async () => {
@@ -26,7 +24,7 @@ const StudentPayments = () => {
       try {
         // In a real app, this would fetch from a payments table
         // For now, we'll generate sample data based on packs
-        if (packs) {
+        if (packs && packs.length > 0) {
           const mockPayments = packs.map(pack => ({
             id: pack.id,
             date: new Date(pack.purchased_date).toISOString(),
@@ -43,8 +41,10 @@ const StudentPayments = () => {
       }
     };
 
-    fetchPayments();
-  }, [packs]);
+    if (!isPacksLoading) {
+      fetchPayments();
+    }
+  }, [packs, isPacksLoading]);
 
   const calculatePackPrice = (sessionType: string, size: string | number): number => {
     // Mock pricing logic
@@ -52,7 +52,8 @@ const StudentPayments = () => {
                      sessionType === 'Duo' ? 35 : 
                      sessionType === 'Focus' ? 40 : 30;
     
-    return basePrice * (typeof size === 'string' ? parseInt(size) : size);
+    const packSize = typeof size === 'string' ? parseInt(size) : size;
+    return basePrice * packSize;
   };
 
   const formatCurrency = (amount: number): string => {
@@ -93,7 +94,7 @@ const StudentPayments = () => {
             <CardTitle>Payment History</CardTitle>
           </CardHeader>
           <CardContent>
-            {isLoading ? (
+            {isLoading || isPacksLoading ? (
               <div className="flex items-center justify-center h-32">
                 <p className="text-muted-foreground">Loading payment history...</p>
               </div>

@@ -11,7 +11,8 @@ interface LayoutProps {
   children?: React.ReactNode;
 }
 
-const Layout: React.FC<LayoutProps> = ({ children }) => {
+// Changed to named export to match import in routes.tsx
+export const Layout: React.FC<LayoutProps> = ({ children }) => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const { user, signOut, userRole } = useAuth();
   const navigate = useNavigate();
@@ -78,4 +79,5 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   );
 };
 
+// Add default export as well for backward compatibility
 export default Layout;

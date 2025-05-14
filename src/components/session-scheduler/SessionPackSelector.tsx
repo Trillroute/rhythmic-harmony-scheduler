@@ -1,66 +1,80 @@
 
-import React, { useMemo } from 'react';
+import React, { useEffect } from 'react';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useSessionPacks } from '@/hooks/use-packs';
-import { SessionPack } from '@/hooks/use-packs';
-import { SubjectType } from '@/lib/types';
+import { Skeleton } from '@/components/ui/skeleton';
+import { FormControl, FormMessage } from '@/components/ui/form';
 
 interface SessionPackSelectorProps {
-  studentId: string;
-  subject: SubjectType;
-  onPackSelect: (packId: string) => void;
+  studentId?: string;
   value?: string;
+  onChange: (value: string) => void;
+  error?: string;
+  disabled?: boolean;
 }
 
-export function SessionPackSelector({ studentId, subject, onPackSelect, value }: SessionPackSelectorProps) {
-  // Get packs for the selected student
-  const { packs } = useSessionPacks(studentId);
+export const SessionPackSelector = ({ 
+  studentId,
+  value,
+  onChange,
+  error,
+  disabled = false
+}: SessionPackSelectorProps) => {
+  const { packs, isLoading } = useSessionPacks(studentId);
   
-  // Filter packs by subject and availability
-  const availablePacks = useMemo(() => {
-    if (!packs.data || packs.isLoading) return [];
-    
-    return packs.data.filter(pack => 
-      pack.subject === subject && 
-      pack.is_active && 
-      pack.remaining_sessions > 0
-    );
-  }, [packs.data, packs.isLoading, subject]);
+  // Filter active packs with remaining sessions
+  const availablePacks = packs.filter(
+    pack => pack.is_active && pack.remaining_sessions > 0
+  );
+  
+  // If the currently selected pack is no longer available, reset the selection
+  useEffect(() => {
+    if (!isLoading && value && availablePacks.length > 0) {
+      const packStillAvailable = availablePacks.some(pack => pack.id === value);
+      if (!packStillAvailable) {
+        // Reset to first available pack or empty
+        onChange(availablePacks.length > 0 ? availablePacks[0].id : '');
+      }
+    }
+  }, [value, availablePacks, isLoading, onChange]);
 
   return (
     <div className="space-y-2">
-      <Label htmlFor="pack">Session Pack</Label>
-      <Select
-        value={value || ''}
-        onValueChange={onPackSelect}
-        disabled={packs.isLoading || availablePacks.length === 0}
-      >
-        <SelectTrigger id="pack">
-          <SelectValue placeholder={
-            packs.isLoading 
-              ? "Loading packs..." 
-              : availablePacks.length === 0 
-                ? "No packs available" 
-                : "Select a session pack"
-          } />
-        </SelectTrigger>
-        <SelectContent>
-          {availablePacks.map((pack: SessionPack) => (
-            <SelectItem key={pack.id} value={pack.id}>
-              {pack.subject} ({pack.session_type}) - {pack.remaining_sessions} sessions left
-            </SelectItem>
-          ))}
-          {!packs.isLoading && availablePacks.length === 0 && (
-            <SelectItem value="none" disabled>No available packs for this subject</SelectItem>
-          )}
-        </SelectContent>
-      </Select>
-      {availablePacks.length === 0 && !packs.isLoading && (
-        <p className="text-sm text-muted-foreground">
-          No active packs available for {subject}. Please purchase a new pack.
-        </p>
+      <Label htmlFor="session-pack">Session Pack</Label>
+      
+      {isLoading ? (
+        <Skeleton className="h-10 w-full" />
+      ) : (
+        <FormControl>
+          <Select
+            disabled={disabled || availablePacks.length === 0}
+            value={value}
+            onValueChange={onChange}
+          >
+            <SelectTrigger id="session-pack">
+              <SelectValue placeholder="Select a session pack" />
+            </SelectTrigger>
+            <SelectContent>
+              {availablePacks.length === 0 ? (
+                <SelectItem value="no-packs" disabled>
+                  No active packs available
+                </SelectItem>
+              ) : (
+                availablePacks.map((pack) => (
+                  <SelectItem key={pack.id} value={pack.id}>
+                    {pack.subject} ({pack.session_type}) - {pack.remaining_sessions} sessions left
+                  </SelectItem>
+                ))
+              )}
+            </SelectContent>
+          </Select>
+        </FormControl>
       )}
+      
+      {error && <FormMessage>{error}</FormMessage>}
     </div>
   );
-}
+};
+
+export default SessionPackSelector;

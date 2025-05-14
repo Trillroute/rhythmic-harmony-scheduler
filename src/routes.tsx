@@ -1,6 +1,7 @@
+
 import React from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
-import { Layout } from '@/components/Layout';
+import Layout from '@/components/Layout'; // Changed from named import to default import
 import Index from '@/pages/Index';
 import Login from '@/pages/Login';
 import Signup from '@/pages/Signup';
