@@ -113,7 +113,6 @@ export const useStudentsManagement = (filters?: {
         preferredTeachers: item.preferred_teachers,
         notes: item.notes,
         createdAt: item.profiles.created_at ? new Date(item.profiles.created_at) : undefined,
-        updatedAt: item.profiles.updated_at ? new Date(item.profiles.updated_at) : undefined,
         assignedTeacherName: teacherName,
         activePacks: packsData?.length || 0,
         enrolledCourses: enrollmentsData?.map(e => e.courses?.name).filter(Boolean) || [],
