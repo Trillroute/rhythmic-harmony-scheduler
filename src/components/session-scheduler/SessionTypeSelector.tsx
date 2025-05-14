@@ -2,29 +2,37 @@
 import React from "react";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { SessionType } from "@/lib/types";
 
 interface SessionTypeSelectorProps {
-  selectedSessionType: string;
-  onSelectSessionType: (type: string) => void;
+  selectedType: SessionType | "";
+  onSelectType: (type: SessionType) => void;
 }
 
 export const SessionTypeSelector: React.FC<SessionTypeSelectorProps> = ({
-  selectedSessionType,
-  onSelectSessionType,
+  selectedType,
+  onSelectType,
 }) => {
+  const typeOptions: SessionType[] = ['Solo', 'Duo', 'Focus'];
+
   return (
     <div>
       <Label htmlFor="sessionType">Session Type</Label>
-      <Select value={selectedSessionType} onValueChange={onSelectSessionType}>
+      <Select 
+        value={selectedType} 
+        onValueChange={(value) => onSelectType(value as SessionType)}
+      >
         <SelectTrigger>
-          <SelectValue placeholder="Select a session type" />
+          <SelectValue placeholder="Select type" />
         </SelectTrigger>
         <SelectContent>
           <SelectGroup>
             <SelectLabel>Session Types</SelectLabel>
-            <SelectItem value="Solo">Solo</SelectItem>
-            <SelectItem value="Duo">Duo</SelectItem>
-            <SelectItem value="Focus">Focus</SelectItem>
+            {typeOptions.map((type) => (
+              <SelectItem key={type} value={type}>
+                {type} ({type === 'Focus' ? '45 min' : '60 min'})
+              </SelectItem>
+            ))}
           </SelectGroup>
         </SelectContent>
       </Select>

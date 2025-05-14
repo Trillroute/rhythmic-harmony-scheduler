@@ -1,101 +1,91 @@
 
-import { useCallback, useState } from "react";
+import { useState } from "react";
+import { AttendanceData, ReportPeriod } from "./types";
 import { supabase } from "@/integrations/supabase/client";
-import { safeConvertStatus, safeConvertSubjects } from "./utils";
-import { ReportPeriod, AttendanceData } from "./types";
-import { format } from "date-fns";
+import { assertStringArray, assertAttendanceStatusArray } from "@/lib/type-utils";
+import { getDateRangeFromPeriod } from "./date-utils";
 
 export function useAttendanceReport() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [data, setData] = useState<AttendanceData | null>(null);
+  const [data, setData] = useState<AttendanceData>({
+    total: 0,
+    present: 0,
+    absent: 0,
+    cancelled: 0,
+    noShow: 0,
+    distribution: []
+  });
 
-  const fetchAttendanceData = useCallback(async (period: ReportPeriod) => {
+  const fetchAttendanceData = async (period: ReportPeriod) => {
     setIsLoading(true);
     setError(null);
 
     try {
-      // Start with a base query for sessions
-      let query = supabase
+      const { startDate, endDate } = getDateRangeFromPeriod(period);
+      
+      // Get total sessions in period
+      const { count: totalCount, error: totalError } = await supabase
         .from("sessions")
-        .select("id, date_time, status");
+        .select("*", { count: 'exact', head: true })
+        .gte('date_time', startDate.toISOString())
+        .lte('date_time', endDate.toISOString());
       
-      // Apply date filters
-      if (period.startDate) {
-        query = query.gte('date_time', period.startDate.toISOString());
-      }
+      if (totalError) throw new Error(totalError.message);
       
-      if (period.endDate) {
-        query = query.lte('date_time', period.endDate.toISOString());
-      }
+      // Get attendance distribution
+      const { data: statusData, error: statusError } = await supabase
+        .from("sessions")
+        .select("status, count")
+        .gte('date_time', startDate.toISOString())
+        .lte('date_time', endDate.toISOString())
+        .group('status');
       
-      // Apply subject filter if specified
-      if (period.subjects && period.subjects.length > 0) {
-        query = query.in('subject', safeConvertSubjects(period.subjects as string[]));
-      }
+      if (statusError) throw new Error(statusError.message);
       
-      // Apply status filter if specified
-      if (period.status && period.status.length > 0) {
-        query = query.in('status', safeConvertStatus(period.status as string[]));
-      }
+      // Count cancelled sessions (aggregate different cancellation reasons)
+      const cancellationStatuses = [
+        "Cancelled by Student", 
+        "Cancelled by Teacher", 
+        "Cancelled by School"
+      ];
 
-      const { data: sessions, error } = await query;
-
-      if (error) throw error;
-
-      // Process the data
-      const totalSessions = sessions.length;
-      const presentSessions = sessions.filter(s => s.status === 'Present').length;
-      const attendanceRate = totalSessions > 0 
-        ? (presentSessions / totalSessions) * 100 
-        : 0;
-
-      // Group sessions by date for chart data
-      const sessionsByDate = sessions.reduce((acc: Record<string, any>, session) => {
-        const date = format(new Date(session.date_time), 'yyyy-MM-dd');
-        
-        if (!acc[date]) {
-          acc[date] = {
-            total: 0,
-            present: 0
-          };
-        }
-        
-        acc[date].total += 1;
-        if (session.status === 'Present') {
-          acc[date].present += 1;
-        }
-        
-        return acc;
-      }, {});
-
-      // Convert to chart data format
-      const chartData = Object.keys(sessionsByDate).map(date => ({
-        date,
-        total: sessionsByDate[date].total,
-        present: sessionsByDate[date].present,
-        rate: sessionsByDate[date].total > 0 
-          ? (sessionsByDate[date].present / sessionsByDate[date].total) * 100 
-          : 0
-      })).sort((a, b) => a.date.localeCompare(b.date));
-
+      // Use type assertion to ensure status values are valid
+      const cancelledCount = statusData
+        .filter(item => cancellationStatuses.includes(String(item.status)))
+        .reduce((sum, item) => sum + (item.count as number), 0);
+      
+      // Count other statuses
+      const presentCount = statusData.find(item => item.status === "Present")?.count || 0;
+      const absentCount = statusData.find(item => item.status === "Absent")?.count || 0;
+      const noShowCount = statusData.find(item => item.status === "No Show")?.count || 0;
+      
+      // Build distribution data for chart
+      const distribution = statusData.map(item => ({
+        status: String(item.status),
+        count: item.count as number
+      }));
+      
       setData({
-        attendanceRate,
-        chartData
+        total: totalCount || 0,
+        present: presentCount as number,
+        absent: absentCount as number,
+        cancelled: cancelledCount,
+        noShow: noShowCount as number,
+        distribution
       });
-      
     } catch (err: any) {
+      setError(err.message);
       console.error("Error fetching attendance data:", err);
-      setError(err.message || "An error occurred while fetching attendance data");
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  };
 
   return {
     isLoading,
     error,
     data,
-    fetchAttendanceData
+    fetchAttendanceData,
   };
 }

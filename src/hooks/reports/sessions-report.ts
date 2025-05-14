@@ -1,62 +1,61 @@
 
-import { useQuery } from "@tanstack/react-query";
+import { useState } from "react";
+import { SessionsReportData, ReportPeriod } from "./types";
 import { supabase } from "@/integrations/supabase/client";
-import { ReportPeriod, SessionsReportData } from "./types";
-import { assertAttendanceStatusArray } from "@/lib/type-utils";
+import { getDateRangeFromPeriod } from "./date-utils";
+import { assertStringArray } from "@/lib/type-utils";
 
-// Fetch sessions data for reports
-export const useSessionsReport = (filters?: ReportPeriod) => {
-  const fetchSessionsData = async (): Promise<SessionsReportData> => {
-    let query = supabase
-      .from('sessions')
-      .select('id, subject');
-    
-    // Apply date range filters if provided
-    if (filters?.startDate) {
-      query = query.gte('date_time', filters.startDate.toISOString());
-    }
-    
-    if (filters?.endDate) {
-      query = query.lte('date_time', filters.endDate.toISOString());
-    }
-    
-    // Apply status filter if provided
-    if (filters?.status && filters.status.length > 0) {
-      // Use assertion utility to ensure proper types
-      const statusArray = assertAttendanceStatusArray(filters.status);
-      // Convert to string array for query
-      const statusStrings = statusArray.map(s => s.toString());
-      query = query.in('status', statusStrings);
-    }
+export function useSessionsReport() {
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [data, setData] = useState<SessionsReportData>([]);
+
+  const fetchData = async (period: ReportPeriod) => {
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      const { startDate, endDate } = getDateRangeFromPeriod(period);
       
-    const { data, error } = await query;
+      // Get sessions aggregated by day
+      const { data: sessionsData, error: sessionsError } = await supabase
+        .from("sessions")
+        .select("date_time, count")
+        .gte('date_time', startDate.toISOString())
+        .lte('date_time', endDate.toISOString())
+        .not('status', 'in', assertStringArray(["Cancelled by Student", "Cancelled by Teacher", "Cancelled by School"]))
+        .order('date_time');
       
-    if (error) throw error;
-    
-    // Count by subject
-    const subjectCounts: Record<string, number> = {};
-    
-    data.forEach(session => {
-      if (!subjectCounts[session.subject]) {
-        subjectCounts[session.subject] = 0;
-      }
+      if (sessionsError) throw new Error(sessionsError.message);
       
-      subjectCounts[session.subject] += 1;
-    });
-    
-    const chartData = Object.entries(subjectCounts).map(([subject, count]) => ({
-      subject,
-      count
-    }));
-    
-    return {
-      totalSessions: data.length,
-      chartData
-    };
+      // Convert to date strings and group by day
+      const sessionsByDay = new Map<string, number>();
+      
+      sessionsData.forEach(session => {
+        const date = new Date(session.date_time).toISOString().split('T')[0];
+        const count = sessionsByDay.get(date) || 0;
+        sessionsByDay.set(date, count + 1);
+      });
+      
+      // Build data for chart
+      const timeSeriesData = Array.from(sessionsByDay).map(([date, count]) => ({
+        date,
+        count
+      }));
+      
+      setData(timeSeriesData);
+    } catch (err: any) {
+      setError(err.message);
+      console.error("Error fetching sessions report data:", err);
+    } finally {
+      setIsLoading(false);
+    }
   };
-  
-  return useQuery({
-    queryKey: ['reports', 'sessions', filters],
-    queryFn: fetchSessionsData,
-  });
-};
+
+  return {
+    isLoading,
+    error,
+    data,
+    fetchData,
+  };
+}

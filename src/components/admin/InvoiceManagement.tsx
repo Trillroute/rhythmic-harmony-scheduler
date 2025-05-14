@@ -14,34 +14,31 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { format } from 'date-fns';
 
-// Mock data - in a real implementation, this would come from your API
+// Mock data for demonstration
 const mockInvoices = [
-  { id: '1', student: 'John Doe', amount: 120, status: 'paid', dueDate: new Date(2025, 4, 20), paidDate: new Date(2025, 4, 18) },
-  { id: '2', student: 'Alice Smith', amount: 180, status: 'pending', dueDate: new Date(2025, 5, 1), paidDate: null },
-  { id: '3', student: 'Robert Johnson', amount: 150, status: 'overdue', dueDate: new Date(2025, 3, 15), paidDate: null },
-  { id: '4', student: 'Emily Davis', amount: 200, status: 'paid', dueDate: new Date(2025, 4, 10), paidDate: new Date(2025, 4, 8) },
+  { id: '1', student: 'Jane Smith', amount: 199, dueDate: new Date(2025, 5, 25), status: 'paid', plan: 'Beginner Guitar' },
+  { id: '2', student: 'Mike Johnson', amount: 299, dueDate: new Date(2025, 5, 30), status: 'pending', plan: 'Intermediate Piano' },
+  { id: '3', student: 'Sarah Williams', amount: 349, dueDate: new Date(2025, 6, 5), status: 'overdue', plan: 'Advanced Drums' },
+  { id: '4', student: 'Alex Turner', amount: 249, dueDate: new Date(2025, 6, 10), status: 'pending', plan: 'Vocal Training Intensive' },
+  { id: '5', student: 'Emma Davis', amount: 179, dueDate: new Date(2025, 6, 15), status: 'paid', plan: 'Ukulele for Beginners' },
 ];
 
 const InvoiceManagement: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
-  const [invoices, setInvoices] = useState(mockInvoices);
 
   // Filter invoices based on search query
-  const filteredInvoices = invoices.filter(invoice => 
+  const filteredInvoices = mockInvoices.filter(invoice => 
     invoice.student.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    invoice.status.toLowerCase().includes(searchQuery.toLowerCase())
+    invoice.status.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    invoice.plan.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   const getStatusBadgeVariant = (status: string) => {
     switch (status) {
-      case 'paid':
-        return 'default';
-      case 'pending':
-        return 'secondary';
-      case 'overdue':
-        return 'destructive';
-      default:
-        return 'outline';
+      case 'paid': return 'default';
+      case 'pending': return 'outline';
+      case 'overdue': return 'destructive';
+      default: return 'secondary';
     }
   };
 
@@ -49,13 +46,13 @@ const InvoiceManagement: React.FC = () => {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-bold tracking-tight">Invoice Management</h1>
-        <Button>Create New Invoice</Button>
+        <Button>Generate Invoice</Button>
       </div>
       
       <Card>
         <CardHeader>
           <CardTitle>All Invoices</CardTitle>
-          <CardDescription>Manage student invoices and payments</CardDescription>
+          <CardDescription>Track and manage student payments</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="flex items-center py-4">
@@ -70,12 +67,12 @@ const InvoiceManagement: React.FC = () => {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Invoice #</TableHead>
+                  <TableHead>Invoice ID</TableHead>
                   <TableHead>Student</TableHead>
                   <TableHead>Amount</TableHead>
                   <TableHead>Due Date</TableHead>
+                  <TableHead>Plan</TableHead>
                   <TableHead>Status</TableHead>
-                  <TableHead>Payment Date</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
@@ -83,23 +80,21 @@ const InvoiceManagement: React.FC = () => {
                 {filteredInvoices.length > 0 ? (
                   filteredInvoices.map((invoice) => (
                     <TableRow key={invoice.id}>
-                      <TableCell className="font-medium">{invoice.id}</TableCell>
+                      <TableCell className="font-medium">INV-{invoice.id.padStart(5, '0')}</TableCell>
                       <TableCell>{invoice.student}</TableCell>
-                      <TableCell>${invoice.amount.toFixed(2)}</TableCell>
-                      <TableCell>{format(invoice.dueDate, 'MMM d, yyyy')}</TableCell>
+                      <TableCell>${invoice.amount}</TableCell>
+                      <TableCell>{format(invoice.dueDate, 'PP')}</TableCell>
+                      <TableCell>{invoice.plan}</TableCell>
                       <TableCell>
                         <Badge variant={getStatusBadgeVariant(invoice.status)}>
                           {invoice.status}
                         </Badge>
                       </TableCell>
-                      <TableCell>
-                        {invoice.paidDate ? format(invoice.paidDate, 'MMM d, yyyy') : '-'}
-                      </TableCell>
                       <TableCell className="text-right space-x-2">
                         <Button variant="outline" size="sm" className="mr-2">View</Button>
-                        {invoice.status !== 'paid' && (
-                          <Button variant="outline" size="sm">Record Payment</Button>
-                        )}
+                        <Button variant="outline" size="sm" disabled={invoice.status === 'paid'}>
+                          {invoice.status === 'paid' ? 'Paid' : 'Mark Paid'}
+                        </Button>
                       </TableCell>
                     </TableRow>
                   ))

@@ -12,9 +12,10 @@ export const useSessions = (props: FilterOptions = {}) => {
   
   // Use the separated hooks
   const { 
-    data, 
-    isLoading, 
-    error 
+    sessions,
+    loading: isLoading, 
+    error,
+    refreshSessions
   } = useFetchSessions(props);
   
   const updateSessionStatusMutation = useUpdateSession();
@@ -22,10 +23,10 @@ export const useSessions = (props: FilterOptions = {}) => {
   
   // Return a unified API
   return {
-    sessions: data,
+    sessions,
     isLoading,
     error,
-    refetchSessions: () => queryClient.invalidateQueries({ queryKey }),
+    refetchSessions: refreshSessions,
     updateSessionStatus: updateSessionStatusMutation.mutateAsync,
     createBulkSessions: createBulkSessionsMutation.mutateAsync,
     isPendingCreate: createBulkSessionsMutation.isPending,

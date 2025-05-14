@@ -40,8 +40,9 @@ export function assertLocationType(value: string): LocationType {
 
 export function assertAttendanceStatus(value: string): AttendanceStatus {
   if (!value) return "Scheduled"; // Default safe value
-  if (["Present", "Absent", "Scheduled", "Cancelled by Student", 
-      "Cancelled by Teacher", "Cancelled by School", "No Show"].includes(value)) {
+  const validStatuses = ["Present", "Absent", "Scheduled", "Cancelled by Student", 
+                         "Cancelled by Teacher", "Cancelled by School", "No Show"];
+  if (validStatuses.includes(value)) {
     return value as AttendanceStatus;
   }
   console.warn(`Invalid attendance status: ${value}, defaulting to Scheduled`);
@@ -73,7 +74,7 @@ export function assertLocationTypeArray(values?: string[]): LocationType[] {
   return values.map(v => assertLocationType(v));
 }
 
-export function assertAttendanceStatusArray(values?: string[]): AttendanceStatus[] {
+export function assertAttendanceStatusArray(values?: string[] | readonly string[]): AttendanceStatus[] {
   if (!values || !Array.isArray(values)) return [];
   return values.map(v => assertAttendanceStatus(v));
 }
@@ -81,4 +82,10 @@ export function assertAttendanceStatusArray(values?: string[]): AttendanceStatus
 export function assertWeeklyFrequencyArray(values?: string[]): WeeklyFrequency[] {
   if (!values || !Array.isArray(values)) return [];
   return values.map(v => assertWeeklyFrequency(v));
+}
+
+// Safe type assertion for arrays of any type to handle readonly arrays
+export function assertStringArray(values?: any[] | readonly any[]): string[] {
+  if (!values || !Array.isArray(values)) return [];
+  return values.map(v => String(v));
 }

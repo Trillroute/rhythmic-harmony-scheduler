@@ -1,44 +1,43 @@
 
 import React from "react";
 import { Label } from "@/components/ui/label";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { CalendarIcon } from "lucide-react";
 
 interface SessionDatePickerProps {
-  sessionDate: Date | undefined;
+  selectedDate: Date | undefined;
   onSelectDate: (date: Date | undefined) => void;
 }
 
 export const SessionDatePicker: React.FC<SessionDatePickerProps> = ({
-  sessionDate,
+  selectedDate,
   onSelectDate,
 }) => {
   return (
-    <div>
-      <Label>Date</Label>
+    <div className="space-y-2">
+      <Label htmlFor="date">Session Date</Label>
       <Popover>
         <PopoverTrigger asChild>
           <Button
             variant={"outline"}
             className={cn(
               "w-full justify-start text-left font-normal",
-              !sessionDate && "text-muted-foreground"
+              !selectedDate && "text-muted-foreground"
             )}
           >
             <CalendarIcon className="mr-2 h-4 w-4" />
-            {sessionDate ? format(sessionDate, "PPP") : <span>Pick a date</span>}
+            {selectedDate ? format(selectedDate, "PPP") : <span>Select date</span>}
           </Button>
         </PopoverTrigger>
-        <PopoverContent className="w-auto p-0" align="center">
+        <PopoverContent className="w-auto p-0" align="start">
           <Calendar
             mode="single"
-            selected={sessionDate}
+            selected={selectedDate}
             onSelect={onSelectDate}
-            disabled={(date) => date < new Date()}
             initialFocus
           />
         </PopoverContent>

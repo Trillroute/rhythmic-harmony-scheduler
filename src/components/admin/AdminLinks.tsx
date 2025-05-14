@@ -13,7 +13,9 @@ import {
   BookOpenIcon,
   CreditCardIcon,
   PackageIcon,
-  FileTextIcon
+  FileTextIcon,
+  ListTodoIcon,
+  SchoolIcon
 } from "lucide-react";
 
 const AdminLinks: React.FC = () => {
@@ -127,7 +129,7 @@ const AdminLinks: React.FC = () => {
           }`
         }
       >
-        <FileTextIcon className="mr-2 h-4 w-4" />
+        <ListTodoIcon className="mr-2 h-4 w-4" />
         Session Plans
       </NavLink>
       

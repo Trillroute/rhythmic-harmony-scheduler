@@ -1,78 +1,98 @@
 
-import React, { useState } from "react";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { format, subDays } from "date-fns";
-import { useReports } from "@/hooks/use-reports";
-import { SubjectType, AttendanceStatus } from "@/lib/types";
-import { DateRange } from "react-day-picker";
+import React, { useState, useEffect } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { useReports, ReportPeriod } from '@/hooks/use-reports';
+import AttendanceChart from '@/components/reports/AttendanceChart';
+import SubjectDistributionChart from '@/components/reports/SubjectDistributionChart';
+import SessionTypeChart from '@/components/reports/SessionTypeChart';
+import SessionsOverTimeChart from '@/components/reports/SessionsOverTimeChart';
+import StudentProgressTable from '@/components/reports/StudentProgressTable';
 
-// Import refactored components
-import DashboardFilters from "./reporting/DashboardFilters";
-import StatisticsCards from "./reporting/StatisticsCards";
-import ReportChart from "./reporting/ReportChart";
-
-const ReportingDashboard = () => {
-  const [dateRange, setDateRange] = useState<DateRange>({
-    from: subDays(new Date(), 30),
-    to: new Date(),
-  });
+const ReportingDashboard: React.FC = () => {
+  const [period, setPeriod] = useState<ReportPeriod>('month');
+  const reports = useReports();
   
-  const [selectedChart, setSelectedChart] = useState<"attendance" | "sessions" | "students">("attendance");
+  useEffect(() => {
+    reports.fetchReports(period);
+  }, [period]);
   
-  // Make sure these are explicitly typed as the correct enum types
-  const [selectedSubjects, setSelectedSubjects] = useState<SubjectType[]>([]);
-  const [selectedStatuses, setSelectedStatuses] = useState<AttendanceStatus[]>([]);
-  
-  const { 
-    attendanceData, 
-    subjectData,
-    sessionTypeData,
-    sessionsData, 
-    studentProgressData,
-    isLoading 
-  } = useReports('month', {
-    startDate: dateRange.from,
-    endDate: dateRange.to,
-    subjects: selectedSubjects,
-    status: selectedStatuses
-  });
-
   return (
-    <div className="p-4 md:p-8">
-      <h1 className="text-2xl font-bold mb-6">Reporting Dashboard</h1>
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <h1 className="text-3xl font-bold tracking-tight">Reporting Dashboard</h1>
+        <Select value={period} onValueChange={(value: ReportPeriod) => setPeriod(value)}>
+          <SelectTrigger className="w-[180px]">
+            <SelectValue placeholder="Select period" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="week">This Week</SelectItem>
+            <SelectItem value="month">This Month</SelectItem>
+            <SelectItem value="year">This Year</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
       
-      <StatisticsCards 
-        sessionsData={sessionsData} 
-        attendanceData={attendanceData} 
-        studentProgressData={studentProgressData} 
-        isLoading={isLoading} 
-      />
-      
-      <DashboardFilters 
-        dateRange={dateRange}
-        setDateRange={setDateRange}
-        selectedSubjects={selectedSubjects}
-        setSelectedSubjects={setSelectedSubjects}
-        selectedStatuses={selectedStatuses}
-        setSelectedStatuses={setSelectedStatuses}
-      />
-      
-      <Tabs value={selectedChart} onValueChange={(v) => setSelectedChart(v as any)}>
-        <TabsList className="mb-4">
-          <TabsTrigger value="attendance">Attendance Trends</TabsTrigger>
-          <TabsTrigger value="sessions">Sessions by Instrument</TabsTrigger>
-          <TabsTrigger value="students">Student Progress</TabsTrigger>
-        </TabsList>
-        
-        <ReportChart
-          selectedChart={selectedChart}
-          attendanceData={attendanceData}
-          sessionsData={sessionsData}
-          studentProgressData={studentProgressData}
-          isLoading={isLoading}
-          dateRange={dateRange}
-        />
-      </Tabs>
+      {reports.isLoading ? (
+        <div className="text-center py-10">Loading reports...</div>
+      ) : reports.error ? (
+        <div className="text-center text-destructive py-10">
+          Error loading reports: {typeof reports.error === 'string' ? reports.error : 'Unknown error'} 
+        </div>
+      ) : (
+        <div className="grid gap-6 md:grid-cols-2">
+          <Card>
+            <CardHeader>
+              <CardTitle>Attendance</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <AttendanceChart data={reports.attendance.data} />
+            </CardContent>
+          </Card>
+          
+          <Card>
+            <CardHeader>
+              <CardTitle>Subject Distribution</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <SubjectDistributionChart data={reports.subjectDistribution.data} />
+            </CardContent>
+          </Card>
+          
+          <Card>
+            <CardHeader>
+              <CardTitle>Session Types</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <SessionTypeChart data={reports.sessionType.data} />
+            </CardContent>
+          </Card>
+          
+          <Card>
+            <CardHeader>
+              <CardTitle>Sessions Over Time</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <SessionsOverTimeChart data={reports.sessions.data} />
+            </CardContent>
+          </Card>
+          
+          <Card className="md:col-span-2">
+            <CardHeader>
+              <CardTitle>Student Progress</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <StudentProgressTable data={reports.studentProgress.data} />
+            </CardContent>
+          </Card>
+        </div>
+      )}
     </div>
   );
 };

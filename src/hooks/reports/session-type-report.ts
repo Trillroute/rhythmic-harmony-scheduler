@@ -1,69 +1,53 @@
 
-import { useQuery } from "@tanstack/react-query";
+import { useState } from "react";
+import { SessionTypeData, ReportPeriod } from "./types";
 import { supabase } from "@/integrations/supabase/client";
-import { ReportPeriod, SessionTypeData } from "./types";
-import { assertAttendanceStatusArray, assertSubjectTypeArray } from "@/lib/type-utils";
+import { getDateRangeFromPeriod } from "./date-utils";
+import { assertStringArray } from "@/lib/type-utils";
 
-// Fetch session type distribution data for reports
-export const useSessionTypeReport = (filters?: ReportPeriod) => {
-  const fetchSessionTypeDistribution = async (): Promise<SessionTypeData> => {
-    let query = supabase
-      .from('sessions')
-      .select('session_type');
-    
-    // Apply date range filters if provided
-    if (filters?.startDate) {
-      query = query.gte('date_time', filters.startDate.toISOString());
-    }
-    
-    if (filters?.endDate) {
-      query = query.lte('date_time', filters.endDate.toISOString());
-    }
-    
-    // Apply subject filter if provided
-    if (filters?.subjects && filters.subjects.length > 0) {
-      // Use assertion utility to ensure proper types
-      const subjectArray = assertSubjectTypeArray(filters.subjects);
-      // Convert to string array for query
-      const subjectStrings = subjectArray.map(s => s.toString());
-      query = query.in('subject', subjectStrings);
-    }
-    
-    // Apply status filter if provided
-    if (filters?.status && filters.status.length > 0) {
-      // Use assertion utility to ensure proper types
-      const statusArray = assertAttendanceStatusArray(filters.status);
-      // Convert to string array for query
-      const statusStrings = statusArray.map(s => s.toString());
-      query = query.in('status', statusStrings);
-    }
+export function useSessionTypeReport() {
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [data, setData] = useState<SessionTypeData>([]);
+
+  const fetchData = async (period: ReportPeriod) => {
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      const { startDate, endDate } = getDateRangeFromPeriod(period);
       
-    const { data, error } = await query;
+      // Get session type distribution
+      const { data: typeData, error: typeError } = await supabase
+        .from("sessions")
+        .select("session_type, subject, count")
+        .gte('date_time', startDate.toISOString())
+        .lte('date_time', endDate.toISOString())
+        .not('status', 'in', assertStringArray(["Cancelled by Student", "Cancelled by Teacher", "Cancelled by School"]))
+        .group('session_type, subject');
       
-    if (error) throw error;
-    
-    const typeCounts: Record<string, number> = {
-      'Solo': 0,
-      'Duo': 0,
-      'Focus': 0
-    };
-    
-    data.forEach(session => {
-      typeCounts[session.session_type] += 1;
-    });
-    
-    const chartData = Object.entries(typeCounts).map(([name, value]) => ({
-      name,
-      value
-    }));
-    
-    return {
-      chartData
-    };
+      if (typeError) throw new Error(typeError.message);
+      
+      // Build distribution data for chart
+      const distribution = typeData.map(item => ({
+        type: String(item.session_type),
+        subject: String(item.subject),
+        count: item.count as number
+      }));
+      
+      setData(distribution);
+    } catch (err: any) {
+      setError(err.message);
+      console.error("Error fetching session type data:", err);
+    } finally {
+      setIsLoading(false);
+    }
   };
-  
-  return useQuery({
-    queryKey: ['reports', 'sessionTypes', filters],
-    queryFn: fetchSessionTypeDistribution,
-  });
-};
+
+  return {
+    isLoading,
+    error,
+    data,
+    fetchData,
+  };
+}

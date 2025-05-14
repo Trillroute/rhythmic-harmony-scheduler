@@ -1,54 +1,38 @@
 
-import { AttendanceStatus, SubjectType } from "@/lib/types";
-
-export interface ReportPeriod {
-  startDate?: Date;
-  endDate?: Date;
-  subjects?: SubjectType[];
-  status?: AttendanceStatus[];
-}
+export type ReportPeriod = 'week' | 'month' | 'year';
 
 export interface AttendanceData {
-  attendanceRate: number;
-  chartData: {
-    date: string;
-    total: number;
-    present: number;
-    rate: number;
-  }[];
-}
-
-export interface SubjectDistributionData {
-  chartData: {
-    subject: string;
-    sessions: number;
-    solo: number;
-    duo: number;
-    focus: number;
-  }[];
-}
-
-export interface SessionTypeData {
-  chartData: {
-    name: string;
-    value: number;
-  }[];
-}
-
-// Define the structure for session data in reports
-export interface SessionsReportData {
-  totalSessions: number;
-  chartData: {
-    subject: string;
+  total: number;
+  present: number;
+  absent: number;
+  cancelled: number;
+  noShow: number;
+  distribution: {
+    status: string;
     count: number;
   }[];
 }
 
-// Define the structure for student progress data in reports
+export interface SubjectDistributionData {
+  name: string;
+  value: number;
+}[];
+
+export interface SessionTypeData {
+  type: string;
+  subject: string;
+  count: number;
+}[];
+
+export interface SessionsReportData {
+  date: string;
+  count: number;
+}[];
+
 export interface StudentProgressData {
-  activeStudents: number;
-  chartData: {
-    name: string;
-    value: number;
-  }[];
-}
+  id: string;
+  studentName: string;
+  courseName: string;
+  instrument: string;
+  completionPercentage: number;
+}[];

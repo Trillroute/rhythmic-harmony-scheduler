@@ -47,8 +47,10 @@ const AttendanceTracker: React.FC<AttendanceTrackerProps> = ({ teacherId }) => {
     return <Alert><AlertTitle>Loading sessions...</AlertTitle><AlertDescription>Fetching the latest session data for attendance tracking.</AlertDescription></Alert>;
   }
   
+  // Fixed error checking
   if (error) {
-    return <Alert variant="destructive"><AlertTitle>Error</AlertTitle><AlertDescription>Could not load sessions: {error.message}</AlertDescription></Alert>;
+    const errorMessage = typeof error === 'string' ? error : error instanceof Error ? error.message : 'Unknown error';
+    return <Alert variant="destructive"><AlertTitle>Error</AlertTitle><AlertDescription>Could not load sessions: {errorMessage}</AlertDescription></Alert>;
   }
   
   if (!sessions || sessions.length === 0) {

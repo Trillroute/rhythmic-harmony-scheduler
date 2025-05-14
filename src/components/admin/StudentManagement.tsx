@@ -2,77 +2,50 @@
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { 
+  Table, 
+  TableBody, 
+  TableCell, 
+  TableHead, 
+  TableHeader, 
+  TableRow 
+} from '@/components/ui/table';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { toast } from 'sonner';
-import { Search, Filter, X } from 'lucide-react';
+import { 
+  BookOpenIcon, 
+  Pencil, 
+  PackageIcon,
+  BarChart3Icon,
+  MoreHorizontal
+} from 'lucide-react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
-// Sample data - in a real app, this would come from an API
-const sampleStudents = [
-  { 
-    id: '1', 
-    name: 'Jane Smith', 
-    email: 'jane.smith@example.com',
-    subjects: ['Guitar', 'Piano'],
-    enrolledSince: '2023-01-15',
-    status: 'active'
-  },
-  { 
-    id: '2', 
-    name: 'Michael Johnson', 
-    email: 'michael.j@example.com',
-    subjects: ['Drums'],
-    enrolledSince: '2023-03-22',
-    status: 'active'
-  },
-  { 
-    id: '3', 
-    name: 'Emily Williams', 
-    email: 'emily.w@example.com',
-    subjects: ['Piano'],
-    enrolledSince: '2022-11-05',
-    status: 'inactive'
-  },
+// Mock data for demonstration
+const mockStudents = [
+  { id: '1', name: 'Jane Smith', email: 'jane.smith@example.com', subjects: ['Guitar', 'Vocals'], activePacks: 2, progress: 78 },
+  { id: '2', name: 'Mike Johnson', email: 'mike.johnson@example.com', subjects: ['Piano'], activePacks: 1, progress: 45 },
+  { id: '3', name: 'Sarah Williams', email: 'sarah.williams@example.com', subjects: ['Drums', 'Guitar'], activePacks: 3, progress: 92 },
+  { id: '4', name: 'Alex Turner', email: 'alex.turner@example.com', subjects: ['Piano', 'Vocals'], activePacks: 0, progress: 10 },
+  { id: '5', name: 'Emma Davis', email: 'emma.davis@example.com', subjects: ['Ukulele'], activePacks: 1, progress: 60 },
 ];
 
 const StudentManagement: React.FC = () => {
-  const [students, setStudents] = useState(sampleStudents);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState('all');
-  const [subjectFilter, setSubjectFilter] = useState('all');
+  const [searchQuery, setSearchQuery] = useState('');
 
-  const filteredStudents = students.filter(student => {
-    // Apply search filter
-    const matchesSearch = student.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                          student.email.toLowerCase().includes(searchTerm.toLowerCase());
-    
-    // Apply status filter
-    const matchesStatus = statusFilter === 'all' || student.status === statusFilter;
-    
-    // Apply subject filter
-    const matchesSubject = subjectFilter === 'all' || student.subjects.includes(subjectFilter);
-    
-    return matchesSearch && matchesStatus && matchesSubject;
-  });
-
-  const handleClearFilters = () => {
-    setSearchTerm('');
-    setStatusFilter('all');
-    setSubjectFilter('all');
-  };
-
-  const handleViewDetails = (studentId: string) => {
-    // In a real app, this would navigate to a student detail page
-    toast.info(`Viewing details for student ${studentId}`);
-  };
-
-  const handleManagePacks = (studentId: string) => {
-    // In a real app, this would navigate to the student's packs page
-    toast.info(`Managing packs for student ${studentId}`);
-  };
+  // Filter students based on search query
+  const filteredStudents = mockStudents.filter(student => 
+    student.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    student.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    student.subjects.some(subject => subject.toLowerCase().includes(searchQuery.toLowerCase()))
+  );
 
   return (
     <div className="space-y-6">
@@ -83,141 +56,98 @@ const StudentManagement: React.FC = () => {
       
       <Card>
         <CardHeader>
-          <CardTitle>Filters</CardTitle>
-          <CardDescription>Filter and search your students</CardDescription>
+          <CardTitle>All Students</CardTitle>
+          <CardDescription>View and manage your students</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="relative">
-              <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Search by name or email..."
-                className="pl-8"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
-            </div>
-            
-            <div>
-              <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Filter by status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Statuses</SelectItem>
-                  <SelectItem value="active">Active</SelectItem>
-                  <SelectItem value="inactive">Inactive</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            
-            <div>
-              <Select value={subjectFilter} onValueChange={setSubjectFilter}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Filter by subject" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Subjects</SelectItem>
-                  <SelectItem value="Guitar">Guitar</SelectItem>
-                  <SelectItem value="Piano">Piano</SelectItem>
-                  <SelectItem value="Drums">Drums</SelectItem>
-                  <SelectItem value="Vocal">Vocal</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+          <div className="flex items-center py-4">
+            <Input
+              placeholder="Search students..."
+              className="max-w-sm"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
           </div>
-          
-          {(searchTerm || statusFilter !== 'all' || subjectFilter !== 'all') && (
-            <div className="flex items-center mt-4">
-              <div className="flex flex-wrap gap-2">
-                {searchTerm && (
-                  <Badge variant="secondary" className="flex items-center gap-1">
-                    Search: {searchTerm}
-                    <X className="h-3 w-3 cursor-pointer" onClick={() => setSearchTerm('')} />
-                  </Badge>
-                )}
-                
-                {statusFilter !== 'all' && (
-                  <Badge variant="secondary" className="flex items-center gap-1">
-                    Status: {statusFilter}
-                    <X className="h-3 w-3 cursor-pointer" onClick={() => setStatusFilter('all')} />
-                  </Badge>
-                )}
-                
-                {subjectFilter !== 'all' && (
-                  <Badge variant="secondary" className="flex items-center gap-1">
-                    Subject: {subjectFilter}
-                    <X className="h-3 w-3 cursor-pointer" onClick={() => setSubjectFilter('all')} />
-                  </Badge>
-                )}
-              </div>
-              
-              <Button variant="ghost" size="sm" className="ml-auto" onClick={handleClearFilters}>
-                Clear All
-              </Button>
-            </div>
-          )}
-        </CardContent>
-      </Card>
-      
-      <Card>
-        <CardHeader>
-          <CardTitle>Students</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {filteredStudents.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">
-              No students found matching your criteria
-            </div>
-          ) : (
+          <div className="rounded-md border">
             <Table>
               <TableHeader>
                 <TableRow>
                   <TableHead>Name</TableHead>
                   <TableHead>Email</TableHead>
                   <TableHead>Subjects</TableHead>
-                  <TableHead>Enrolled Since</TableHead>
-                  <TableHead>Status</TableHead>
+                  <TableHead>Active Packs</TableHead>
+                  <TableHead>Progress</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredStudents.map(student => (
-                  <TableRow key={student.id}>
-                    <TableCell className="font-medium">{student.name}</TableCell>
-                    <TableCell>{student.email}</TableCell>
-                    <TableCell>
-                      <div className="flex flex-wrap gap-1">
-                        {student.subjects.map(subject => (
-                          <Badge key={subject} variant="outline">{subject}</Badge>
-                        ))}
-                      </div>
-                    </TableCell>
-                    <TableCell>{new Date(student.enrolledSince).toLocaleDateString()}</TableCell>
-                    <TableCell>
-                      <Badge variant={student.status === 'active' ? 'default' : 'secondary'}>
-                        {student.status.charAt(0).toUpperCase() + student.status.slice(1)}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <Button variant="outline" size="sm" className="mr-2" onClick={() => handleViewDetails(student.id)}>
-                        View
-                      </Button>
-                      <Button size="sm" onClick={() => handleManagePacks(student.id)}>
-                        Manage Packs
-                      </Button>
-                    </TableCell>
+                {filteredStudents.length > 0 ? (
+                  filteredStudents.map((student) => (
+                    <TableRow key={student.id}>
+                      <TableCell className="font-medium">{student.name}</TableCell>
+                      <TableCell>{student.email}</TableCell>
+                      <TableCell>
+                        <div className="flex gap-1 flex-wrap">
+                          {student.subjects.map((subject) => (
+                            <Badge key={subject} variant="outline">{subject}</Badge>
+                          ))}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant={student.activePacks > 0 ? "default" : "secondary"}>
+                          {student.activePacks}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <div className="w-full bg-secondary h-2 rounded-full">
+                          <div 
+                            className="bg-primary h-2 rounded-full" 
+                            style={{ width: `${student.progress}%` }}
+                          ></div>
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="sm">
+                              <MoreHorizontal className="h-4 w-4" />
+                              <span className="sr-only">Open menu</span>
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem>
+                              <Pencil className="mr-2 h-4 w-4" />
+                              Edit Details
+                            </DropdownMenuItem>
+                            <DropdownMenuItem>
+                              <PackageIcon className="mr-2 h-4 w-4" />
+                              View Packs
+                            </DropdownMenuItem>
+                            <DropdownMenuItem>
+                              <BookOpenIcon className="mr-2 h-4 w-4" />
+                              View Courses
+                            </DropdownMenuItem>
+                            <DropdownMenuItem>
+                              <BarChart3Icon className="mr-2 h-4 w-4" />
+                              Progress Report
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                ) : (
+                  <TableRow>
+                    <TableCell colSpan={6} className="text-center py-4">No students found</TableCell>
                   </TableRow>
-                ))}
+                )}
               </TableBody>
             </Table>
-          )}
+          </div>
         </CardContent>
       </Card>
-      
-      {/* TODO: Add integration with backend API to fetch real students */}
-      {/* TODO: Add student creation form */}
-      {/* TODO: Add student details view with attendance history, packs, progress */}
     </div>
   );
 };

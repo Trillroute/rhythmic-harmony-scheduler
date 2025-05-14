@@ -1,55 +1,56 @@
 
-import { SessionWithStudents } from "./types";
-import { AttendanceStatus, LocationType, SessionType, SubjectType, Session } from "@/lib/types";
+import { SessionWithStudents } from "@/lib/types";
 import { 
-  assertAttendanceStatus, 
-  assertLocationType, 
+  assertSubjectType, 
   assertSessionType, 
-  assertSubjectType 
+  assertLocationType,
+  assertAttendanceStatus
 } from "@/lib/type-utils";
 
-// Transform raw database data to the SessionWithStudents format
-export const transformSessionData = (data: any[]): SessionWithStudents[] => {
-  return data.map(session => {
-    const studentIds = session.session_students 
-      ? session.session_students.map((s: any) => s.student_id) 
-      : [];
+// Function to transform API session data to frontend SessionWithStudents model
+export const transformSession = (apiSession: any): SessionWithStudents => {
+  const studentIds = apiSession.session_students ? 
+    apiSession.session_students.map((ss: any) => ss.student_id) : 
+    [];
+  
+  const studentNames = apiSession.session_students ? 
+    apiSession.session_students
+      .filter((ss: any) => ss.profiles && ss.profiles.name)
+      .map((ss: any) => ss.profiles.name) : 
+    [];
     
-    return {
-      id: session.id,
-      teacherId: session.teacher_id,
-      packId: session.pack_id,
-      subject: assertSubjectType(session.subject),
-      sessionType: assertSessionType(session.session_type),
-      location: assertLocationType(session.location),
-      dateTime: session.date_time,
-      duration: session.duration,
-      notes: session.notes,
-      status: assertAttendanceStatus(session.status),
-      rescheduleCount: session.reschedule_count || 0, // Ensure it's not undefined
-      createdAt: session.created_at,
-      updatedAt: session.updated_at,
-      studentIds
-    };
-  });
+  const teacherName = apiSession.profiles ? apiSession.profiles.name : "";
+  
+  return {
+    id: apiSession.id,
+    teacherId: apiSession.teacher_id,
+    teacherName: teacherName,
+    packId: apiSession.pack_id,
+    subject: assertSubjectType(apiSession.subject),
+    sessionType: assertSessionType(apiSession.session_type),
+    location: assertLocationType(apiSession.location),
+    dateTime: apiSession.date_time,
+    duration: apiSession.duration,
+    status: assertAttendanceStatus(apiSession.status),
+    notes: apiSession.notes || "",
+    rescheduleCount: apiSession.reschedule_count,
+    studentIds: studentIds,
+    studentNames: studentNames,
+    createdAt: apiSession.created_at,
+    updatedAt: apiSession.updated_at
+  };
 };
 
-// Transform sessions for compatibility with Session type
-export const transformSessionsFromDB = (data: any[]): Session[] => {
-  return transformSessionData(data).map(session => ({
-    id: session.id,
-    teacherId: session.teacherId,
-    packId: session.packId,
-    subject: session.subject,
-    sessionType: session.sessionType,
-    location: session.location,
-    dateTime: session.dateTime,
-    duration: session.duration,
-    notes: session.notes,
-    status: session.status,
-    rescheduleCount: session.rescheduleCount, // This is now explicitly set
-    createdAt: session.createdAt,
-    updatedAt: session.updatedAt,
-    studentIds: session.studentIds
-  }));
+// Function to transform frontend session update to API format
+export const transformSessionUpdate = (update: any) => {
+  const apiUpdate: Record<string, any> = {};
+  
+  // Map keys to snake_case for the API
+  if (update.status !== undefined) apiUpdate.status = update.status;
+  if (update.notes !== undefined) apiUpdate.notes = update.notes;
+  if (update.dateTime !== undefined) apiUpdate.date_time = update.dateTime;
+  if (update.teacherId !== undefined) apiUpdate.teacher_id = update.teacherId;
+  if (update.duration !== undefined) apiUpdate.duration = update.duration;
+  
+  return apiUpdate;
 };
