@@ -10,6 +10,7 @@ import { format } from "date-fns";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { FeePlanDetails } from "../../fee-plans/FeePlanDetails";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { SkeletonCard } from "@/components/ui/skeleton-card";
 
 interface StudentInvoicesTabProps {
   studentId: string;
@@ -54,8 +55,8 @@ export const StudentInvoicesTab: React.FC<StudentInvoicesTabProps> = ({ studentI
           </CardHeader>
           <CardContent>
             {isLoading ? (
-              <Skeleton className="h-64 w-full" />
-            ) : invoices && invoices.length > 0 ? (
+              <SkeletonCard variant="table" rows={5} header={false} />
+            ) : Array.isArray(invoices) && invoices.length > 0 ? (
               <div className="rounded-md border">
                 <Table>
                   <TableHeader>

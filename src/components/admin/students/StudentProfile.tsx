@@ -6,6 +6,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
+import { SkeletonCard } from "@/components/ui/skeleton-card";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   CalendarIcon,
@@ -31,7 +32,7 @@ export const StudentProfile = () => {
     return (
       <div className="space-y-4">
         <Skeleton className="h-8 w-1/3" />
-        <Skeleton className="h-96 w-full" />
+        <SkeletonCard rows={8} />
       </div>
     );
   }
@@ -51,22 +52,22 @@ export const StudentProfile = () => {
   // Provide default values for potentially missing properties
   const enhancedStudent = {
     ...student,
-    isActive: student.isActive !== undefined ? student.isActive : true
+    isActive: student.status !== 'inactive' // Map status to isActive boolean
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">{enhancedStudent.name}</h1>
-          <p className="text-muted-foreground">{enhancedStudent.email}</p>
+    <ErrorBoundary>
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight">{enhancedStudent.name}</h1>
+            <p className="text-muted-foreground">{enhancedStudent.email}</p>
+          </div>
+          <Badge variant={enhancedStudent.isActive ? "default" : "destructive"}>
+            {enhancedStudent.isActive ? "Active" : "Inactive"}
+          </Badge>
         </div>
-        <Badge variant={enhancedStudent.isActive ? "default" : "destructive"}>
-          {enhancedStudent.isActive ? "Active" : "Inactive"}
-        </Badge>
-      </div>
 
-      <ErrorBoundary>
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
           <TabsList className="grid grid-cols-5 w-full md:w-auto">
             <TabsTrigger value="overview" className="flex items-center gap-2">
@@ -121,8 +122,8 @@ export const StudentProfile = () => {
             </ErrorBoundary>
           </TabsContent>
         </Tabs>
-      </ErrorBoundary>
-    </div>
+      </div>
+    </ErrorBoundary>
   );
 };
 

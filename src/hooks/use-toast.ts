@@ -1,13 +1,16 @@
 
-// Import from sonner directly for consistency
+// Direct import from sonner
 import { toast as sonnerToast } from "sonner";
 
-// Create a function to ensure only strings are passed to toast
-const safeToast = (options: {
+// Define the toast types
+export interface ToastProps {
   title?: string;
   description?: string;
   variant?: "default" | "destructive";
-}) => {
+}
+
+// Create a function to ensure only strings are passed to toast
+const safeToast = (options: ToastProps) => {
   // Convert any non-string values to strings
   const safeOptions = {
     title: typeof options.title === 'string' ? options.title : String(options.title || ''),
