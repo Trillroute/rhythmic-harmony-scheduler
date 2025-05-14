@@ -25,10 +25,10 @@ import SystemSettings from "./components/admin/SystemSettings";
 import BulkUploadPage from "./components/admin/BulkUploadPage";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 
-// Create a wrapper component that applies ErrorBoundary
-const withErrorBoundary = (Component: React.ComponentType<any>) => {
+// Create a wrapper component that applies ErrorBoundary with component name
+const withErrorBoundary = (Component: React.ComponentType<any>, componentName: string) => {
   return (props: any) => (
-    <ErrorBoundary>
+    <ErrorBoundary componentName={componentName}>
       <Component {...props} />
     </ErrorBoundary>
   );
@@ -43,36 +43,36 @@ export const router = createBrowserRouter([
       { index: true, element: <Index /> },
       {
         path: "dashboard",
-        element: <ProtectedRoute>{withErrorBoundary(Dashboard)({})}</ProtectedRoute>,
+        element: <ProtectedRoute>{withErrorBoundary(Dashboard, "Dashboard")({})}</ProtectedRoute>,
       },
       {
         path: "scheduler",
-        element: <ProtectedRoute>{withErrorBoundary(SessionScheduler)({})}</ProtectedRoute>,
+        element: <ProtectedRoute>{withErrorBoundary(SessionScheduler, "Session Scheduler")({})}</ProtectedRoute>,
       },
       {
         path: "attendance",
-        element: <ProtectedRoute>{withErrorBoundary(AttendanceTracker)({})}</ProtectedRoute>,
+        element: <ProtectedRoute>{withErrorBoundary(AttendanceTracker, "Attendance Tracker")({})}</ProtectedRoute>,
       },
       {
         path: "packs",
-        element: <ProtectedRoute>{withErrorBoundary(StudentPacks)({})}</ProtectedRoute>,
+        element: <ProtectedRoute>{withErrorBoundary(StudentPacks, "Student Packs")({})}</ProtectedRoute>,
       },
       {
         path: "admin",
-        element: <ProtectedRoute>{withErrorBoundary(AdminDashboard)({})}</ProtectedRoute>,
+        element: <ProtectedRoute>{withErrorBoundary(AdminDashboard, "Admin Dashboard")({})}</ProtectedRoute>,
         children: [
-          { index: true, element: withErrorBoundary(ReportingDashboard)({}) },
-          { path: "users", element: withErrorBoundary(UserManagement)({}) },
-          { path: "students", element: withErrorBoundary(StudentManagement)({}) },
-          { path: "students/:studentId", element: withErrorBoundary(StudentProfile)({}) },
-          { path: "courses", element: withErrorBoundary(CourseManagement)({}) },
-          { path: "plans", element: withErrorBoundary(SessionPlans)({}) },
-          { path: "scheduler", element: withErrorBoundary(AdvancedScheduler)({}) },
-          { path: "invoices", element: withErrorBoundary(InvoiceManagement)({}) },
-          { path: "materials", element: withErrorBoundary(CourseMaterials)({}) },
-          { path: "export", element: withErrorBoundary(DataExport)({}) },
-          { path: "settings", element: withErrorBoundary(SystemSettings)({}) },
-          { path: "bulk-upload", element: withErrorBoundary(BulkUploadPage)({}) }
+          { index: true, element: withErrorBoundary(ReportingDashboard, "Reporting Dashboard")({}) },
+          { path: "users", element: withErrorBoundary(UserManagement, "User Management")({}) },
+          { path: "students", element: withErrorBoundary(StudentManagement, "Student Management")({}) },
+          { path: "students/:studentId", element: withErrorBoundary(StudentProfile, "Student Profile")({}) },
+          { path: "courses", element: withErrorBoundary(CourseManagement, "Course Management")({}) },
+          { path: "plans", element: withErrorBoundary(SessionPlans, "Session Plans")({}) },
+          { path: "scheduler", element: withErrorBoundary(AdvancedScheduler, "Advanced Scheduler")({}) },
+          { path: "invoices", element: withErrorBoundary(InvoiceManagement, "Invoice Management")({}) },
+          { path: "materials", element: withErrorBoundary(CourseMaterials, "Course Materials")({}) },
+          { path: "export", element: withErrorBoundary(DataExport, "Data Export")({}) },
+          { path: "settings", element: withErrorBoundary(SystemSettings, "System Settings")({}) },
+          { path: "bulk-upload", element: withErrorBoundary(BulkUploadPage, "Bulk Upload")({}) }
         ]
       }
     ],

@@ -7,6 +7,7 @@ import AttendanceTracker from '@/components/AttendanceTracker';
 import StudentPacks from '@/components/StudentPacks';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAuth } from '@/contexts/AuthContext';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
 
 const Index: React.FC = () => {
   const { userRole, user } = useAuth();
@@ -37,38 +38,48 @@ const Index: React.FC = () => {
           </TabsList>
           
           <TabsContent value="dashboard" className="pt-4">
-            <Dashboard userRole={userRole!} />
+            <ErrorBoundary componentName="Dashboard">
+              <Dashboard userRole={userRole!} />
+            </ErrorBoundary>
           </TabsContent>
           
           <TabsContent value="scheduler" className="pt-4">
-            <SessionScheduler />
+            <ErrorBoundary componentName="Session Scheduler">
+              <SessionScheduler />
+            </ErrorBoundary>
           </TabsContent>
           
           <TabsContent value="attendance" className="pt-4">
             {(userRole === 'admin' || userRole === 'teacher') && (
-              <AttendanceTracker />
+              <ErrorBoundary componentName="Attendance Tracker">
+                <AttendanceTracker />
+              </ErrorBoundary>
             )}
           </TabsContent>
           
           <TabsContent value="my-packs" className="pt-4">
             {userRole === 'student' && (
-              <StudentPacks studentId={user?.id} />
+              <ErrorBoundary componentName="Student Packs">
+                <StudentPacks studentId={user?.id} />
+              </ErrorBoundary>
             )}
           </TabsContent>
           
           <TabsContent value="admin" className="pt-4">
             {userRole === 'admin' && (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="bg-white p-6 rounded-lg shadow">
-                  <h3 className="text-lg font-medium mb-4">User Management</h3>
-                  <p>Admin tools for managing users will go here.</p>
+              <ErrorBoundary componentName="Admin Tools">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="bg-white p-6 rounded-lg shadow">
+                    <h3 className="text-lg font-medium mb-4">User Management</h3>
+                    <p>Admin tools for managing users will go here.</p>
+                  </div>
+                  
+                  <div className="bg-white p-6 rounded-lg shadow">
+                    <h3 className="text-lg font-medium mb-4">System Settings</h3>
+                    <p>Settings for the entire system will go here.</p>
+                  </div>
                 </div>
-                
-                <div className="bg-white p-6 rounded-lg shadow">
-                  <h3 className="text-lg font-medium mb-4">System Settings</h3>
-                  <p>Settings for the entire system will go here.</p>
-                </div>
-              </div>
+              </ErrorBoundary>
             )}
           </TabsContent>
         </Tabs>

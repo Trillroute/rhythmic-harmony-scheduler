@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -40,7 +39,7 @@ import { StudentEditDialog } from './students/StudentEditDialog';
 import { useTeachers } from '@/hooks/use-teachers';
 import { SubjectType } from '@/lib/types';
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from '@/components/ui/pagination';
+import { Pagination, PaginationContent, PaginationItem, PaginationNext, PaginationPrevious } from '@/components/ui/pagination';
 import { assertSubjectTypeArray } from '@/lib/type-utils';
 import { Link } from 'react-router-dom';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
@@ -134,7 +133,7 @@ const StudentManagement: React.FC = () => {
   }
 
   return (
-    <ErrorBoundary>
+    <ErrorBoundary componentName="Student Management">
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <h1 className="text-3xl font-bold tracking-tight">Student Management</h1>

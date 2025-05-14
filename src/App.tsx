@@ -8,13 +8,11 @@ import Router from './routes';
 // Main App component
 function App() {
   return (
-    <ErrorBoundary>
+    <ErrorBoundary componentName="Root Application">
       <AuthProvider>
         <Suspense fallback={<AppLoading />}>
-          <ErrorBoundary>
-            <Router />
-            <Toaster />
-          </ErrorBoundary>
+          <Router />
+          <Toaster />
         </Suspense>
       </AuthProvider>
     </ErrorBoundary>

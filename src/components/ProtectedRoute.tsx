@@ -4,6 +4,7 @@ import { Navigate, useLocation, Outlet } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { UserRole } from '@/lib/types';
 import { toast } from '@/hooks/use-toast';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
 
 interface ProtectedRouteProps {
   children?: React.ReactNode;
@@ -62,10 +63,10 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   }
   
   return (
-    <>
+    <ErrorBoundary componentName="Protected Content">
       {children}
       <Outlet />
-    </>
+    </ErrorBoundary>
   );
 };
 
