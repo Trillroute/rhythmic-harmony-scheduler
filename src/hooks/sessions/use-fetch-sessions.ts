@@ -50,9 +50,9 @@ export const useFetchSessions = (props: SessionsProps) => {
     }
 
     if (status && status.length > 0) {
-      // Safely convert to string array before passing to Supabase
-      const statusStrings = status.map(s => s.toString());
-      query = query.in('status', statusStrings);
+      // Use assertAttendanceStatusArray to properly validate the status array
+      const validStatuses = assertAttendanceStatusArray(status);
+      query = query.in('status', validStatuses);
     }
 
     // Apply pagination

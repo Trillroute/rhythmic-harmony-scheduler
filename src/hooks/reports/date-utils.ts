@@ -28,3 +28,6 @@ export function getDateRangeFromPeriod(period: ReportPeriod) {
       };
   }
 }
+
+// Add an alias for backward compatibility
+export const getDateRangeForPeriod = getDateRangeFromPeriod;

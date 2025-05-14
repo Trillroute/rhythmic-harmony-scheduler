@@ -16,10 +16,10 @@ import {
   StudentProgressData,
   ReportPeriod
 } from './types';
-import { getDateRangeForPeriod } from './date-utils';
+import { getDateRangeFromPeriod } from './date-utils';
 
 export const useReports = (period: ReportPeriod = 'month') => {
-  const { startDate, endDate } = getDateRangeForPeriod(period);
+  const { startDate, endDate } = getDateRangeFromPeriod(period);
 
   const fetchReportData = async () => {
     try {
@@ -54,7 +54,7 @@ export const useReports = (period: ReportPeriod = 'month') => {
         subjectDistribution: generateSubjectDistributionReport(attendanceData || []),
         sessionTypeData: generateSessionTypeReport(attendanceData || []),
         sessionsOverTime: generateSessionsReport(attendanceData || [], startDate, endDate),
-        studentProgress: generateStudentProgressReport(progressData || [])
+        studentProgress: generateStudentProgressReport(progressData || []),
       };
     } catch (error) {
       console.error('Error fetching report data:', error);
@@ -69,7 +69,6 @@ export const useReports = (period: ReportPeriod = 'month') => {
 
   // Return transformed data structure with correct property names used in ReportingDashboard
   return {
-    // Map to the property names used in ReportingDashboard
     attendance: {
       data: data?.attendanceData || {
         total: 0,

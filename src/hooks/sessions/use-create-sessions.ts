@@ -9,7 +9,7 @@ export const useCreateSessions = (queryKey: unknown[]) => {
   const queryClient = useQueryClient();
   
   return useMutation({
-    mutationFn: async (sessionDataArray: SessionData[]) => {
+    mutationFn: async (sessionDataArray: Partial<SessionData>[]) => {
       if (!Array.isArray(sessionDataArray) || sessionDataArray.length === 0) {
         throw new Error("Invalid session data");
       }

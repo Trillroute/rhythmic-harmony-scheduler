@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { AttendanceStatus, SessionWithStudents } from "@/lib/types";
 import { transformSessionWithStudents } from "./sessions/session-transformers";
+import { assertAttendanceStatus } from "@/lib/type-utils";
 
 interface Filters {
   studentId?: string;
@@ -32,7 +33,9 @@ export const useSessionsByStudent = (studentId?: string, filters: Omit<Filters, 
     }
 
     if (filters.status) {
-      query = query.eq('status', filters.status);
+      // We need to ensure status is a valid value defined in the database
+      const safeStatus = assertAttendanceStatus(filters.status);
+      query = query.eq('status', safeStatus);
     }
 
     const { data: rawSessions, error } = await query;

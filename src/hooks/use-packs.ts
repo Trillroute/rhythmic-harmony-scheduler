@@ -19,8 +19,16 @@ export const useSessionPacks = (studentId?: string) => {
       
       // Transform database representation to SessionPack type with proper casting
       return data.map(pack => {
-        // Handle PackSize conversion
-        const size = Number(pack.size) as PackSize;
+        // Handle PackSize conversion - ensure it's a valid number
+        let size: PackSize;
+        const packSize = Number(pack.size);
+        if (packSize === 4 || packSize === 10 || packSize === 20 || packSize === 30) {
+          size = packSize;
+        } else {
+          // Default to 4 if invalid
+          console.warn(`Invalid pack size: ${pack.size}, defaulting to 4`);
+          size = 4;
+        }
         
         return {
           id: pack.id,
@@ -37,7 +45,7 @@ export const useSessionPacks = (studentId?: string) => {
           createdAt: pack.created_at,
           updatedAt: pack.updated_at
         };
-      }) as unknown as SessionPack[];
+      }) as SessionPack[];
     },
     enabled: !!studentId,
   });
@@ -45,7 +53,7 @@ export const useSessionPacks = (studentId?: string) => {
 
 interface CreateSessionPackInput {
   studentId: string;
-  size: PackSize;  // Changed from number to PackSize
+  size: PackSize;
   subject: string;
   sessionType: string;
   location: string;
@@ -61,9 +69,10 @@ export const useCreateSessionPack = () => {
   return useMutation({
     mutationFn: async (packData: CreateSessionPackInput) => {
       // Convert to snake_case for the API and ensure proper type conversion
+      // Important: Convert PackSize to string for Supabase's enum
       const apiData = {
         student_id: packData.studentId,
-        size: String(packData.size), // Convert to string for Supabase
+        size: packData.size.toString(), // Convert to string for database enum
         subject: assertSubjectType(packData.subject),
         session_type: assertSessionType(packData.sessionType),
         location: assertLocationType(packData.location),
