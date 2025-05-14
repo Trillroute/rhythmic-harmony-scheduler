@@ -56,6 +56,14 @@ const Login = () => {
     
     try {
       console.log('Attempting login with:', { email });
+      
+      // Verify login is a function before calling it
+      if (typeof login !== 'function') {
+        console.error('login is not a function:', login);
+        setErrorMessage('Authentication system unavailable. Please try again later.');
+        return;
+      }
+      
       // Call the login function directly from context
       await login(email, password);
       // Success notification is handled inside login function

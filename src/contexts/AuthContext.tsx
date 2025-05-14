@@ -1,22 +1,21 @@
-
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { UserRole } from '@/lib/types';
-import type { User, Session } from '@supabase/supabase-js';
-import { toast } from '@/hooks/use-toast';
+import { User, Session } from '@supabase/supabase-js';
+import { toast } from '@/components/ui/sonner';
 
 interface AuthContextProps {
   user: User | null;
   session: Session | null;
   loading: boolean;
   isLoading: boolean; // Explicitly added for components that expect this prop
-  signOut?: () => Promise<void>;
   error: Error | null;
   userRole: UserRole | null;
   login: (email: string, password: string) => Promise<void>;
   signup: (email: string, password: string, name: string, role: UserRole) => Promise<void>;
   logout: () => Promise<void>;
   signIn?: (email: string, password: string) => Promise<void>; // Alias for backward compatibility
+  signOut?: () => Promise<void>; // Alias for logout
 }
 
 export const AuthContext = createContext<AuthContextProps>({
@@ -48,6 +47,24 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   // Use direct window location instead of useNavigate to avoid Router conflicts
   const navigate = (path: string) => {
     window.location.href = path;
+  };
+  
+  // Helper function to clean up auth state
+  const cleanupAuthState = () => {
+    // Remove standard auth tokens
+    localStorage.removeItem('supabase.auth.token');
+    // Remove all Supabase auth keys from localStorage
+    Object.keys(localStorage).forEach((key) => {
+      if (key.startsWith('supabase.auth.') || key.includes('sb-')) {
+        localStorage.removeItem(key);
+      }
+    });
+    // Remove from sessionStorage if in use
+    Object.keys(sessionStorage || {}).forEach((key) => {
+      if (key.startsWith('supabase.auth.') || key.includes('sb-')) {
+        sessionStorage.removeItem(key);
+      }
+    });
   };
   
   useEffect(() => {
@@ -126,27 +143,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       subscription.unsubscribe();
     };
   }, []);
-
-  // Helper function to clean up auth state
-  const cleanupAuthState = () => {
-    // Remove standard auth tokens
-    localStorage.removeItem('supabase.auth.token');
-    // Remove all Supabase auth keys from localStorage
-    Object.keys(localStorage).forEach((key) => {
-      if (key.startsWith('supabase.auth.') || key.includes('sb-')) {
-        localStorage.removeItem(key);
-      }
-    });
-    // Remove from sessionStorage if in use
-    Object.keys(sessionStorage || {}).forEach((key) => {
-      if (key.startsWith('supabase.auth.') || key.includes('sb-')) {
-        sessionStorage.removeItem(key);
-      }
-    });
-  };
   
   const login = async (email: string, password: string) => {
     try {
+      console.log('Login attempt:', { email });
       setLoading(true);
       setError(null);
       
@@ -161,7 +161,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         console.log('Global sign out failed, continuing with login');
       }
       
-      // Explicitly call signInWithPassword with the correct object structure
+      // IMPORTANT: Fixed signInWithPassword call - ensure it's properly executed as a function
+      // with the correct object structure
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
@@ -185,11 +186,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         setUserRole(profileData.role as UserRole);
         
         // Show success toast
-        toast({
-          title: "Success",
-          description: "Logged in successfully",
-          variant: "default"
-        });
+        toast("Logged in successfully");
         
         // Navigate based on role
         if (profileData.role === 'admin') {
@@ -205,11 +202,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       setError(err instanceof Error ? err : new Error('Failed to login'));
       
       // Show error toast with specific message
-      toast({
-        title: "Login failed",
-        description: err instanceof Error ? err.message : "An unexpected error occurred",
-        variant: "destructive"
-      });
+      toast.error(err instanceof Error ? err.message : "An unexpected error occurred");
       
       throw err;
     } finally {
@@ -309,6 +302,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
   
+  // Create signOut as an alias to logout for backward compatibility
+  const signOut = logout;
+  
   const contextValue: AuthContextProps = {
     user,
     session,
@@ -320,7 +316,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     signIn, // Add signIn as an alias to login
     signup,
     logout,
-    signOut: logout, // Add signOut as an alias to logout
+    signOut, // Add signOut as an alias to logout
   };
   
   return (
