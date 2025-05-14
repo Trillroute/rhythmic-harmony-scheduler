@@ -1,7 +1,7 @@
 
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { ReportPeriod, AttendanceData, SubjectDistributionData, SessionTypeData, SessionsReportData, StudentProgressData } from './types';
+import { ReportPeriod, AttendanceData, SubjectDistributionData, SessionTypeData, SessionsReportData, StudentProgressData, SessionTypeItem } from './types';
 import { getPeriodDateRange } from './date-utils';
 
 export function useReports() {
@@ -56,7 +56,9 @@ export function useReports() {
     // Transform the data for the chart
     return data?.map(item => ({
       subject: item.subject,
-      count: Number(item.count)
+      count: Number(item.count),
+      name: item.subject, // Add for compatibility
+      value: Number(item.count) // Add for compatibility
     })) || [];
   };
   
@@ -82,6 +84,7 @@ export function useReports() {
       if (!sessionTypeMap.has(sessionType)) {
         sessionTypeMap.set(sessionType, {
           sessionType,
+          type: sessionType, // Add for compatibility
           count: 0,
           subjects: []
         });
@@ -107,10 +110,16 @@ export function useReports() {
     if (error) throw error;
     
     // Format dates and counts for display
-    return data?.map(item => ({
+    const result = data?.map(item => ({
       date: item.month_name, 
       count: Number(item.count)
     })) || [];
+    
+    // Also create the months and counts arrays for compatibility
+    const months = result.map(item => item.date);
+    const counts = result.map(item => item.count);
+    
+    return { months, counts };
   };
   
   const generateStudentProgressReport = async (period: ReportPeriod): Promise<StudentProgressData> => {
@@ -132,11 +141,16 @@ export function useReports() {
         name: item.student_name || 'Unknown Student',
       },
       progress: {
-        id: item.id || '',
-        courseName: item.course_name || 'Unknown Course',
-        instrument: item.instrument || 'Unknown',
+        id: item.student_id, // Use student_id as fallback
+        courseName: "Course", // Use placeholder
+        instrument: "Instrument", // Use placeholder
         completionPercentage: item.completion_percentage || 0
-      }
+      },
+      // Also set flat properties
+      id: item.student_id,
+      courseName: "Course", 
+      instrument: "Instrument",
+      completionPercentage: item.completion_percentage || 0
     })) || [];
   };
 

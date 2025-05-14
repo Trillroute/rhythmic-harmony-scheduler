@@ -40,3 +40,48 @@ export interface SessionData {
   originalSessionId?: string;
   rescheduledFrom?: string;
 }
+
+// Add missing SessionWithStudents and SessionResult interfaces
+export interface SessionWithStudents {
+  id: string;
+  teacherId: string;
+  teacherName: string;
+  packId: string;
+  subject: string;
+  sessionType: string;
+  location: string;
+  dateTime: string;
+  duration: number;
+  status: AttendanceStatus;
+  notes: string;
+  studentIds: string[];
+  studentNames?: string[]; 
+  rescheduleCount: number;
+  createdAt: string;
+  updatedAt: string;
+  recurrenceRule?: string;
+  originalSessionId?: string;
+  rescheduledFrom?: string;
+  students?: any[];
+}
+
+export interface SessionResult {
+  id: string;
+  teacher_id: string;
+  pack_id: string;
+  subject: string;
+  session_type: string;
+  location: string;
+  date_time: string;
+  duration: number;
+  status: AttendanceStatus;
+  notes: string;
+  reschedule_count: number;
+  created_at: string;
+  updated_at: string;
+  recurrence_rule?: string;
+  original_session_id?: string;
+  rescheduled_from?: string;
+  teacher?: { id: string; name: string; email: string };
+  students?: { student: { id: string; name: string; email: string } }[];
+}

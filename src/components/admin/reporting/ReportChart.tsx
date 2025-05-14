@@ -78,7 +78,7 @@ export function ReportChart({
         options: {
           responsive: true,
           plugins: {
-            legend: { position: 'top' },
+            legend: { position: 'top' as const },
             title: { display: false }
           }
         }
@@ -108,7 +108,7 @@ export function ReportChart({
         options: {
           responsive: true,
           plugins: {
-            legend: { position: 'bottom' }
+            legend: { position: 'bottom' as const }
           }
         }
       };
@@ -130,7 +130,7 @@ export function ReportChart({
         options: {
           responsive: true,
           plugins: {
-            legend: { position: 'top' }
+            legend: { position: 'top' as const }
           }
         }
       };
@@ -154,7 +154,31 @@ export function ReportChart({
         options: {
           responsive: true,
           plugins: {
-            legend: { position: 'top' }
+            legend: { position: 'top' as const }
+          }
+        }
+      };
+    }
+    
+    // Handle sessions over time (months/counts format)
+    if (chartData.months && chartData.counts) {
+      return {
+        data: {
+          labels: chartData.months,
+          datasets: [
+            {
+              label: 'Sessions',
+              data: chartData.counts,
+              borderColor: 'rgb(75, 192, 192)',
+              backgroundColor: 'rgba(75, 192, 192, 0.2)',
+              tension: 0.2
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          plugins: {
+            legend: { position: 'top' as const }
           }
         }
       };
@@ -168,7 +192,7 @@ export function ReportChart({
       },
       options: {
         responsive: true,
-        plugins: { legend: { position: 'top' } }
+        plugins: { legend: { position: 'top' as const } }
       }
     };
   };

@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { transformSessionsResult } from "./session-transformers";
 import { SessionWithStudents } from "./types";
 import { AttendanceStatus } from "@/lib/types";
+import { assertAttendanceStatusArray } from "@/lib/type-utils";
 
 interface UseFetchSessionsOptions {
   startDate?: Date;
@@ -36,7 +37,7 @@ export const useFetchSessions = (options: UseFetchSessionsOptions = {}) => {
       status,
       subject,
     ],
-    queryFn: async (): Promise<SessionWithStudents[]> => {
+    queryFn: async () => {
       let query = supabase
         .from("sessions")
         .select(`
@@ -67,8 +68,8 @@ export const useFetchSessions = (options: UseFetchSessionsOptions = {}) => {
 
       if (status) {
         if (Array.isArray(status)) {
-          // Cast as string[] as AttendanceStatus[] should be compatible
-          query = query.in("status", status as string[]);
+          // Use the assertAttendanceStatusArray helper to ensure types match
+          query = query.in("status", assertAttendanceStatusArray(status));
         } else {
           query = query.eq("status", status);
         }
@@ -85,7 +86,7 @@ export const useFetchSessions = (options: UseFetchSessionsOptions = {}) => {
       }
 
       // Transform nested data structure into flat sessions with students
-      return transformSessionsResult(data);
+      return { data: transformSessionsResult(data) };
     },
     enabled,
   });

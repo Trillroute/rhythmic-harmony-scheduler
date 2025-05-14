@@ -31,14 +31,14 @@ export function useSessionTypeReport() {
       const typeSubjectMap = new Map<string, Map<string, number>>();
       
       (sessionsData || []).forEach(session => {
-        const type = String(session.session_type);
+        const sessionType = String(session.session_type);
         const subject = String(session.subject);
         
-        if (!typeSubjectMap.has(type)) {
-          typeSubjectMap.set(type, new Map<string, number>());
+        if (!typeSubjectMap.has(sessionType)) {
+          typeSubjectMap.set(sessionType, new Map<string, number>());
         }
         
-        const subjectMap = typeSubjectMap.get(type)!;
+        const subjectMap = typeSubjectMap.get(sessionType)!;
         const count = subjectMap.get(subject) || 0;
         subjectMap.set(subject, count + 1);
       });
@@ -47,12 +47,19 @@ export function useSessionTypeReport() {
       const distribution: SessionTypeData = [];
       
       typeSubjectMap.forEach((subjectMap, type) => {
+        let typeTotal = 0;
+        const subjects = [] as { subject: string; count: number }[];
+        
         subjectMap.forEach((count, subject) => {
-          distribution.push({
-            type,
-            subject,
-            count
-          });
+          typeTotal += count;
+          subjects.push({ subject, count });
+        });
+        
+        distribution.push({
+          sessionType: type,
+          type, // Added to match the type
+          count: typeTotal,
+          subjects
         });
       });
       

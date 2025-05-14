@@ -48,8 +48,10 @@ export const useSubjectDistributionReport = () => {
 
         const subjectData = allSubjects.map(subject => {
           return {
-            name: subject, 
-            value: sessionsBySubject[subject] || 0
+            subject: subject,
+            count: sessionsBySubject[subject] || 0,
+            name: subject, // Also include name to match usage in utils
+            value: sessionsBySubject[subject] || 0 // Also include value to match usage in utils
           };
         });
 

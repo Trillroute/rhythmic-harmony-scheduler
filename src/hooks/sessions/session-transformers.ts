@@ -8,21 +8,21 @@ import { SessionResult, SessionWithStudents } from "./types";
 export const mapToSession = (result: any): Session => {
   return {
     id: result.id,
-    teacher_id: result.teacher_id,
-    pack_id: result.pack_id,
+    teacherId: result.teacher_id,
+    packId: result.pack_id,
     subject: result.subject,
-    session_type: result.session_type,
+    sessionType: result.session_type,
     location: result.location,
-    date_time: result.date_time,
+    dateTime: result.date_time,
     duration: result.duration,
     notes: result.notes || "",
     status: result.status,
-    recurrence_rule: result.recurrence_rule || "",
-    original_session_id: result.original_session_id || null,
-    rescheduled_from: result.rescheduled_from || null,
-    created_at: result.created_at,
-    updated_at: result.updated_at,
-    reschedule_count: result.reschedule_count || 0,
+    recurrenceRule: result.recurrence_rule || "",
+    originalSessionId: result.original_session_id || null,
+    rescheduledFrom: result.rescheduled_from || null,
+    createdAt: result.created_at,
+    updatedAt: result.updated_at,
+    rescheduleCount: result.reschedule_count || 0,
     studentIds: [],  // Will be populated separately
   };
 };
@@ -42,13 +42,10 @@ export const mapToSessionWithStudents = (result: any): SessionWithStudents => {
   return {
     ...session,
     teacherName,
-    studentIds: students.map((s: any) => s.id),
-    students: students.map((s: any) => ({
-      id: s.id,
-      name: s.name || "Unknown Student",
-      email: s.email || ""
-    }))
-  };
+    studentIds: students.map((s: any) => s.student.id),
+    studentNames: students.map((s: any) => s.student.name || "Unknown Student"),
+    students: students.map((s: any) => s.student)
+  } as unknown as SessionWithStudents;
 };
 
 /**

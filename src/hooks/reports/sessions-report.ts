@@ -8,7 +8,10 @@ import { assertStringArray } from "@/lib/type-utils";
 export function useSessionsReport() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [data, setData] = useState<SessionsReportData>({ months: [], counts: [] });
+  const [data, setData] = useState<SessionsReportData>({
+    months: [],
+    counts: []
+  });
 
   const fetchData = async (period: ReportPeriod) => {
     setIsLoading(true);
@@ -49,7 +52,10 @@ export function useSessionsReport() {
         counts.push(count);
       });
       
-      setData({ months, counts });
+      setData({
+        months,
+        counts
+      });
     } catch (err: any) {
       setError(err.message);
       console.error("Error fetching sessions report data:", err);

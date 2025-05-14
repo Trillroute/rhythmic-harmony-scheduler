@@ -11,6 +11,8 @@ export interface Invoice {
   dueDate: string | Date;
   packId?: string;
   planId?: string;
+  studentId: string; // Added to match usage in InvoiceManagement
+  notes?: string;    // Added to match usage in InvoiceManagement
 }
 
 export const useStudentInvoices = (studentId: string | undefined) => {
@@ -28,7 +30,9 @@ export const useStudentInvoices = (studentId: string | undefined) => {
           created_at,
           due_date,
           pack_id,
-          plan_id
+          plan_id,
+          student_id,
+          notes
         `)
         .eq('student_id', studentId)
         .order('created_at', { ascending: false });
@@ -49,7 +53,9 @@ export const useStudentInvoices = (studentId: string | undefined) => {
         createdAt: item.created_at,
         dueDate: item.due_date,
         packId: item.pack_id,
-        planId: item.plan_id
+        planId: item.plan_id,
+        studentId: item.student_id,
+        notes: item.notes
       }));
     },
     enabled: !!studentId

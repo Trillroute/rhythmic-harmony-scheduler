@@ -10,6 +10,11 @@ export function useAttendanceReport() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [data, setData] = useState<AttendanceData>({
+    total: 0,
+    present: 0,
+    absent: 0,
+    cancelled: 0,
+    noShow: 0,
     categories: [],
     data: [],
   });

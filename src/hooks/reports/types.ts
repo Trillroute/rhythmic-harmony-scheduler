@@ -20,12 +20,16 @@ export interface AttendanceData {
   noShow: number;
   categories: string[];
   data: number[];
+  distribution?: any[]; // Added to match usage
+  chartData?: any[];    // Added to match usage
 }
 
 // Subject distribution data structure
 export interface SubjectDistributionItem {
   subject: string;
   count: number;
+  name?: string; // Added to match usage in utils.ts
+  value?: number; // Added to match usage in utils.ts
 }
 
 export type SubjectDistributionData = SubjectDistributionItem[];
@@ -40,6 +44,7 @@ export interface SessionTypeItem {
   sessionType: string;
   count: number;
   subjects?: SessionTypeSubject[];
+  type?: string; // Added to match usage in utils.ts and session-type-report.ts
 }
 
 export type SessionTypeData = SessionTypeItem[];
@@ -50,7 +55,12 @@ export interface SessionsTimeItem {
   count: number;
 }
 
-export type SessionsReportData = SessionsTimeItem[];
+export interface SessionsReportData {
+  months?: string[]; // Added to match usage
+  counts?: number[]; // Added to match usage
+  date?: string;     // Added for compatibility
+  count?: number;    // Added for compatibility
+}
 
 // Student progress data structure
 export interface StudentProgressItem {
@@ -64,6 +74,11 @@ export interface StudentProgressItem {
     instrument: string;
     completionPercentage: number;
   };
+  // Added to match usage in utils.ts and student-progress-report.ts
+  id?: string;
+  courseName?: string;
+  instrument?: string;
+  completionPercentage?: number;
 }
 
 export type StudentProgressData = StudentProgressItem[];

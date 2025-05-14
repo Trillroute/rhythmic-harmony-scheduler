@@ -44,11 +44,21 @@ export const useStudentProgressReport = () => {
                              : "Unknown";
 
           return {
-            student: studentName,
-            progress: enrollment.completion_percentage,
+            student: {
+              id: enrollment.student_id,
+              name: studentName
+            },
+            progress: {
+              id: enrollment.id,
+              courseName: enrollment.courses?.name || "Unknown Course",
+              instrument: enrollment.courses?.instrument || "Unknown",
+              completionPercentage: enrollment.completion_percentage
+            },
+            // Also set flat properties to match usage in utils
             id: enrollment.id,
             courseName: enrollment.courses?.name || "Unknown Course",
-            instrument: enrollment.courses?.instrument || "Unknown"
+            instrument: enrollment.courses?.instrument || "Unknown",
+            completionPercentage: enrollment.completion_percentage
           };
         }) || [];
 
