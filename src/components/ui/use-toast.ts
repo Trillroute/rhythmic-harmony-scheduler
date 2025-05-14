@@ -1,4 +1,12 @@
 
-import { useToast, toast } from "@/hooks/use-toast";
+// Import from sonner directly
+import { toast } from "sonner";
 
-export { useToast, toast };
+// Re-export toast to avoid circular dependencies
+export { toast };
+
+// Export the useToast hook to maintain API compatibility
+export const useToast = () => {
+  // Return toast as a function for backward compatibility
+  return { toast };
+};

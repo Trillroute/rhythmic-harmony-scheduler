@@ -1,6 +1,6 @@
 
 import { useState } from "react";
-import { StudentProgressData, ReportPeriod } from "./types";
+import { StudentProgressData } from "./types";
 import { supabase } from "@/integrations/supabase/client";
 
 export function useStudentProgressReport() {
@@ -33,7 +33,7 @@ export function useStudentProgressReport() {
       if (progressError) throw new Error(progressError.message);
       
       // Process data for the report
-      const processedData = progressData.map(record => ({
+      const processedData = (progressData || []).map(record => ({
         id: record.id,
         studentName: record.enrollments?.profiles?.name || 'Unknown Student',
         courseName: record.enrollments?.courses?.name || 'Unknown Course',

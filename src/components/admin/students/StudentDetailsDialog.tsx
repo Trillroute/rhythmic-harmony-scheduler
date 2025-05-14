@@ -1,17 +1,18 @@
 
 import React from 'react';
+import { Badge } from '@/components/ui/badge';
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogDescription,
-  DialogFooter
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { StudentDetail } from '@/hooks/use-students-management';
+import { format } from 'date-fns';
 import { assertSubjectTypeArray } from '@/lib/type-utils';
+import { StudentDetail } from '@/hooks/use-students-management';
 
 interface StudentDetailsDialogProps {
   student: StudentDetail;
@@ -24,110 +25,94 @@ export const StudentDetailsDialog: React.FC<StudentDetailsDialogProps> = ({
   student,
   open,
   onClose,
-  onEdit
+  onEdit,
 }) => {
+  // Safely access student properties
+  const subjects = student.preferredSubjects ? assertSubjectTypeArray(student.preferredSubjects) : [];
+  const enrolledCourses = student.enrolledCourses || [];
+  const activePacks = student.activePacks || 0;
+
+  // Format dates safely
+  const createdAtStr = student.createdAt ? format(new Date(student.createdAt), 'PPP') : 'Unknown';
+  
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[600px]">
+      <DialogContent className="sm:max-w-[525px]">
         <DialogHeader>
           <DialogTitle>Student Details</DialogTitle>
           <DialogDescription>
-            Comprehensive information about this student
+            View complete information about this student.
           </DialogDescription>
         </DialogHeader>
-
-        <div className="py-4 space-y-6">
-          {/* Basic Information */}
-          <div>
-            <h3 className="text-lg font-semibold mb-3">Basic Information</h3>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Name</p>
-                <p className="text-base">{student.name}</p>
+        
+        <div className="grid gap-4 py-4">
+          <div className="space-y-1">
+            <h3 className="font-medium text-sm">Student Name</h3>
+            <p className="text-sm">{student.name}</p>
+          </div>
+          
+          <div className="space-y-1">
+            <h3 className="font-medium text-sm">Email</h3>
+            <p className="text-sm">{student.email}</p>
+          </div>
+          
+          <div className="space-y-1">
+            <h3 className="font-medium text-sm">Status</h3>
+            <Badge variant={student.isActive ? "default" : "destructive"}>{student.isActive ? 'Active' : 'Inactive'}</Badge>
+          </div>
+          
+          <div className="space-y-1">
+            <h3 className="font-medium text-sm">Registered On</h3>
+            <p className="text-sm">{createdAtStr}</p>
+          </div>
+          
+          <div className="space-y-2">
+            <h3 className="font-medium text-sm">Preferred Subjects</h3>
+            {subjects.length > 0 ? (
+              <div className="flex flex-wrap gap-1">
+                {subjects.map((subject) => (
+                  <Badge key={subject} variant="outline">{subject}</Badge>
+                ))}
               </div>
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Email</p>
-                <p className="text-base">{student.email}</p>
+            ) : (
+              <p className="text-sm text-muted-foreground">No preferred subjects</p>
+            )}
+          </div>
+          
+          <div className="space-y-2">
+            <h3 className="font-medium text-sm">Assigned Teacher</h3>
+            <p className="text-sm">{student.assignedTeacherName || 'Not assigned'}</p>
+          </div>
+          
+          <div className="space-y-2">
+            <h3 className="font-medium text-sm">Active Session Packs</h3>
+            <Badge>{activePacks}</Badge>
+          </div>
+          
+          <div className="space-y-2">
+            <h3 className="font-medium text-sm">Enrolled Courses</h3>
+            {enrolledCourses.length > 0 ? (
+              <div className="flex flex-wrap gap-1">
+                {enrolledCourses.map((course) => (
+                  <Badge key={course} variant="outline">{course}</Badge>
+                ))}
               </div>
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Status</p>
-                <Badge variant={student.isActive ? "success" : "destructive"}>
-                  {student.isActive ? "Active" : "Inactive"}
-                </Badge>
-              </div>
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Member Since</p>
-                <p className="text-base">
-                  {student.createdAt instanceof Date 
-                    ? student.createdAt.toLocaleDateString() 
-                    : "Unknown"}
-                </p>
-              </div>
+            ) : (
+              <p className="text-sm text-muted-foreground">Not enrolled in any courses</p>
+            )}
+          </div>
+          
+          {student.notes && (
+            <div className="space-y-1">
+              <h3 className="font-medium text-sm">Notes</h3>
+              <p className="text-sm whitespace-pre-wrap">{student.notes}</p>
             </div>
-          </div>
-
-          {/* Study Preferences */}
-          <div>
-            <h3 className="text-lg font-semibold mb-3">Study Preferences</h3>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Preferred Subjects</p>
-                <div className="flex flex-wrap gap-1 mt-1">
-                  {student.preferredSubjects && assertSubjectTypeArray(student.preferredSubjects).length > 0 ? (
-                    assertSubjectTypeArray(student.preferredSubjects).map(subject => (
-                      <Badge key={subject} variant="outline">{subject}</Badge>
-                    ))
-                  ) : (
-                    <span className="text-sm text-muted-foreground">None specified</span>
-                  )}
-                </div>
-              </div>
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Assigned Teacher</p>
-                <p className="text-base">{student.assignedTeacherName || "Not assigned"}</p>
-              </div>
-            </div>
-          </div>
-
-          {/* Learning & Progress */}
-          <div>
-            <h3 className="text-lg font-semibold mb-3">Learning & Progress</h3>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Active Packs</p>
-                <p className="text-base">{student.activePacks || 0}</p>
-              </div>
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Enrolled Courses</p>
-                <div className="flex flex-wrap gap-1 mt-1">
-                  {student.enrolledCourses && student.enrolledCourses.length > 0 ? (
-                    student.enrolledCourses.map(course => (
-                      <Badge key={course} variant="outline">{course}</Badge>
-                    ))
-                  ) : (
-                    <span className="text-sm text-muted-foreground">No courses</span>
-                  )}
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Notes */}
-          <div>
-            <h3 className="text-lg font-semibold mb-2">Notes</h3>
-            <p className="text-base p-3 bg-secondary rounded-md">
-              {student.notes || "No notes available for this student."}
-            </p>
-          </div>
+          )}
         </div>
-
+        
         <DialogFooter>
-          <Button variant="outline" onClick={onClose}>
-            Close
-          </Button>
-          <Button onClick={onEdit}>
-            Edit Details
-          </Button>
+          <Button variant="outline" onClick={onClose}>Close</Button>
+          <Button onClick={onEdit}>Edit Details</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

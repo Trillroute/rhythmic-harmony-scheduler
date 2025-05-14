@@ -52,7 +52,15 @@ const ReportingDashboard: React.FC = () => {
               <CardTitle>Attendance</CardTitle>
             </CardHeader>
             <CardContent>
-              <AttendanceChart data={reports.attendance.data} />
+              <AttendanceChart data={reports.attendance.data || {
+                total: 0,
+                present: 0,
+                absent: 0,
+                cancelled: 0,
+                noShow: 0,
+                distribution: [],
+                chartData: []
+              }} />
             </CardContent>
           </Card>
           
@@ -61,7 +69,7 @@ const ReportingDashboard: React.FC = () => {
               <CardTitle>Subject Distribution</CardTitle>
             </CardHeader>
             <CardContent>
-              <SubjectDistributionChart data={reports.subjectDistribution.data} />
+              <SubjectDistributionChart data={reports.subjectDistribution.data || []} />
             </CardContent>
           </Card>
           
@@ -70,7 +78,7 @@ const ReportingDashboard: React.FC = () => {
               <CardTitle>Session Types</CardTitle>
             </CardHeader>
             <CardContent>
-              <SessionTypeChart data={reports.sessionType.data} />
+              <SessionTypeChart data={reports.sessionType.data || []} />
             </CardContent>
           </Card>
           
@@ -79,7 +87,7 @@ const ReportingDashboard: React.FC = () => {
               <CardTitle>Sessions Over Time</CardTitle>
             </CardHeader>
             <CardContent>
-              <SessionsOverTimeChart data={reports.sessions.data} />
+              <SessionsOverTimeChart data={reports.sessions.data || []} />
             </CardContent>
           </Card>
           
@@ -88,7 +96,7 @@ const ReportingDashboard: React.FC = () => {
               <CardTitle>Student Progress</CardTitle>
             </CardHeader>
             <CardContent>
-              <StudentProgressTable data={reports.studentProgress.data} />
+              <StudentProgressTable data={reports.studentProgress.data || []} />
             </CardContent>
           </Card>
         </div>

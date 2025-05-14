@@ -17,23 +17,44 @@ export function useSessionTypeReport() {
     try {
       const { startDate, endDate } = getDateRangeFromPeriod(period);
       
-      // Get session type distribution
-      const { data: typeData, error: typeError } = await supabase
+      // Get session type distribution - using manual counting instead of group
+      const { data: sessionsData, error: sessionsError } = await supabase
         .from("sessions")
-        .select("session_type, subject, count")
+        .select("session_type, subject")
         .gte('date_time', startDate.toISOString())
         .lte('date_time', endDate.toISOString())
-        .not('status', 'in', assertStringArray(["Cancelled by Student", "Cancelled by Teacher", "Cancelled by School"]))
-        .group('session_type, subject');
+        .not('status', 'in', assertStringArray(["Cancelled by Student", "Cancelled by Teacher", "Cancelled by School"]));
       
-      if (typeError) throw new Error(typeError.message);
+      if (sessionsError) throw new Error(sessionsError.message);
+      
+      // Manually count sessions by type and subject
+      const typeSubjectMap = new Map<string, Map<string, number>>();
+      
+      (sessionsData || []).forEach(session => {
+        const type = String(session.session_type);
+        const subject = String(session.subject);
+        
+        if (!typeSubjectMap.has(type)) {
+          typeSubjectMap.set(type, new Map<string, number>());
+        }
+        
+        const subjectMap = typeSubjectMap.get(type)!;
+        const count = subjectMap.get(subject) || 0;
+        subjectMap.set(subject, count + 1);
+      });
       
       // Build distribution data for chart
-      const distribution = typeData.map(item => ({
-        type: String(item.session_type),
-        subject: String(item.subject),
-        count: item.count as number
-      }));
+      const distribution: SessionTypeData = [];
+      
+      typeSubjectMap.forEach((subjectMap, type) => {
+        subjectMap.forEach((count, subject) => {
+          distribution.push({
+            type,
+            subject,
+            count
+          });
+        });
+      });
       
       setData(distribution);
     } catch (err: any) {

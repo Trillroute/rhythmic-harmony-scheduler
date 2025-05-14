@@ -18,20 +18,22 @@ export function useSessionsReport() {
       const { startDate, endDate } = getDateRangeFromPeriod(period);
       
       // Get sessions aggregated by day
-      const { data: sessionsData, error: sessionsError } = await supabase
+      const query = supabase
         .from("sessions")
-        .select("date_time, count")
+        .select("date_time")
         .gte('date_time', startDate.toISOString())
         .lte('date_time', endDate.toISOString())
         .not('status', 'in', assertStringArray(["Cancelled by Student", "Cancelled by Teacher", "Cancelled by School"]))
         .order('date_time');
+      
+      const { data: sessionsData, error: sessionsError } = await query;
       
       if (sessionsError) throw new Error(sessionsError.message);
       
       // Convert to date strings and group by day
       const sessionsByDay = new Map<string, number>();
       
-      sessionsData.forEach(session => {
+      (sessionsData || []).forEach(session => {
         const date = new Date(session.date_time).toISOString().split('T')[0];
         const count = sessionsByDay.get(date) || 0;
         sessionsByDay.set(date, count + 1);

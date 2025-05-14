@@ -39,7 +39,7 @@ import { StudentEditDialog } from './students/StudentEditDialog';
 import { useTeachers } from '@/hooks/use-teachers';
 import { SubjectType } from '@/lib/types';
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Pagination, PaginationContent, PaginationItem, PaginationNext, PaginationPrevious } from '@/components/ui/pagination';
+import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from '@/components/ui/pagination';
 import { assertSubjectTypeArray } from '@/lib/type-utils';
 
 const StudentManagement: React.FC = () => {
@@ -178,7 +178,7 @@ const StudentManagement: React.FC = () => {
                 <SelectGroup>
                   <SelectLabel>Teachers</SelectLabel>
                   <SelectItem value="">All Teachers</SelectItem>
-                  {teachers?.map(teacher => (
+                  {(teachers || []).map(teacher => (
                     <SelectItem key={teacher.id} value={teacher.id}>
                       {teacher.name}
                     </SelectItem>
@@ -193,7 +193,7 @@ const StudentManagement: React.FC = () => {
               <LoaderIcon className="h-8 w-8 animate-spin text-primary mb-4" />
               <p className="text-muted-foreground">Loading students...</p>
             </div>
-          ) : students.length > 0 ? (
+          ) : (students || []).length > 0 ? (
             <>
               <div className="rounded-md border">
                 <Table>
@@ -209,7 +209,7 @@ const StudentManagement: React.FC = () => {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {students.map((student) => (
+                    {(students || []).map((student) => (
                       <TableRow key={student.id}>
                         <TableCell className="font-medium">{student.name}</TableCell>
                         <TableCell>{student.email}</TableCell>
@@ -235,7 +235,7 @@ const StudentManagement: React.FC = () => {
                         </TableCell>
                         <TableCell>
                           <div className="flex gap-1 flex-wrap">
-                            {student.enrolledCourses && student.enrolledCourses.map((course) => (
+                            {student.enrolledCourses && student.enrolledCourses.length > 0 && student.enrolledCourses.map((course) => (
                               <Badge key={course} variant="outline">{course}</Badge>
                             ))}
                             {(!student.enrolledCourses || student.enrolledCourses.length === 0) && (
@@ -292,10 +292,14 @@ const StudentManagement: React.FC = () => {
                   <Pagination>
                     <PaginationContent>
                       <PaginationItem>
-                        <PaginationPrevious 
+                        <Button 
+                          variant="outline" 
+                          size="icon"
                           onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))} 
                           disabled={currentPage === 1}
-                        />
+                        >
+                          <ChevronLeftIcon className="h-4 w-4" />
+                        </Button>
                       </PaginationItem>
                       <PaginationItem>
                         <span className="px-4">
@@ -303,10 +307,14 @@ const StudentManagement: React.FC = () => {
                         </span>
                       </PaginationItem>
                       <PaginationItem>
-                        <PaginationNext 
+                        <Button 
+                          variant="outline" 
+                          size="icon"
                           onClick={() => setCurrentPage((prev) => Math.min(prev + 1, pageCount))}
                           disabled={currentPage >= pageCount}
-                        />
+                        >
+                          <ChevronRightIcon className="h-4 w-4" />
+                        </Button>
                       </PaginationItem>
                     </PaginationContent>
                   </Pagination>

@@ -46,13 +46,13 @@ const ReportChart = ({
         ]
       };
     }
-    else if (selectedChart === "sessions" && sessionsData?.chartData) {
+    else if (selectedChart === "sessions" && sessionsData && sessionsData.length > 0) {
       return {
-        labels: sessionsData.chartData.map(d => d.subject),
+        labels: sessionsData.map(d => d.date),
         datasets: [
           {
             label: 'Sessions',
-            data: sessionsData.chartData.map(d => d.count),
+            data: sessionsData.map(d => d.count),
             backgroundColor: [
               'rgba(255, 99, 132, 0.5)',
               'rgba(54, 162, 235, 0.5)',
@@ -72,13 +72,13 @@ const ReportChart = ({
         ]
       };
     }
-    else if (selectedChart === "students" && studentProgressData?.chartData) {
+    else if (selectedChart === "students" && studentProgressData && studentProgressData.length > 0) {
       return {
-        labels: studentProgressData.chartData.map(d => d.name),
+        labels: studentProgressData.map(d => d.studentName),
         datasets: [
           {
-            label: 'Students',
-            data: studentProgressData.chartData.map(d => d.value),
+            label: 'Completion %',
+            data: studentProgressData.map(d => d.completionPercentage),
             backgroundColor: [
               'rgba(255, 99, 132, 0.5)',
               'rgba(54, 162, 235, 0.5)',
