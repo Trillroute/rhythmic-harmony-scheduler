@@ -5,7 +5,11 @@ export type ReportPeriod =
   | 'this_week' 
   | 'this_month' 
   | 'last_month' 
-  | 'custom';
+  | 'custom'
+  | 'week'
+  | 'month'
+  | 'year'
+  | 'last30days';
 
 // Attendance report data structure
 export interface AttendanceData {

@@ -42,11 +42,11 @@ const AttendanceTracker = () => {
     status: statusFilter ? [statusFilter] : undefined
   });
   
-  const { updateSessionStatus, isPending } = useUpdateSessionStatus(['sessions']);
+  const updateSessionStatusMutation = useUpdateSessionStatus();
   
   const handleMarkAttendance = async (session: Session, status: AttendanceStatus) => {
     try {
-      await updateSessionStatus({
+      await updateSessionStatusMutation.mutateAsync({
         sessionId: session.id,
         newStatus: status
       });

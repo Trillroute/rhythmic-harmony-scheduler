@@ -64,13 +64,13 @@ export const usePacks = (studentId?: string) => {
       
       // Calculate expiry date based on pack size - 30 days per month
       const expiryDate = new Date(packData.purchasedDate);
-      if (packData.size === '4') {
+      if (packData.size === 4) {
         expiryDate.setDate(expiryDate.getDate() + 30); // 1 month
-      } else if (packData.size === '12') {
+      } else if (packData.size === 10) {
         expiryDate.setDate(expiryDate.getDate() + 90); // 3 months
-      } else if (packData.size === '24') {
+      } else if (packData.size === 20) {
         expiryDate.setDate(expiryDate.getDate() + 180); // 6 months
-      } else if (packData.size === '48') {
+      } else if (packData.size === 30) {
         expiryDate.setDate(expiryDate.getDate() + 365); // 1 year
       }
       
@@ -114,8 +114,11 @@ export const usePacks = (studentId?: string) => {
 };
 
 // For backwards compatibility
-export const useSessionPacks = usePacks;
-export const useCreateSessionPack = (options: any) => {
+export const useSessionPacks = (studentId?: string) => {
+  return usePacks(studentId);
+};
+
+export const useCreateSessionPack = () => {
   const { createPack } = usePacks();
   return { createPack };
 };

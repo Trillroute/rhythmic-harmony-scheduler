@@ -48,7 +48,7 @@ export function SessionPackSelector({ studentId, subject, onPackSelect, value }:
         <SelectContent>
           {availablePacks.map((pack: SessionPack) => (
             <SelectItem key={pack.id} value={pack.id}>
-              {pack.subject} ({pack.size}) - {pack.remaining_sessions} sessions left
+              {pack.subject} ({pack.session_type}) - {pack.remaining_sessions} sessions left
             </SelectItem>
           ))}
           {!packs.isLoading && availablePacks.length === 0 && (

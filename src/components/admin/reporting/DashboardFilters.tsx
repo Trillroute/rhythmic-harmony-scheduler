@@ -6,8 +6,9 @@ import { ReportPeriod } from "@/hooks/reports/types";
 import { CalendarIcon } from "lucide-react";
 import { format } from "date-fns";
 
+// Ensure this matches the React Day Picker DateRange type
 interface DateRange {
-  from?: Date;
+  from: Date;
   to?: Date;
 }
 
@@ -45,6 +46,7 @@ export function DashboardFilters({
             <SelectItem value="this_week">This Week</SelectItem>
             <SelectItem value="this_month">This Month</SelectItem>
             <SelectItem value="last_month">Last Month</SelectItem>
+            <SelectItem value="last30days">Last 30 Days</SelectItem>
             <SelectItem value="custom">Custom Range</SelectItem>
           </SelectContent>
         </Select>
@@ -56,14 +58,13 @@ export function DashboardFilters({
           onChange={handleDateRangeChange}
         />
       ) : (
-        dateRange && dateRange.from && dateRange.to && (
+        dateRange && dateRange.from && (
           <div className="flex items-center">
             <CalendarIcon className="mr-2 h-4 w-4 opacity-50" />
             <div className="grid gap-1">
               <div className="font-medium">
                 {format(dateRange.from, "MMMM d, yyyy")}
-                {" to "}
-                {format(dateRange.to, "MMMM d, yyyy")}
+                {dateRange.to && " to " + format(dateRange.to, "MMMM d, yyyy")}
               </div>
             </div>
           </div>

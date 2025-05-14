@@ -22,7 +22,21 @@ export function useReports() {
       return found ? Number(found.count) : 0;
     });
     
+    // Calculate totals
+    const present = counts[0] || 0;
+    const absent = counts[1] || 0;
+    const cancelledByStudent = counts[2] || 0;
+    const cancelledByTeacher = counts[3] || 0;
+    const noShow = counts[4] || 0;
+    const total = present + absent + cancelledByStudent + cancelledByTeacher + noShow;
+    const cancelled = cancelledByStudent + cancelledByTeacher;
+    
     return {
+      total,
+      present,
+      absent,
+      cancelled,
+      noShow,
       data: counts,
       categories: statuses
     };
@@ -41,8 +55,8 @@ export function useReports() {
     
     // Transform the data for the chart
     return data?.map(item => ({
-      name: item.subject,
-      value: Number(item.count)
+      subject: item.subject,
+      count: Number(item.count)
     })) || [];
   };
   
@@ -57,11 +71,28 @@ export function useReports() {
       
     if (error) throw error;
     
-    return data?.map(item => ({
-      type: item.session_type,
-      subject: item.subject,
-      count: Number(item.count)
-    })) || [];
+    // Group by session type
+    const sessionTypeMap = new Map<string, SessionTypeItem>();
+    
+    data?.forEach(item => {
+      const sessionType = item.session_type;
+      const subject = item.subject;
+      const count = Number(item.count);
+      
+      if (!sessionTypeMap.has(sessionType)) {
+        sessionTypeMap.set(sessionType, {
+          sessionType,
+          count: 0,
+          subjects: []
+        });
+      }
+      
+      const typeData = sessionTypeMap.get(sessionType)!;
+      typeData.count += count;
+      typeData.subjects!.push({ subject, count });
+    });
+    
+    return Array.from(sessionTypeMap.values());
   };
   
   const generateSessionsReport = async (period: ReportPeriod): Promise<SessionsReportData> => {
@@ -75,11 +106,11 @@ export function useReports() {
       
     if (error) throw error;
     
-    // Format months and counts for display
-    const months = data?.map(item => item.month_name) || [];
-    const counts = data?.map(item => Number(item.count)) || [];
-    
-    return { months, counts };
+    // Format dates and counts for display
+    return data?.map(item => ({
+      date: item.month_name, 
+      count: Number(item.count)
+    })) || [];
   };
   
   const generateStudentProgressReport = async (period: ReportPeriod): Promise<StudentProgressData> => {
@@ -96,9 +127,16 @@ export function useReports() {
     
     // Transform the data
     return data?.map(item => ({
-      student: item.student_name || 'Unknown Student',
-      progress: item.completion_percentage || 0,
-      id: item.student_id
+      student: {
+        id: item.student_id,
+        name: item.student_name || 'Unknown Student',
+      },
+      progress: {
+        id: item.id || '',
+        courseName: item.course_name || 'Unknown Course',
+        instrument: item.instrument || 'Unknown',
+        completionPercentage: item.completion_percentage || 0
+      }
     })) || [];
   };
 
