@@ -8,6 +8,8 @@ import './index.css';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ErrorBoundary } from './components/ErrorBoundary';
 
+console.log('Application initialization started');
+
 // Create a query client
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -39,9 +41,16 @@ window.addEventListener('unhandledrejection', (event) => {
 });
 
 const rootElement = document.getElementById('root');
-if (!rootElement) throw new Error('Root element not found');
+if (!rootElement) {
+  console.error('Root element not found');
+  throw new Error('Root element not found');
+}
 
+console.log('Creating React root');
 const root = createRoot(rootElement);
+
+// Main application render
+console.log('Rendering React application');
 root.render(
   <React.StrictMode>
     <ErrorBoundary fallback={
@@ -63,9 +72,12 @@ root.render(
       <BrowserRouter>
         <QueryClientProvider client={queryClient}>
           <App />
-          <Toaster />
+          {/* Remove this Toaster as it's already included in App.tsx */}
+          {/* <Toaster /> */}
         </QueryClientProvider>
       </BrowserRouter>
     </ErrorBoundary>
   </React.StrictMode>
 );
+
+console.log('Application rendering complete');

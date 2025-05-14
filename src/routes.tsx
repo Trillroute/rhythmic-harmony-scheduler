@@ -1,5 +1,5 @@
 
-import React, { Suspense } from 'react';
+import React, { Suspense, useEffect } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import NotFound from '@/pages/NotFound';
 import Index from '@/pages/Index';
@@ -10,42 +10,49 @@ import TeacherRoutes from './routes/teacherRoutes';
 import StudentRoutes from './routes/studentRoutes';
 import PublicRoutes from './routes/publicRoutes';
 import { ErrorBoundary } from './components/ErrorBoundary';
+import { toast } from '@/hooks/use-toast';
 
 // Loading fallback component
-const LoadingFallback = () => (
-  <div className="flex items-center justify-center min-h-screen">
-    <div className="flex flex-col items-center gap-4">
-      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
-      <p className="text-muted-foreground">Loading application...</p>
-    </div>
-  </div>
-);
-
-// Error fallback component
-const RouterErrorFallback = () => (
-  <div className="flex items-center justify-center min-h-screen p-4">
-    <div className="max-w-md w-full bg-card border border-border p-6 rounded-lg shadow-lg">
-      <h2 className="text-xl font-bold text-destructive mb-4">Navigation Error</h2>
-      <p className="text-muted-foreground mb-6">
-        There was a problem loading this route. This could be due to a temporary issue or invalid route configuration.
-      </p>
-      <div className="flex flex-col gap-2">
-        <button
-          onClick={() => window.location.reload()}
-          className="w-full px-4 py-2 bg-primary text-white rounded hover:bg-primary/90"
-        >
-          Reload Page
-        </button>
-        <button
-          onClick={() => window.location.href = '/'}
-          className="w-full px-4 py-2 bg-secondary text-secondary-foreground rounded hover:bg-secondary/90"
-        >
-          Go to Homepage
-        </button>
+const LoadingFallback = () => {
+  console.log('Rendering LoadingFallback');
+  return (
+    <div className="flex items-center justify-center min-h-screen">
+      <div className="flex flex-col items-center gap-4">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+        <p className="text-muted-foreground">Loading application...</p>
       </div>
     </div>
-  </div>
-);
+  );
+};
+
+// Error fallback component
+const RouterErrorFallback = () => {
+  console.log('Rendering RouterErrorFallback');
+  return (
+    <div className="flex items-center justify-center min-h-screen p-4">
+      <div className="max-w-md w-full bg-card border border-border p-6 rounded-lg shadow-lg">
+        <h2 className="text-xl font-bold text-destructive mb-4">Navigation Error</h2>
+        <p className="text-muted-foreground mb-6">
+          There was a problem loading this route. This could be due to a temporary issue or invalid route configuration.
+        </p>
+        <div className="flex flex-col gap-2">
+          <button
+            onClick={() => window.location.reload()}
+            className="w-full px-4 py-2 bg-primary text-white rounded hover:bg-primary/90"
+          >
+            Reload Page
+          </button>
+          <button
+            onClick={() => window.location.href = '/'}
+            className="w-full px-4 py-2 bg-secondary text-secondary-foreground rounded hover:bg-secondary/90"
+          >
+            Go to Homepage
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
 
 // Role-based redirect component
 const RoleBasedRedirect: React.FC = () => {
@@ -68,13 +75,43 @@ const RoleBasedRedirect: React.FC = () => {
   }
 };
 
+// Simple fallback for debugging
+const DiagnosticComponent = () => {
+  console.log('Rendering DiagnosticComponent');
+  
+  useEffect(() => {
+    toast({
+      title: 'Diagnostic Toast',
+      description: 'This toast confirms the toast system is working'
+    });
+  }, []);
+  
+  return (
+    <div className="p-8 bg-green-100 m-8 rounded">
+      <h1 className="text-2xl font-bold">Diagnostic Page</h1>
+      <p>If you see this, the router is working but no specific route matched.</p>
+    </div>
+  );
+};
+
 // Use Routes directly instead of createBrowserRouter
 export default function Router() {
   const { user, userRole, isLoading } = useAuth();
   
-  console.log('Router: user =', user?.id, 'role =', userRole, 'isLoading =', isLoading);
-
+  useEffect(() => {
+    console.log('Router mounted', { 
+      userId: user?.id, 
+      role: userRole, 
+      loading: isLoading,
+      pathname: window.location.pathname
+    });
+  }, [user, userRole, isLoading]);
+  
+  // TEMPORARY DIAGNOSTIC RENDERING - Uncomment to test if Router renders
+  // return <DiagnosticComponent />;
+  
   if (isLoading) {
+    console.log('Router is showing LoadingFallback because isLoading=true');
     return <LoadingFallback />;
   }
   
@@ -82,6 +119,9 @@ export default function Router() {
     <ErrorBoundary fallback={<RouterErrorFallback />}>
       <Suspense fallback={<LoadingFallback />}>
         <Routes>
+          {/* Debug route - uncomment to test routing */}
+          {/* <Route path="/debug" element={<DiagnosticComponent />} /> */}
+          
           {/* Public routes */}
           <PublicRoutes />
           
