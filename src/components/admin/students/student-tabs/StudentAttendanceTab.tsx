@@ -22,7 +22,7 @@ interface StudentAttendanceTabProps {
 
 export function StudentAttendanceTab({ studentId }: StudentAttendanceTabProps) {
   const { 
-    sessions, 
+    data: sessionData, 
     isLoading, 
     error 
   } = useSessionsByStudent(studentId);
@@ -39,7 +39,7 @@ export function StudentAttendanceTab({ studentId }: StudentAttendanceTabProps) {
 
   // Calculate attendance statistics
   const calculateStats = () => {
-    if (!sessions || sessions.data?.length === 0) {
+    if (!sessionData || !sessionData.data || sessionData.data.length === 0) {
       return {
         total: 0,
         present: 0,
@@ -49,7 +49,7 @@ export function StudentAttendanceTab({ studentId }: StudentAttendanceTabProps) {
       };
     }
 
-    const sessionsData = sessions.data || [];
+    const sessionsData = sessionData.data || [];
     
     const total = sessionsData.length;
     const present = sessionsData.filter(s => s.status === 'Present').length;
@@ -122,7 +122,7 @@ export function StudentAttendanceTab({ studentId }: StudentAttendanceTabProps) {
             <div className="text-center py-8 text-destructive">
               Error loading attendance data
             </div>
-          ) : !sessions || !sessions.data || sessions.data.length === 0 ? (
+          ) : !sessionData || !sessionData.data || sessionData.data.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
               No attendance records found for this student
             </div>
@@ -141,7 +141,7 @@ export function StudentAttendanceTab({ studentId }: StudentAttendanceTabProps) {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {sessions.data.map((session) => (
+                  {sessionData.data.map((session) => (
                     <TableRow key={session.id}>
                       <TableCell>
                         <div className="flex items-center">
@@ -161,7 +161,7 @@ export function StudentAttendanceTab({ studentId }: StudentAttendanceTabProps) {
                       </TableCell>
                       <TableCell>{session.teacherName || "Unknown"}</TableCell>
                       <TableCell>
-                        <SessionStatusBadge status={session.status as AttendanceStatus} />
+                        <SessionStatusBadge status={String(session.status) as any} />
                       </TableCell>
                       <TableCell>
                         <div className="flex items-center">

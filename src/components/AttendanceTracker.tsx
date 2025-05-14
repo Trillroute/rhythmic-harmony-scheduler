@@ -78,7 +78,8 @@ const AttendanceTracker = () => {
     );
   }
   
-  const sessions = data || [];
+  // Extract sessions from the result properly
+  const sessions = data ? (Array.isArray(data) ? data : data.data || []) : [];
 
   return (
     <ErrorBoundary>
@@ -121,7 +122,7 @@ const AttendanceTracker = () => {
               <div className="flex justify-center items-center py-8">
                 <LoaderIcon className="h-8 w-8 animate-spin text-primary" />
               </div>
-            ) : sessions && sessions.length > 0 ? (
+            ) : sessions.length > 0 ? (
               <div className="border rounded-md">
                 <Table>
                   <TableHeader>
@@ -179,7 +180,7 @@ const AttendanceTracker = () => {
                                 variant="outline"
                                 size="sm"
                                 onClick={() => handleMarkAttendance(session, 'Present')}
-                                disabled={isPending}
+                                disabled={updateSessionStatusMutation.isPending}
                               >
                                 <CheckIcon className="h-4 w-4 mr-1" />
                                 Present
@@ -188,7 +189,7 @@ const AttendanceTracker = () => {
                                 variant="outline"
                                 size="sm"
                                 onClick={() => handleMarkAttendance(session, 'Absent')}
-                                disabled={isPending}
+                                disabled={updateSessionStatusMutation.isPending}
                               >
                                 <XIcon className="h-4 w-4 mr-1" />
                                 Absent

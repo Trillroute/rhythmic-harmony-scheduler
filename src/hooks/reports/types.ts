@@ -20,16 +20,18 @@ export interface AttendanceData {
   noShow: number;
   categories: string[];
   data: number[];
-  distribution?: any[]; // Added to match usage
-  chartData?: any[];    // Added to match usage
+  // Additional properties for backward compatibility
+  distribution?: { status: string; count: number }[];
+  chartData?: { date: string; present: number; total: number }[];
 }
 
 // Subject distribution data structure
 export interface SubjectDistributionItem {
   subject: string;
   count: number;
-  name?: string; // Added to match usage in utils.ts
-  value?: number; // Added to match usage in utils.ts
+  // Additional properties for backward compatibility
+  name?: string;
+  value?: number;
 }
 
 export type SubjectDistributionData = SubjectDistributionItem[];
@@ -44,22 +46,20 @@ export interface SessionTypeItem {
   sessionType: string;
   count: number;
   subjects?: SessionTypeSubject[];
-  type?: string; // Added to match usage in utils.ts and session-type-report.ts
+  // For backward compatibility
+  type?: string;
 }
 
 export type SessionTypeData = SessionTypeItem[];
 
 // Sessions over time data structure
-export interface SessionsTimeItem {
-  date: string;
-  count: number;
-}
-
 export interface SessionsReportData {
-  months?: string[]; // Added to match usage
-  counts?: number[]; // Added to match usage
-  date?: string;     // Added for compatibility
-  count?: number;    // Added for compatibility
+  // Original properties
+  months?: string[];
+  counts?: number[];
+  // For backward compatibility with items array
+  date?: string;
+  count?: number;
 }
 
 // Student progress data structure
@@ -74,11 +74,12 @@ export interface StudentProgressItem {
     instrument: string;
     completionPercentage: number;
   };
-  // Added to match usage in utils.ts and student-progress-report.ts
+  // For backward compatibility
   id?: string;
   courseName?: string;
   instrument?: string;
   completionPercentage?: number;
+  studentName?: string;
 }
 
 export type StudentProgressData = StudentProgressItem[];

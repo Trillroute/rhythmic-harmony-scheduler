@@ -6,7 +6,10 @@ import {
   SessionTypeData, 
   SessionsReportData, 
   StudentProgressData,
-  ReportPeriod
+  ReportPeriod,
+  SubjectDistributionItem,
+  SessionTypeItem,
+  StudentProgressItem
 } from './types';
 
 /**
@@ -45,6 +48,10 @@ export const generateAttendanceReport = (sessions: any[]): AttendanceData => {
     present: data.present,
     total: data.total
   }));
+
+  // Prepare categories and data for chart display
+  const categories = ['Present', 'Absent', 'Cancelled', 'No Show'];
+  const data = [present, absent, cancelled, noShow];
   
   return {
     total,
@@ -52,6 +59,8 @@ export const generateAttendanceReport = (sessions: any[]): AttendanceData => {
     absent,
     cancelled,
     noShow,
+    categories,
+    data,
     distribution,
     chartData
   };
@@ -68,7 +77,12 @@ export const generateSubjectDistributionReport = (sessions: any[]): SubjectDistr
     subjectCounts.set(subject, (subjectCounts.get(subject) || 0) + 1);
   });
   
-  return Array.from(subjectCounts).map(([name, value]) => ({ name, value }));
+  return Array.from(subjectCounts).map(([subject, count]) => ({
+    subject,
+    count,
+    name: subject, // For backward compatibility
+    value: count   // For backward compatibility
+  }));
 };
 
 /**
@@ -80,13 +94,19 @@ export const generateSessionTypeReport = (sessions: any[]): SessionTypeData => {
   sessions.forEach(session => {
     const key = `${session.session_type}-${session.subject}`;
     typeCounts.set(key, {
-      type: session.session_type,
+      sessionType: session.session_type,
+      type: session.session_type, // For backward compatibility
       subject: session.subject,
       count: (typeCounts.get(key)?.count || 0) + 1
     });
   });
   
-  return Array.from(typeCounts.values());
+  return Array.from(typeCounts.values()).map(item => ({
+    sessionType: item.sessionType,
+    type: item.type, // For backward compatibility
+    count: item.count,
+    subjects: [{subject: item.subject, count: item.count}]
+  }));
 };
 
 /**
@@ -125,7 +145,13 @@ export const generateSessionsReport = (sessions: any[], startDate: Date, endDate
     return { date: formattedDate, count };
   });
   
-  return result.sort((a, b) => a.date.localeCompare(b.date));
+  const sortedResult = result.sort((a, b) => a.date.localeCompare(b.date));
+  
+  // Create months and counts arrays for backward compatibility
+  const months = sortedResult.map(item => item.date);
+  const counts = sortedResult.map(item => item.count);
+  
+  return { months, counts };
 };
 
 /**
@@ -134,6 +160,17 @@ export const generateSessionsReport = (sessions: any[], startDate: Date, endDate
 export const generateStudentProgressReport = (progressData: any[]): StudentProgressData => {
   return progressData.map(item => {
     return {
+      student: {
+        id: item.id || item.enrollment?.profiles?.id || 'unknown',
+        name: item.enrollment?.profiles?.name || 'Unknown Student'
+      },
+      progress: {
+        id: item.id || 'unknown',
+        courseName: item.enrollment?.courses?.name || 'Unknown Course',
+        instrument: item.enrollment?.courses?.instrument || 'Unknown',
+        completionPercentage: item.completion_percentage || 0
+      },
+      // For backward compatibility
       id: item.id,
       studentName: item.enrollment?.profiles?.name || 'Unknown Student',
       courseName: item.enrollment?.courses?.name || 'Unknown Course',
@@ -155,6 +192,8 @@ export const fetchAttendanceData = async (period: ReportPeriod): Promise<Attenda
       absent: 15,
       cancelled: 10,
       noShow: 0,
+      categories: ['Present', 'Absent', 'Cancelled', 'No Show'],
+      data: [75, 15, 10, 0],
       distribution: [
         { status: 'Present', count: 75 },
         { status: 'Absent', count: 15 },
@@ -179,11 +218,11 @@ export const fetchSubjectDistributionData = async (period: ReportPeriod): Promis
   try {
     // Return data in the correct format
     return [
-      { name: 'Guitar', value: 40 },
-      { name: 'Piano', value: 35 },
-      { name: 'Drums', value: 15 },
-      { name: 'Vocal', value: 8 },
-      { name: 'Ukulele', value: 2 }
+      { subject: 'Guitar', count: 40, name: 'Guitar', value: 40 },
+      { subject: 'Piano', count: 35, name: 'Piano', value: 35 },
+      { subject: 'Drums', count: 15, name: 'Drums', value: 15 },
+      { subject: 'Vocal', count: 8, name: 'Vocal', value: 8 },
+      { subject: 'Ukulele', count: 2, name: 'Ukulele', value: 2 }
     ];
   } catch (error) {
     console.error('Error fetching subject distribution data:', error);
@@ -198,9 +237,9 @@ export const fetchSessionTypeData = async (period: ReportPeriod): Promise<Sessio
   try {
     // Return data in the correct format
     return [
-      { type: 'Solo', subject: 'Guitar', count: 30 },
-      { type: 'Duo', subject: 'Piano', count: 15 },
-      { type: 'Focus', subject: 'Drums', count: 10 }
+      { sessionType: 'Solo', type: 'Solo', count: 30, subjects: [{ subject: 'Guitar', count: 30 }] },
+      { sessionType: 'Duo', type: 'Duo', count: 15, subjects: [{ subject: 'Piano', count: 15 }] },
+      { sessionType: 'Focus', type: 'Focus', count: 10, subjects: [{ subject: 'Drums', count: 10 }] }
     ];
   } catch (error) {
     console.error('Error fetching session type data:', error);
@@ -213,15 +252,14 @@ export const fetchSessionTypeData = async (period: ReportPeriod): Promise<Sessio
  */
 export const fetchSessionsOverTimeData = async (period: ReportPeriod): Promise<SessionsReportData> => {
   try {
-    // Return data in the correct format
-    return [
-      { date: 'Jan', count: 65 },
-      { date: 'Feb', count: 59 },
-      { date: 'Mar', count: 80 },
-      { date: 'Apr', count: 81 },
-      { date: 'May', count: 56 },
-      { date: 'Jun', count: 55 }
-    ];
+    // Generate data with months and counts arrays
+    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'];
+    const countValues = [65, 59, 80, 81, 56, 55];
+    
+    return {
+      months: monthNames,
+      counts: countValues
+    };
   } catch (error) {
     console.error('Error fetching sessions over time data:', error);
     throw error;
@@ -236,39 +274,49 @@ export const fetchStudentProgressData = async (period: ReportPeriod): Promise<St
     // Return data in the correct format
     return [
       { 
-        id: '1', 
-        studentName: 'Alice Johnson', 
-        courseName: 'Piano Basics', 
-        instrument: 'Piano', 
-        completionPercentage: 80 
+        student: { id: '1', name: 'Alice Johnson' },
+        progress: { id: '1', courseName: 'Piano Basics', instrument: 'Piano', completionPercentage: 80 },
+        id: '1',
+        studentName: 'Alice Johnson',
+        courseName: 'Piano Basics',
+        instrument: 'Piano',
+        completionPercentage: 80
       },
       { 
-        id: '2', 
-        studentName: 'Bob Smith', 
-        courseName: 'Guitar Fundamentals', 
-        instrument: 'Guitar', 
-        completionPercentage: 60 
+        student: { id: '2', name: 'Bob Smith' },
+        progress: { id: '2', courseName: 'Guitar Fundamentals', instrument: 'Guitar', completionPercentage: 60 },
+        id: '2',
+        studentName: 'Bob Smith',
+        courseName: 'Guitar Fundamentals',
+        instrument: 'Guitar',
+        completionPercentage: 60
       },
       { 
-        id: '3', 
-        studentName: 'Charlie Brown', 
-        courseName: 'Drum Introduction', 
-        instrument: 'Drums', 
-        completionPercentage: 50 
+        student: { id: '3', name: 'Charlie Brown' },
+        progress: { id: '3', courseName: 'Drum Introduction', instrument: 'Drums', completionPercentage: 50 },
+        id: '3',
+        studentName: 'Charlie Brown',
+        courseName: 'Drum Introduction',
+        instrument: 'Drums',
+        completionPercentage: 50
       },
       { 
-        id: '4', 
-        studentName: 'Diana White', 
-        courseName: 'Vocal Training', 
-        instrument: 'Vocal', 
-        completionPercentage: 40 
+        student: { id: '4', name: 'Diana White' },
+        progress: { id: '4', courseName: 'Vocal Training', instrument: 'Vocal', completionPercentage: 40 },
+        id: '4',
+        studentName: 'Diana White',
+        courseName: 'Vocal Training',
+        instrument: 'Vocal',
+        completionPercentage: 40
       },
       { 
-        id: '5', 
-        studentName: 'Ethan Miller', 
-        courseName: 'Ukulele Basics', 
-        instrument: 'Ukulele', 
-        completionPercentage: 30 
+        student: { id: '5', name: 'Ethan Miller' },
+        progress: { id: '5', courseName: 'Ukulele Basics', instrument: 'Ukulele', completionPercentage: 30 },
+        id: '5',
+        studentName: 'Ethan Miller',
+        courseName: 'Ukulele Basics',
+        instrument: 'Ukulele',
+        completionPercentage: 30
       }
     ];
   } catch (error) {

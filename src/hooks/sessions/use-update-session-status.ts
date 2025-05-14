@@ -18,7 +18,7 @@ export const useUpdateSessionStatus = () => {
       // Update the session status
       const { data, error } = await supabase
         .from("sessions")
-        .update({ status: newStatus, notes: notes })
+        .update({ status: String(newStatus), notes: notes })
         .eq("id", sessionId)
         .select()
         .single();
@@ -30,14 +30,12 @@ export const useUpdateSessionStatus = () => {
       // Log the attendance event
       const { error: attendanceError } = await supabase
         .from("attendance_events")
-        .insert([
-          {
-            session_id: sessionId,
-            status: newStatus,
-            marked_by_user_id: (await supabase.auth.getUser()).data.user?.id,
-            notes: notes || `Status updated to ${newStatus}`,
-          },
-        ]);
+        .insert({
+          session_id: sessionId,
+          status: String(newStatus),
+          marked_by_user_id: (await supabase.auth.getUser()).data.user?.id,
+          notes: notes || `Status updated to ${newStatus}`,
+        });
 
       if (attendanceError) {
         console.error("Error recording attendance event:", attendanceError);

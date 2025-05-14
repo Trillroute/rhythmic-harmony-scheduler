@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { transformSessionsResult } from "./session-transformers";
 import { SessionWithStudents } from "./types";
-import { AttendanceStatus } from "@/lib/types";
+import { AttendanceStatus, SubjectType } from "@/lib/types";
 import { assertAttendanceStatusArray } from "@/lib/type-utils";
 
 interface UseFetchSessionsOptions {
@@ -68,15 +68,18 @@ export const useFetchSessions = (options: UseFetchSessionsOptions = {}) => {
 
       if (status) {
         if (Array.isArray(status)) {
-          // Use the assertAttendanceStatusArray helper to ensure types match
-          query = query.in("status", assertAttendanceStatusArray(status));
+          if (status.length > 0) {
+            // Convert status array to string array for database query
+            const statusValues = status.map(s => String(s));
+            query = query.in("status", statusValues);
+          }
         } else {
-          query = query.eq("status", status);
+          query = query.eq("status", String(status));
         }
       }
 
       if (subject) {
-        query = query.eq("subject", subject);
+        query = query.eq("subject", String(subject));
       }
 
       const { data, error } = await query;
@@ -86,7 +89,7 @@ export const useFetchSessions = (options: UseFetchSessionsOptions = {}) => {
       }
 
       // Transform nested data structure into flat sessions with students
-      return { data: transformSessionsResult(data) };
+      return transformSessionsResult(data || []);
     },
     enabled,
   });

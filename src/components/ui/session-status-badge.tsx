@@ -2,12 +2,9 @@
 import React from 'react';
 import { Badge } from '@/components/ui/badge';
 
-// Define the AttendanceStatus type if it doesn't exist in types.ts
-type AttendanceStatus = 'Present' | 'Scheduled' | 'Cancelled by Student' | 
-                         'Cancelled by Teacher' | 'Cancelled by School' | 'No Show';
-
+// Define the component to accept any string status
 interface SessionStatusBadgeProps {
-  status: AttendanceStatus;
+  status: string;
   className?: string;
 }
 
@@ -27,6 +24,7 @@ export function SessionStatusBadge({ status, className }: SessionStatusBadgeProp
       variant = 'destructive';
       break;
     case 'No Show':
+    case 'Absent':
       variant = 'secondary';
       break;
   }

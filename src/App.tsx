@@ -3,7 +3,7 @@ import React, { Suspense } from 'react';
 import { AuthProvider } from '@/contexts/AuthContext';
 import { Toaster } from '@/components/ui/toaster';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
-import Router from './routes';
+import RouterComponent from './routes';
 
 // Main App component
 function App() {
@@ -11,7 +11,7 @@ function App() {
     <ErrorBoundary componentName="Root Application">
       <AuthProvider>
         <Suspense fallback={<AppLoading />}>
-          <Router />
+          <RouterComponent />
           <Toaster />
         </Suspense>
       </AuthProvider>

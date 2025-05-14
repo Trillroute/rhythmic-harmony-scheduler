@@ -1,56 +1,42 @@
 
-import { Session } from "@/lib/types";
+import { AttendanceStatus, LocationType, SessionType, SubjectType } from "@/lib/types";
 import { SessionResult, SessionWithStudents } from "./types";
 
 /**
- * Maps the raw result from Supabase into a proper Session object
+ * Transform session result from API to our internal format
  */
-export const mapToSession = (result: any): Session => {
-  return {
-    id: result.id,
-    teacherId: result.teacher_id,
-    packId: result.pack_id,
-    subject: result.subject,
-    sessionType: result.session_type,
-    location: result.location,
-    dateTime: result.date_time,
-    duration: result.duration,
-    notes: result.notes || "",
-    status: result.status,
-    recurrenceRule: result.recurrence_rule || "",
-    originalSessionId: result.original_session_id || null,
-    rescheduledFrom: result.rescheduled_from || null,
-    createdAt: result.created_at,
-    updatedAt: result.updated_at,
-    rescheduleCount: result.reschedule_count || 0,
-    studentIds: [],  // Will be populated separately
-  };
-};
+export const transformSessionsResult = (sessions: any[]): SessionWithStudents[] => {
+  if (!sessions || !Array.isArray(sessions)) return [];
 
-/**
- * Maps the raw result including joined teacher and students
- */
-export const mapToSessionWithStudents = (result: any): SessionWithStudents => {
-  const session = mapToSession(result);
-  
-  // Map teacher name
-  const teacherName = result.teacher?.name || "Unknown";
-  
-  // Map student information
-  const students = result.students || [];
-  
-  return {
-    ...session,
-    teacherName,
-    studentIds: students.map((s: any) => s.student.id),
-    studentNames: students.map((s: any) => s.student.name || "Unknown Student"),
-    students: students.map((s: any) => s.student)
-  } as unknown as SessionWithStudents;
-};
+  return sessions.map((session) => {
+    // Extract student details from the nested structure
+    const students = session.students || [];
+    const studentIds = students.map((s: any) => s.student?.id || '').filter(Boolean);
+    const studentNames = students.map((s: any) => s.student?.name || '').filter(Boolean);
+    
+    // Get teacher name
+    const teacherName = session.teacher?.name || "Unknown Teacher";
 
-/**
- * Transforms the DB result with nested objects into an array of SessionWithStudents
- */
-export const transformSessionsResult = (result: SessionResult[]): SessionWithStudents[] => {
-  return result.map(mapToSessionWithStudents);
+    return {
+      id: session.id,
+      teacherId: session.teacher_id,
+      teacherName,
+      packId: session.pack_id,
+      subject: session.subject as SubjectType,
+      sessionType: session.session_type as SessionType,
+      location: session.location as LocationType,
+      dateTime: session.date_time,
+      duration: session.duration,
+      status: session.status as AttendanceStatus,
+      notes: session.notes || '',
+      rescheduleCount: session.reschedule_count || 0,
+      studentIds,
+      studentNames,
+      createdAt: session.created_at,
+      updatedAt: session.updated_at,
+      recurrenceRule: session.recurrence_rule,
+      originalSessionId: session.original_session_id,
+      rescheduledFrom: session.rescheduled_from,
+    };
+  });
 };

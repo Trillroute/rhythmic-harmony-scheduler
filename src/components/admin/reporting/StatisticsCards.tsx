@@ -39,7 +39,7 @@ export function StatisticsCards({
   }
 
   // Calculate total sessions
-  const totalSessions = sessionsOverTime?.reduce((sum, item) => sum + item.count, 0) || 0;
+  const totalSessions = sessionsOverTime?.counts?.reduce((sum, count) => sum + count, 0) || 0;
 
   // Get most popular subject
   let popularSubject = "N/A";
