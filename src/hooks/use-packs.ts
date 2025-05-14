@@ -73,7 +73,7 @@ export const useUpdateSessionPack = () => {
       const { id, ...packData } = pack;
       
       // Transform frontend data to database format
-      const dbData: any = {
+      const dbData: Record<string, any> = {
         ...(packData.studentId && { student_id: packData.studentId }),
         ...(packData.size && { size: packData.size.toString() }),
         ...(packData.subject && { subject: packData.subject.toString() }),
@@ -136,7 +136,7 @@ export const useCreateSessionPack = () => {
         
         const { data, error } = await supabase
           .from("session_packs")
-          .insert(formattedPack)
+          .insert([formattedPack])
           .select();
         
         if (error) throw error;

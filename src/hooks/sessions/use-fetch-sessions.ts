@@ -37,6 +37,7 @@ export const useFetchSessions = (
     }
 
     if (filters.subject) {
+      // Convert to string for Supabase query
       query = query.eq("subject", filters.subject.toString());
     }
 
@@ -47,15 +48,18 @@ export const useFetchSessions = (
     }
 
     if (filters.sessionType) {
+      // Convert to string for Supabase query
       query = query.eq("session_type", filters.sessionType.toString());
     }
 
     if (filters.sessionTypes && filters.sessionTypes.length > 0) {
+      // Cast to string array for Supabase query
       const sessionTypeStrings = filters.sessionTypes.map(s => s.toString());
       query = query.in("session_type", sessionTypeStrings);
     }
 
     if (filters.location) {
+      // Convert to string for Supabase query
       query = query.eq("location", filters.location.toString());
     }
 
@@ -65,6 +69,7 @@ export const useFetchSessions = (
         const statusStrings = filters.status.map(s => s.toString());
         query = query.in("status", statusStrings);
       } else {
+        // Convert to string for Supabase query
         query = query.eq("status", filters.status.toString());
       }
     }
@@ -75,6 +80,7 @@ export const useFetchSessions = (
     const { data, error } = await query;
 
     if (error) {
+      console.error("Error fetching sessions:", error);
       throw new Error(error.message);
     }
 

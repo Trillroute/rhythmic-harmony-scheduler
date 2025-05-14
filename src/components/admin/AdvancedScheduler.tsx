@@ -1,6 +1,7 @@
 
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import SessionScheduler from '@/components/SessionScheduler';
 
 const AdvancedScheduler: React.FC = () => {
   return (
@@ -11,10 +12,10 @@ const AdvancedScheduler: React.FC = () => {
       
       <Card>
         <CardHeader>
-          <CardTitle>Advanced Scheduling</CardTitle>
+          <CardTitle>Schedule Sessions</CardTitle>
         </CardHeader>
         <CardContent>
-          <p>Advanced scheduling interface will be implemented here.</p>
+          <SessionScheduler />
         </CardContent>
       </Card>
     </div>

@@ -3,13 +3,10 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useCreateSessions } from "./sessions/use-create-sessions";
 import { useFetchSessions } from "./sessions/use-fetch-sessions";
 import { useUpdateSession } from "./sessions/use-update-session";
-import { SessionsProps, SessionWithStudents } from "./sessions/types";
-
-// Re-export types for backward compatibility
-export type { SessionWithStudents } from "./sessions/types";
+import { FilterOptions } from "@/lib/types";
 
 // Main hook that composes all session functionality
-export const useSessions = (props: SessionsProps = {}) => {
+export const useSessions = (props: FilterOptions = {}) => {
   const queryClient = useQueryClient();
   const queryKey = ["sessions", props];
   

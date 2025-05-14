@@ -22,14 +22,14 @@ export const useSessionTypeReport = (filters?: ReportPeriod) => {
     
     // Apply subject filter if provided
     if (filters?.subjects && filters.subjects.length > 0) {
-      // Use properly typed array for Supabase query
+      // Convert to string array for query
       const subjectStrings = filters.subjects.map(s => s.toString());
       query = query.in('subject', subjectStrings);
     }
     
     // Apply status filter if provided
     if (filters?.status && filters.status.length > 0) {
-      // Use properly typed array for Supabase query
+      // Convert to string array for query
       const statusStrings = filters.status.map(s => s.toString());
       query = query.in('status', statusStrings);
     }

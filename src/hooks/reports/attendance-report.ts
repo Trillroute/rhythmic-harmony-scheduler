@@ -37,14 +37,14 @@ export const useAttendanceReport = (period: 'week' | 'month' | 'quarter' = 'mont
     
     // Apply subject filter if provided  
     if (filters?.subjects && filters.subjects.length > 0) {
-      // Use properly typed array for Supabase query
+      // Convert to string array for query and assert types afterward
       const subjectStrings = filters.subjects.map(s => s.toString());
       query = query.in('subject', subjectStrings);
     }
     
     // Apply status filter if provided
     if (filters?.status && filters.status.length > 0) {
-      // Use properly typed array for Supabase query
+      // Convert to string array for query and assert types afterward
       const statusStrings = filters.status.map(s => s.toString());
       query = query.in('status', statusStrings);
     }
