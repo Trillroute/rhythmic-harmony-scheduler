@@ -1,52 +1,55 @@
 
 import React from "react";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
-interface MetricProps {
+export interface MetricProps {
   title: string;
   value: string | number;
   description?: string;
   icon?: React.ReactNode;
-  variant?: "default" | "success" | "destructive" | "warning";
   trend?: "up" | "down" | "neutral";
+  trendValue?: string;
   className?: string;
 }
 
-export const Metric: React.FC<MetricProps> = ({
+export function Metric({
   title,
   value,
   description,
   icon,
-  variant = "default",
-  trend = "neutral",
-  className = "",
-}) => {
-  const variantClasses = {
-    default: "bg-card text-card-foreground",
-    success: "bg-green-50 text-green-700",
-    destructive: "bg-red-50 text-red-700",
-    warning: "bg-yellow-50 text-yellow-700"
-  };
-
-  const trendClasses = {
-    up: "text-green-600",
-    down: "text-red-600",
-    neutral: "text-muted-foreground"
-  };
-
+  trend,
+  trendValue,
+  className,
+}: MetricProps) {
   return (
-    <div className={`rounded-lg p-4 ${variantClasses[variant]} ${className}`}>
-      <div className="flex items-center justify-between">
-        <p className="text-sm font-medium">{title}</p>
-        {icon && <div className="text-muted-foreground">{icon}</div>}
-      </div>
-      <div className="mt-2">
-        <p className="text-2xl font-bold">{value}</p>
+    <Card className={className}>
+      <CardHeader className="flex flex-row items-center justify-between pb-2">
+        <CardTitle className="text-sm font-medium">{title}</CardTitle>
+        {icon && <div className="text-muted-foreground h-4 w-4">{icon}</div>}
+      </CardHeader>
+      <CardContent>
+        <div className="text-2xl font-bold">{value}</div>
         {description && (
-          <p className={`text-xs mt-1 ${trendClasses[trend]}`}>{description}</p>
+          <p className="text-xs text-muted-foreground">{description}</p>
         )}
-      </div>
-    </div>
+        {trend && trendValue && (
+          <div className="flex items-center pt-2">
+            <span
+              className={`text-xs font-medium ${
+                trend === "up"
+                  ? "text-green-500"
+                  : trend === "down"
+                  ? "text-red-500"
+                  : "text-gray-500"
+              }`}
+            >
+              {trend === "up" && "↑ "}
+              {trend === "down" && "↓ "}
+              {trendValue}
+            </span>
+          </div>
+        )}
+      </CardContent>
+    </Card>
   );
-};
-
-export default Metric;
+}

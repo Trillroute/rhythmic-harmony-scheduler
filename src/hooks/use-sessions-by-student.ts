@@ -1,101 +1,91 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { AttendanceStatus, SessionWithStudents } from "@/lib/types";
-import { transformSessionWithStudents } from "./sessions/session-transformers";
+import { AttendanceStatus, Session } from "@/lib/types";
+import { SessionWithStudents } from "./sessions/types";
 
-interface Filters {
-  studentId?: string;
-  dateRange?: { from: string; to: string };
-  status?: AttendanceStatus;
+export interface UseSessionsByStudentOptions {
+  status?: AttendanceStatus | AttendanceStatus[];
+  startDate?: Date;
+  endDate?: Date;
+  enabled?: boolean;
 }
 
-export const useSessionsByStudent = (studentId?: string, filters: Omit<Filters, 'studentId'> = {}) => {
-  const fetchSessions = async () => {
-    if (!studentId) {
-      return [];
-    }
-    
-    try {
+export const useSessionsByStudent = (
+  studentId: string,
+  options: UseSessionsByStudentOptions = {}
+) => {
+  // Destructure options with defaults
+  const { status, startDate, endDate, enabled = true } = options;
+
+  return useQuery({
+    queryKey: ["student-sessions", studentId, status, startDate, endDate],
+    queryFn: async () => {
+      if (!studentId) {
+        return { data: [] };
+      }
+
+      // Base query to get all sessions for this student
       let query = supabase
-        .from('sessions')
-        .select(`
+        .from("sessions")
+        .select(
+          `
           *,
-          profiles:teacher_id(*)
-        `);
-      
-      // Get session IDs for the student
-      const { data: sessionStudentsData, error: sessionStudentsError } = await supabase
-        .from('session_students')
-        .select('session_id')
-        .eq('student_id', studentId);
-        
-      if (sessionStudentsError) {
-        throw sessionStudentsError;
-      }
-      
-      if (!sessionStudentsData || sessionStudentsData.length === 0) {
-        return [];
-      }
-      
-      // Extract session IDs
-      const sessionIds = sessionStudentsData.map(item => item.session_id);
-      
-      // Filter sessions by these IDs
-      query = query.in('id', sessionIds);
+          teacher:teacher_id(
+            id,
+            name:profiles!teachers_id_fkey(name)
+          )
+        `
+        )
+        .order("date_time", { ascending: false });
 
-      // Add filters
-      if (filters.dateRange) {
-        query = query.gte('date_time', filters.dateRange.from);
-        query = query.lte('date_time', filters.dateRange.to);
+      // Join with session_students to find sessions for this student
+      query = query.filter("session_students.student_id", "eq", studentId);
+
+      // Filter by status if provided
+      if (status) {
+        if (Array.isArray(status)) {
+          query = query.in("status", status);
+        } else {
+          query = query.eq("status", status);
+        }
       }
 
-      if (filters.status) {
-        // Convert AttendanceStatus to string
-        const statusString = filters.status.toString();
-        query = query.eq('status', statusString);
+      // Filter by date range if provided
+      if (startDate) {
+        query = query.gte("date_time", startDate.toISOString());
       }
 
-      const { data: rawSessions, error } = await query;
+      if (endDate) {
+        query = query.lte("date_time", endDate.toISOString());
+      }
+
+      const { data, error } = await query;
 
       if (error) {
-        console.error("Error fetching sessions:", error);
         throw error;
       }
 
-      if (!rawSessions || rawSessions.length === 0) {
-        return [];
-      }
-
-      // Add session_students data to each session
-      const sessionsWithStudentData = await Promise.all(rawSessions.map(async (session) => {
-        // Get student IDs for this session
-        const { data: studentsData } = await supabase
-          .from('session_students')
-          .select('student_id')
-          .eq('session_id', session.id);
-          
-        return {
-          ...session,
-          session_students: studentsData || []
-        };
+      // Transform the data to include teacher name for easier access
+      const transformedData = data.map(session => ({
+        ...session,
+        teacherName: session.teacher?.name || "Unknown Teacher"
       }));
 
-      // Transform the raw sessions
-      const transformedSessions = await Promise.all(
-        sessionsWithStudentData.map(session => transformSessionWithStudents(session))
-      );
-      
-      return transformedSessions;
-    } catch (error) {
-      console.error("Error in useSessionsByStudent:", error);
-      throw error;
-    }
-  };
-
-  return useQuery<SessionWithStudents[]>({
-    queryKey: ['sessions', 'student', studentId, filters],
-    queryFn: fetchSessions,
-    enabled: !!studentId, // Only run query if studentId is provided
+      return { data: transformedData };
+    },
+    enabled: enabled && !!studentId,
   });
+};
+
+// Add a type guard for backward compatibility
+export const isSessionsQueryResult = (
+  result: unknown
+): result is { data: SessionWithStudents[] } => {
+  return (
+    typeof result === "object" &&
+    result !== null &&
+    "data" in result &&
+    Array.isArray((result as any).data)
+  );
 };

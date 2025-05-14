@@ -26,11 +26,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   useEffect(() => {
     // If user is authenticated but doesn't have the required role, show a toast
     if (user && userRole && effectiveRoles && !effectiveRoles.includes(userRole)) {
-      toast({
-        title: "Access Denied",
-        description: "You don't have permission to access this page.",
-        variant: "destructive"
-      });
+      toast.error("Access Denied", "You don't have permission to access this page.");
     }
   }, [user, userRole, effectiveRoles]);
   

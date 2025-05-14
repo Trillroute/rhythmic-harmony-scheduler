@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { UserRole } from '@/lib/types';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertCircle, Loader2 } from "lucide-react";
+import { toast } from '@/hooks/use-toast';
 
 const Signup = () => {
   const [email, setEmail] = useState('');
@@ -18,7 +19,7 @@ const Signup = () => {
   const [role, setRole] = useState<UserRole>('student');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [showLoadingMessage, setShowLoadingMessage] = useState(false);
-  const { signUp, isLoading, user } = useAuth();
+  const { signup, isLoading, user } = useAuth();
   const navigate = useNavigate();
 
   // Show a message if loading persists for too long
@@ -53,8 +54,10 @@ const Signup = () => {
     }
     
     try {
-      await signUp(email, password, name, role);
-      // The redirect is handled in the signUp function
+      await signup(email, password, name, role);
+      // Show success message
+      toast.success('Account created successfully! Please log in.');
+      // The redirect is handled in the signup function
     } catch (error) {
       console.error('Signup error:', error);
       if (error instanceof Error) {

@@ -8,13 +8,14 @@ import { Label } from '@/components/ui/label';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertCircle, Loader2 } from "lucide-react";
+import { toast } from '@/hooks/use-toast';
 
 const Login = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [showLoadingMessage, setShowLoadingMessage] = useState(false);
-  const { signIn, isLoading, user } = useAuth();
+  const { signIn, isLoading, user, login } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
   
@@ -54,8 +55,10 @@ const Login = () => {
     setErrorMessage(null);
     
     try {
-      await signIn(email, password);
-      // Navigate is handled inside the signIn function based on user role
+      // Use login function from context (instead of signIn which might be an alias)
+      await login(email, password);
+      // Navigation is handled inside the login function based on user role
+      toast.success("Login successful!");
     } catch (error) {
       console.error('Login error:', error);
       if (error instanceof Error) {

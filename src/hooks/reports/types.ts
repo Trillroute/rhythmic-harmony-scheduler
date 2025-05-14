@@ -1,41 +1,53 @@
 
-export type ReportPeriod = 'week' | 'month' | 'year' | 'last30days';
+// Define the report period enum
+export type ReportPeriod = 'today' | 'this_week' | 'this_month' | 'last_month' | 'custom';
 
+// Define attendance data structure
 export interface AttendanceData {
-  categories: string[];
-  data: number[];
-  // Optional extra properties for internal use
-  total?: number;
-  present?: number;
-  absent?: number;
-  cancelled?: number;
-  noShow?: number;
-  distribution?: Array<{ status: string; count: number }>;
-  chartData?: Array<{ date: string; present: number; total: number }>;
+  // Totals
+  total: number;
+  present: number;
+  absent: number;
+  cancelled: number;
+  noShow: number;
+  
+  // For charts
+  distribution: { status: string; count: number }[];
+  chartData: { date: string; present: number; total: number }[];
+  
+  // For backward compatibility
+  categories?: string[];
+  data?: number[];
 }
 
-export type SessionsReportData = {
-  months: string[];
-  counts: number[];
-};
-
-export type SessionTypeData = {
-  type: string;
+// Define subject distribution data structure
+export type SubjectDistributionData = {
   subject: string;
   count: number;
 }[];
 
-export type SubjectDistributionData = {
-  name: string;
-  value: number;
+// Define session type data structure
+export type SessionTypeData = {
+  sessionType: string;
+  count: number;
+  subjects?: { subject: string; count: number }[];
 }[];
 
-export type StudentProgressData = {
+// Define sessions report data structure
+export type SessionsReportData = {
+  date: string;
+  count: number;
+}[];
+
+// Define student progress data structure
+export interface StudentProgressItem {
   student: string;
   progress: number;
-  id?: string; // Optional properties for internal use
+  id?: string;
+  studentName?: string;
   courseName?: string;
   instrument?: string;
-  studentName?: string;
   completionPercentage?: number;
-}[];
+}
+
+export type StudentProgressData = StudentProgressItem[];

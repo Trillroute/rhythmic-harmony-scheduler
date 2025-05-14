@@ -1,143 +1,199 @@
 
-import React from 'react';
-import { format } from 'date-fns';
+import React, { useRef, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Chart } from "@/components/ui/chart";
-import { DateRange } from "react-day-picker";
-import { AttendanceData, SessionsReportData, StudentProgressData } from "@/hooks/reports/types";
+import { AttendanceData, SessionTypeData, SubjectDistributionData, SessionsReportData } from "@/hooks/reports/types";
+import Chart from 'chart.js/auto';
 
 interface ReportChartProps {
-  selectedChart: "attendance" | "sessions" | "students";
-  attendanceData?: AttendanceData;
-  sessionsData?: SessionsReportData;
-  studentProgressData?: StudentProgressData;
+  title: string;
+  description: string;
+  chartType: 'line' | 'pie' | 'bar' | 'doughnut';
+  data?: AttendanceData | SubjectDistributionData | SessionTypeData | SessionsReportData;
   isLoading: boolean;
-  dateRange: DateRange;
 }
 
-const ReportChart = ({
-  selectedChart,
-  attendanceData,
-  sessionsData,
-  studentProgressData,
+export function ReportChart({
+  title,
+  description,
+  chartType,
+  data,
   isLoading,
-  dateRange
-}: ReportChartProps) => {
-  // Transform the chart data to match Chart.js requirements
-  const getChartData = () => {
-    if (selectedChart === "attendance" && attendanceData) {
-      return {
-        labels: attendanceData.categories,
-        datasets: [
-          {
-            label: 'Sessions',
-            data: attendanceData.data,
-            backgroundColor: [
-              'rgba(34, 197, 94, 0.5)',
-              'rgba(239, 68, 68, 0.5)',
-              'rgba(245, 158, 11, 0.5)',
-              'rgba(107, 114, 128, 0.5)',
-              'rgba(59, 130, 246, 0.5)',
-            ],
-            borderColor: [
-              'rgb(34, 197, 94)',
-              'rgb(239, 68, 68)',
-              'rgb(245, 158, 11)',
-              'rgb(107, 114, 128)',
-              'rgb(59, 130, 246)',
-            ],
-            borderWidth: 1
-          }
-        ]
-      };
+}: ReportChartProps) {
+  const chartRef = useRef<HTMLCanvasElement>(null);
+  const chartInstanceRef = useRef<Chart | null>(null);
+
+  useEffect(() => {
+    if (!chartRef.current || isLoading || !data) return;
+
+    // Clear any existing chart to prevent memory leaks
+    if (chartInstanceRef.current) {
+      chartInstanceRef.current.destroy();
     }
-    else if (selectedChart === "sessions" && sessionsData) {
+
+    const ctx = chartRef.current.getContext('2d');
+    if (!ctx) return;
+
+    // Determine chart configuration based on data type
+    const chartConfig = getChartConfig(chartType, data);
+    
+    // Create the new chart
+    chartInstanceRef.current = new Chart(ctx, {
+      type: chartType,
+      data: chartConfig.data,
+      options: chartConfig.options
+    });
+
+    // Cleanup on unmount
+    return () => {
+      if (chartInstanceRef.current) {
+        chartInstanceRef.current.destroy();
+      }
+    };
+  }, [chartType, data, isLoading]);
+
+  // Return appropriate chart configuration based on data type
+  const getChartConfig = (type: string, chartData: any) => {
+    // Handle attendance data (line chart)
+    if ('present' in chartData && 'total' in chartData && type === 'line') {
       return {
-        labels: sessionsData.months,
-        datasets: [
-          {
-            label: 'Sessions',
-            data: sessionsData.counts,
-            backgroundColor: 'rgba(59, 130, 246, 0.5)',
-            borderColor: 'rgb(59, 130, 246)',
-            borderWidth: 1
+        data: {
+          labels: chartData.chartData.map((item: any) => item.date),
+          datasets: [
+            {
+              label: 'Present',
+              data: chartData.chartData.map((item: any) => item.present),
+              borderColor: 'rgb(75, 192, 192)',
+              backgroundColor: 'rgba(75, 192, 192, 0.2)',
+              tension: 0.2
+            },
+            {
+              label: 'Total',
+              data: chartData.chartData.map((item: any) => item.total),
+              borderColor: 'rgb(153, 102, 255)',
+              backgroundColor: 'rgba(153, 102, 255, 0.2)',
+              tension: 0.2
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          plugins: {
+            legend: { position: 'top' },
+            title: { display: false }
           }
-        ]
-      };
-    }
-    else if (selectedChart === "students" && studentProgressData && studentProgressData.length > 0) {
-      return {
-        labels: studentProgressData.map(d => d.student),
-        datasets: [
-          {
-            label: 'Completion %',
-            data: studentProgressData.map(d => d.progress),
-            backgroundColor: [
-              'rgba(255, 99, 132, 0.5)',
-              'rgba(54, 162, 235, 0.5)',
-              'rgba(255, 206, 86, 0.5)',
-              'rgba(75, 192, 192, 0.5)'
-            ],
-            borderColor: [
-              'rgba(255, 99, 132, 1)',
-              'rgba(54, 162, 235, 1)',
-              'rgba(255, 206, 86, 1)',
-              'rgba(75, 192, 192, 1)'
-            ],
-            borderWidth: 1
-          }
-        ]
+        }
       };
     }
     
+    // Handle subject distribution (pie/doughnut chart)
+    if (Array.isArray(chartData) && 'subject' in (chartData[0] || {}) && (type === 'pie' || type === 'doughnut')) {
+      return {
+        data: {
+          labels: chartData.map((item) => item.subject),
+          datasets: [
+            {
+              data: chartData.map((item) => item.count),
+              backgroundColor: [
+                'rgba(255, 99, 132, 0.6)',
+                'rgba(54, 162, 235, 0.6)',
+                'rgba(255, 206, 86, 0.6)',
+                'rgba(75, 192, 192, 0.6)',
+                'rgba(153, 102, 255, 0.6)',
+                'rgba(255, 159, 64, 0.6)',
+                'rgba(199, 199, 199, 0.6)',
+              ]
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          plugins: {
+            legend: { position: 'bottom' }
+          }
+        }
+      };
+    }
+    
+    // Handle session type data (bar chart)
+    if (Array.isArray(chartData) && 'sessionType' in (chartData[0] || {}) && type === 'bar') {
+      return {
+        data: {
+          labels: chartData.map(item => item.sessionType),
+          datasets: [
+            {
+              label: 'Sessions',
+              data: chartData.map(item => item.count),
+              backgroundColor: 'rgba(54, 162, 235, 0.6)',
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          plugins: {
+            legend: { position: 'top' }
+          }
+        }
+      };
+    }
+    
+    // Handle sessions over time (line chart)
+    if (Array.isArray(chartData) && 'date' in (chartData[0] || {})) {
+      return {
+        data: {
+          labels: chartData.map(item => item.date),
+          datasets: [
+            {
+              label: 'Sessions',
+              data: chartData.map(item => item.count),
+              borderColor: 'rgb(75, 192, 192)',
+              backgroundColor: 'rgba(75, 192, 192, 0.2)',
+              tension: 0.2
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          plugins: {
+            legend: { position: 'top' }
+          }
+        }
+      };
+    }
+    
+    // Fallback for unknown data structure
     return {
-      labels: [],
-      datasets: []
+      data: { 
+        labels: ['No Data'], 
+        datasets: [{ label: 'No Data', data: [0], backgroundColor: 'rgba(200,200,200,0.5)' }] 
+      },
+      options: {
+        responsive: true,
+        plugins: { legend: { position: 'top' } }
+      }
     };
   };
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle>
-          {selectedChart === "attendance" && "Attendance Trends"}
-          {selectedChart === "sessions" && "Sessions by Month"}
-          {selectedChart === "students" && "Student Progress"}
-        </CardTitle>
-        <CardDescription>
-          {dateRange.from && dateRange.to && `Data from ${format(dateRange.from, 'MMM d, yyyy')} to ${format(dateRange.to, 'MMM d, yyyy')}`}
-        </CardDescription>
+        <CardTitle>{title}</CardTitle>
+        <CardDescription>{description}</CardDescription>
       </CardHeader>
-      <CardContent className="h-[400px]">
+      <CardContent>
         {isLoading ? (
-          <div className="h-full flex items-center justify-center">
-            <p>Loading chart data...</p>
+          <div className="h-[300px] flex items-center justify-center bg-gray-50 rounded-lg">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+          </div>
+        ) : !data ? (
+          <div className="h-[300px] flex items-center justify-center bg-gray-50 rounded-lg">
+            <p className="text-muted-foreground">No data available</p>
           </div>
         ) : (
-          <Chart 
-            type={
-              selectedChart === "attendance" ? "pie" : 
-              selectedChart === "sessions" ? "bar" : "horizontalBar"
-            }
-            data={getChartData()}
-            options={{
-              responsive: true,
-              maintainAspectRatio: false,
-              plugins: {
-                legend: {
-                  position: 'top',
-                },
-                title: {
-                  display: false
-                },
-              },
-              indexAxis: selectedChart === "students" ? 'y' : 'x'
-            }}
-          />
+          <div className="h-[300px]">
+            <canvas ref={chartRef} />
+          </div>
         )}
       </CardContent>
     </Card>
   );
-};
-
-export default ReportChart;
+}

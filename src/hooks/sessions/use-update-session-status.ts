@@ -1,46 +1,68 @@
 
-import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
-import { AttendanceStatus } from '@/lib/types';
-import { transformSessionUpdate } from './session-transformers';
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { AttendanceStatus, Session } from "@/lib/types";
+import { toast } from "sonner";
 
-interface UpdateSessionStatusProps {
+interface UpdateStatusParams {
   sessionId: string;
-  status: AttendanceStatus;
+  newStatus: AttendanceStatus;
   notes?: string;
 }
 
-const updateSessionStatus = async ({ sessionId, status, notes }: UpdateSessionStatusProps) => {
-  // Create the update payload
-  const updates = transformSessionUpdate({
-    status,
-    notes
-  });
-
-  // Update the session
-  const { error } = await supabase
-    .from('sessions')
-    .update(updates)
-    .eq('id', sessionId);
-
-  if (error) {
-    console.error('Error updating session status:', error);
-    throw error;
-  }
-
-  return { sessionId, status };
-};
-
-export default function useUpdateSessionStatus(queryKeysToInvalidate: string[] = []) {
+export const useUpdateSessionStatus = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: updateSessionStatus,
-    onSuccess: () => {
-      // Invalidate relevant queries to refresh the data
-      queryKeysToInvalidate.forEach(key => {
-        queryClient.invalidateQueries({ queryKey: [key] });
-      });
-    }
+    mutationFn: async ({ sessionId, newStatus, notes }: UpdateStatusParams) => {
+      // Update the session status
+      const { data, error } = await supabase
+        .from("sessions")
+        .update({ status: newStatus, notes: notes })
+        .eq("id", sessionId)
+        .select()
+        .single();
+
+      if (error) {
+        throw error;
+      }
+
+      // Log the attendance event
+      const { error: attendanceError } = await supabase
+        .from("attendance_events")
+        .insert([
+          {
+            session_id: sessionId,
+            status: newStatus,
+            marked_by_user_id: (await supabase.auth.getUser()).data.user?.id,
+            notes: notes || `Status updated to ${newStatus}`,
+          },
+        ]);
+
+      if (attendanceError) {
+        console.error("Error recording attendance event:", attendanceError);
+      }
+
+      return data as Session;
+    },
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({ queryKey: ["sessions"] });
+      queryClient.invalidateQueries({ queryKey: ["student-sessions"] });
+      
+      const statusMessage = {
+        "Present": "Marked as present",
+        "Absent": "Marked as absent",
+        "Cancelled by Student": "Cancelled by student",
+        "Cancelled by Teacher": "Cancelled by teacher",
+        "Cancelled by School": "Cancelled by school",
+        "Scheduled": "Rescheduled",
+      }[variables.newStatus] || "Status updated";
+      
+      toast.success(`Session ${statusMessage}`);
+    },
+    onError: (error) => {
+      console.error("Failed to update session status:", error);
+      toast.error(`Failed to update session status: ${error instanceof Error ? error.message : "Unknown error"}`);
+    },
   });
-}
+};

@@ -3,12 +3,13 @@ import React, { createContext, useContext, useState, useEffect, ReactNode } from
 import { supabase } from '@/integrations/supabase/client';
 import { UserRole } from '@/lib/types';
 import type { User, Session } from '@supabase/supabase-js';
+import { toast } from '@/hooks/use-toast';
 
 interface AuthContextProps {
   user: User | null;
   session: Session | null;
   loading: boolean;
-  isLoading: boolean; // Added this property for consistency with other hooks
+  isLoading: boolean; // Explicitly added for components that expect this prop
   signOut?: () => Promise<void>;
   error: Error | null;
   userRole: UserRole | null;
@@ -21,6 +22,7 @@ export const AuthContext = createContext<AuthContextProps>({
   user: null,
   session: null,
   loading: true,
+  isLoading: true,
   error: null,
   userRole: null,
   login: async () => {},
@@ -49,6 +51,41 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   useEffect(() => {
     console.log('Starting auth initialization');
     
+    // Set up auth state listener FIRST to prevent missing auth events during initialization
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, newSession) => {
+        if (newSession?.user) {
+          setUser(newSession.user);
+          setSession(newSession);
+          
+          // Defer database operations with setTimeout to prevent auth deadlock
+          setTimeout(async () => {
+            try {
+              // Fetch user role from profiles table when auth state changes
+              const { data: profileData, error: profileError } = await supabase
+                .from('profiles')
+                .select('role')
+                .eq('id', newSession.user.id)
+                .single();
+              
+              if (profileError) {
+                console.error('Error fetching user role:', profileError);
+              } else if (profileData) {
+                setUserRole(profileData.role as UserRole);
+              }
+            } catch (err) {
+              console.error('Error in auth state change handler:', err);
+            }
+          }, 0);
+        } else {
+          setUser(null);
+          setUserRole(null);
+          setSession(null);
+        }
+      }
+    );
+
+    // THEN check for existing session
     const initAuth = async () => {
       try {
         // Get session from Supabase
@@ -83,42 +120,44 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     
     initAuth();
     
-    // Setup auth state listener
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        if (session?.user) {
-          setUser(session.user);
-          setSession(session);
-          
-          // Fetch user role from profiles table when auth state changes
-          const { data: profileData, error: profileError } = await supabase
-            .from('profiles')
-            .select('role')
-            .eq('id', session.user.id)
-            .single();
-          
-          if (profileError) {
-            console.error('Error fetching user role:', profileError);
-          } else if (profileData) {
-            setUserRole(profileData.role as UserRole);
-          }
-        } else {
-          setUser(null);
-          setUserRole(null);
-          setSession(null);
-        }
-      }
-    );
-    
     return () => {
       subscription.unsubscribe();
     };
   }, []);
+
+  // Helper function to clean up auth state
+  const cleanupAuthState = () => {
+    // Remove standard auth tokens
+    localStorage.removeItem('supabase.auth.token');
+    // Remove all Supabase auth keys from localStorage
+    Object.keys(localStorage).forEach((key) => {
+      if (key.startsWith('supabase.auth.') || key.includes('sb-')) {
+        localStorage.removeItem(key);
+      }
+    });
+    // Remove from sessionStorage if in use
+    Object.keys(sessionStorage || {}).forEach((key) => {
+      if (key.startsWith('supabase.auth.') || key.includes('sb-')) {
+        sessionStorage.removeItem(key);
+      }
+    });
+  };
   
   const login = async (email: string, password: string) => {
     try {
       setLoading(true);
       setError(null);
+      
+      // Clean up existing auth state
+      cleanupAuthState();
+      
+      // Attempt global sign out first
+      try {
+        await supabase.auth.signOut({ scope: 'global' });
+      } catch (err) {
+        // Continue even if this fails
+        console.log('Global sign out failed, continuing with login');
+      }
       
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
@@ -165,6 +204,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       setLoading(true);
       setError(null);
       
+      // Clean up existing auth state
+      cleanupAuthState();
+      
       // Sign up with Supabase Auth
       const { data, error } = await supabase.auth.signUp({
         email,
@@ -180,6 +222,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       if (error) throw error;
       
       if (data.user) {
+        // Show success message
+        toast.success('Account created successfully! You can now log in.');
         navigate('/login');
       }
     } catch (err) {
@@ -196,13 +240,19 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       setLoading(true);
       setError(null);
       
-      const { error } = await supabase.auth.signOut();
+      // Clean up auth state
+      cleanupAuthState();
+      
+      // Attempt global sign out
+      const { error } = await supabase.auth.signOut({ scope: 'global' });
       
       if (error) throw error;
       
       setUser(null);
       setUserRole(null);
       setSession(null);
+      
+      // Force page reload for a clean state
       navigate('/login');
     } catch (err) {
       console.error('Logout error:', err);
