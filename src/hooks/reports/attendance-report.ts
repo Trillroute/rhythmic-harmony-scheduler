@@ -36,10 +36,10 @@ export function useAttendanceReport() {
       
       if (totalError) throw new Error(totalError.message);
       
-      // Get attendance distribution - we need to select by status and count them
+      // Get attendance distribution - fetch all statuses and count them manually
       const { data: statusData, error: statusError } = await supabase
         .from("sessions")
-        .select("status, count(*)")
+        .select("status")
         .gte('date_time', startDate.toISOString())
         .lte('date_time', endDate.toISOString());
       
@@ -60,16 +60,15 @@ export function useAttendanceReport() {
       
       statusData.forEach(item => {
         const status = String(item.status);
-        const count = Number(item.count);
         
         if (status === "Present") {
-          presentCount += count;
+          presentCount += 1;
         } else if (status === "Absent") {
-          absentCount += count;
+          absentCount += 1;
         } else if (status === "No Show") {
-          noShowCount += count;
+          noShowCount += 1;
         } else if (cancellationStatuses.includes(status)) {
-          cancelledCount += count;
+          cancelledCount += 1;
         }
       });
       

@@ -17,20 +17,29 @@ export function useSubjectDistributionReport() {
     try {
       const { startDate, endDate } = getDateRangeFromPeriod(period);
       
-      // Get subject distribution using aggregate count
-      const { data: subjectData, error: subjectError } = await supabase
+      // Get all sessions and count them manually by subject
+      const { data: sessionsData, error: sessionsError } = await supabase
         .from("sessions")
-        .select("subject, count(*)")
+        .select("subject")
         .gte('date_time', startDate.toISOString())
         .lte('date_time', endDate.toISOString())
         .not('status', 'in', assertStringArray(["Cancelled by Student", "Cancelled by Teacher", "Cancelled by School"]));
       
-      if (subjectError) throw new Error(subjectError.message);
+      if (sessionsError) throw new Error(sessionsError.message);
+      
+      // Count subjects manually
+      const subjectCounts = new Map<string, number>();
+      
+      sessionsData.forEach(session => {
+        const subject = String(session.subject);
+        const currentCount = subjectCounts.get(subject) || 0;
+        subjectCounts.set(subject, currentCount + 1);
+      });
       
       // Build distribution data for chart
-      const distribution = subjectData.map(item => ({
-        name: String(item.subject),
-        value: Number(item.count)
+      const distribution = Array.from(subjectCounts.entries()).map(([subject, count]) => ({
+        name: subject,
+        value: count
       }));
       
       setData(distribution);

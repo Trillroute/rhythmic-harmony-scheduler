@@ -2,10 +2,11 @@
 import React from 'react';
 import { createRoot } from 'react-dom/client';
 import { BrowserRouter } from 'react-router-dom';
-import { ToastProvider } from "@/components/ui/toast";
+import { Toaster } from "@/components/ui/toaster";
 import App from './App.tsx';
 import './index.css';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { ErrorBoundary } from './components/ErrorBoundary';
 
 // Create a query client
 const queryClient = new QueryClient({
@@ -43,12 +44,28 @@ if (!rootElement) throw new Error('Root element not found');
 const root = createRoot(rootElement);
 root.render(
   <React.StrictMode>
-    <BrowserRouter>
-      <QueryClientProvider client={queryClient}>
-        <ToastProvider>
+    <ErrorBoundary fallback={
+      <div className="flex flex-col items-center justify-center h-screen bg-background p-4">
+        <div className="w-full max-w-md p-6 bg-card rounded-lg shadow-lg border border-border">
+          <h1 className="text-2xl font-bold mb-4 text-foreground">Application Error</h1>
+          <p className="text-muted-foreground mb-6">
+            The application encountered a critical error and could not start. Please try reloading the page.
+          </p>
+          <button
+            className="w-full px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90"
+            onClick={() => window.location.reload()}
+          >
+            Reload Application
+          </button>
+        </div>
+      </div>
+    }>
+      <BrowserRouter>
+        <QueryClientProvider client={queryClient}>
           <App />
-        </ToastProvider>
-      </QueryClientProvider>
-    </BrowserRouter>
+          <Toaster />
+        </QueryClientProvider>
+      </BrowserRouter>
+    </ErrorBoundary>
   </React.StrictMode>
 );

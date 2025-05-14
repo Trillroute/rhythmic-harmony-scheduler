@@ -17,22 +17,44 @@ export function useSessionTypeReport() {
     try {
       const { startDate, endDate } = getDateRangeFromPeriod(period);
       
-      // Get session type distribution using aggregate count
-      const { data: typeData, error: typeError } = await supabase
+      // Get all sessions and count them manually by type
+      const { data: sessionsData, error: sessionsError } = await supabase
         .from("sessions")
-        .select("session_type, subject, count(*)")
+        .select("session_type, subject")
         .gte('date_time', startDate.toISOString())
         .lte('date_time', endDate.toISOString())
         .not('status', 'in', assertStringArray(["Cancelled by Student", "Cancelled by Teacher", "Cancelled by School"]));
       
-      if (typeError) throw new Error(typeError.message);
+      if (sessionsError) throw new Error(sessionsError.message);
       
-      // Build distribution data for chart
-      const distribution = typeData.map(item => ({
-        type: String(item.session_type),
-        subject: String(item.subject),
-        count: Number(item.count)
-      }));
+      // Build distribution data for chart - counting session types
+      const typeCountMap = new Map<string, Map<string, number>>();
+      
+      sessionsData.forEach(session => {
+        const sessionType = String(session.session_type);
+        const subject = String(session.subject);
+        
+        if (!typeCountMap.has(sessionType)) {
+          typeCountMap.set(sessionType, new Map<string, number>());
+        }
+        
+        const subjectMap = typeCountMap.get(sessionType)!;
+        const currentCount = subjectMap.get(subject) || 0;
+        subjectMap.set(subject, currentCount + 1);
+      });
+      
+      // Convert the nested maps to array format for the chart
+      const distribution: SessionTypeData = [];
+      
+      typeCountMap.forEach((subjectMap, sessionType) => {
+        subjectMap.forEach((count, subject) => {
+          distribution.push({
+            type: sessionType,
+            subject: subject,
+            count: count
+          });
+        });
+      });
       
       setData(distribution);
     } catch (err: any) {

@@ -3,7 +3,9 @@ import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { SessionsProps } from "./types";
 import { transformSession, DbSession } from "./session-transformers";
-import { SessionWithStudents } from "@/lib/types";
+import { SessionWithStudents, AttendanceStatus } from "@/lib/types";
+import { toast } from "@/hooks/use-toast";
+import { assertAttendanceStatusArray } from "@/lib/type-utils";
 
 export function useFetchSessions(props?: SessionsProps) {
   const [sessions, setSessions] = useState<SessionWithStudents[]>([]);
@@ -55,8 +57,11 @@ export function useFetchSessions(props?: SessionsProps) {
 
       if (props?.status && props.status.length > 0) {
         // Convert status array to strings for the database query
-        const statusValues = props.status.map(status => String(status));
-        query = query.in('status', statusValues);
+        // We need to ensure these are valid AttendanceStatus values
+        const statusValues = assertAttendanceStatusArray(props.status);
+        if (statusValues.length > 0) {
+          query = query.in('status', statusValues);
+        }
       }
 
       // Execute query and get data

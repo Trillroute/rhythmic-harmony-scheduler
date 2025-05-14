@@ -1,140 +1,155 @@
 
-// Fix the PackSize casting to string for Supabase
+import { useState, useEffect, useCallback } from 'react';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
+import { SessionPack, SubjectType, SessionType, LocationType, WeeklyFrequency, PackSize } from '@/lib/types';
+import { toast } from '@/hooks/use-toast';
+import { assertSubjectType, assertSessionType, assertLocationType, assertWeeklyFrequency } from '@/lib/type-utils';
 
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
-import { PackSize, SubjectType, SessionType, LocationType, WeeklyFrequency } from "@/lib/types";
-import { toast } from "sonner";
+// Define the interface for session pack data
+interface SessionPackData {
+  id: string;
+  studentId: string;
+  size: PackSize;
+  subject: SubjectType;
+  sessionType: SessionType;
+  location: LocationType;
+  purchasedDate: string | Date;
+  expiryDate?: string | Date;
+  remainingSessions: number;
+  isActive: boolean;
+  weeklyFrequency: WeeklyFrequency;
+  createdAt: string | Date;
+  updatedAt: string | Date;
+}
 
-// Function to convert PackSize enum to string for Supabase
-const packSizeToString = (size: PackSize): string => {
-  return String(size);
-};
-
-export interface CreatePackProps {
+// Define interface for create session pack props
+interface CreateSessionPackProps {
   studentId: string;
   size: PackSize;
   subject: SubjectType;
   sessionType: SessionType;
   location: LocationType;
   weeklyFrequency: WeeklyFrequency;
-  expiryDate?: Date;
 }
 
-export const useFetchPacks = (studentId?: string) => {
-  return useQuery({
-    queryKey: ["packs", studentId],
-    queryFn: async () => {
-      try {
-        let query = supabase
-          .from("session_packs")
-          .select("*, sessions(*)");
-        
-        if (studentId) {
-          query = query.eq('student_id', studentId);
-        }
-        
-        const { data, error } = await query;
-        
-        if (error) throw error;
-        
-        return data || [];
-      } catch (error: any) {
-        console.error("Error fetching packs:", error);
-        throw new Error("Failed to fetch session packs");
-      }
-    },
-    enabled: Boolean(studentId),
-  });
+// Transform database session pack to frontend session pack
+const transformSessionPack = (dbPack: any): SessionPack => {
+  return {
+    id: dbPack.id,
+    studentId: dbPack.student_id,
+    size: dbPack.size as PackSize,
+    subject: assertSubjectType(dbPack.subject),
+    sessionType: assertSessionType(dbPack.session_type),
+    location: assertLocationType(dbPack.location),
+    purchasedDate: dbPack.purchased_date,
+    expiryDate: dbPack.expiry_date,
+    remainingSessions: dbPack.remaining_sessions,
+    isActive: dbPack.is_active,
+    weeklyFrequency: assertWeeklyFrequency(dbPack.weekly_frequency),
+    createdAt: dbPack.created_at,
+    updatedAt: dbPack.updated_at
+  };
 };
 
-export const useCreatePack = () => {
+// Hook to fetch session packs
+export const useSessionPacks = (studentId?: string) => {
+  const [sessionPacks, setSessionPacks] = useState<SessionPack[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const fetchSessionPacks = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+
+    try {
+      let query = supabase.from('session_packs').select('*');
+      
+      if (studentId) {
+        query = query.eq('student_id', studentId);
+      }
+      
+      const { data, error: fetchError } = await query;
+      
+      if (fetchError) throw new Error(fetchError.message);
+      
+      const transformedPacks = data?.map(transformSessionPack) || [];
+      setSessionPacks(transformedPacks);
+    } catch (err: any) {
+      console.error('Error fetching session packs:', err);
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  }, [studentId]);
+
+  useEffect(() => {
+    fetchSessionPacks();
+  }, [fetchSessionPacks]);
+
+  return {
+    sessionPacks,
+    loading,
+    error,
+    refetch: fetchSessionPacks
+  };
+};
+
+// Hook to create a session pack
+export const useCreateSessionPack = () => {
   const queryClient = useQueryClient();
   
   return useMutation({
-    mutationFn: async (packData: CreatePackProps) => {
+    mutationFn: async (packData: CreateSessionPackProps) => {
       try {
-        const packObject = {
+        // Calculate expiry date (3 months from purchase)
+        const purchaseDate = new Date();
+        const expiryDate = new Date();
+        expiryDate.setMonth(expiryDate.getMonth() + 3);
+        
+        // Prepare the data object for the database
+        const dbPackData = {
           student_id: packData.studentId,
-          size: packSizeToString(packData.size),
+          size: String(packData.size) as "4" | "10" | "20" | "30",
           subject: packData.subject,
           session_type: packData.sessionType,
           location: packData.location,
           weekly_frequency: packData.weeklyFrequency,
           remaining_sessions: packData.size,
-          expiry_date: packData.expiryDate ? packData.expiryDate.toISOString() : null,
+          expiry_date: expiryDate.toISOString(),
           is_active: true
         };
         
         const { data, error } = await supabase
-          .from("session_packs")
-          .insert(packObject)
+          .from('session_packs')
+          .insert(dbPackData)
           .select()
           .single();
         
-        if (error) throw error;
+        if (error) throw new Error(error.message);
         
-        return data;
-      } catch (error: any) {
-        console.error("Error creating pack:", error);
-        throw new Error(error.message || "Failed to create session pack");
+        return transformSessionPack(data);
+      } catch (err: any) {
+        console.error('Error creating session pack:', err);
+        throw new Error(err.message);
       }
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["packs"] });
-      toast.success("Session pack created successfully");
+      queryClient.invalidateQueries({ queryKey: ['sessionPacks'] });
+      toast({
+        title: "Success",
+        description: "Session pack created successfully",
+      });
     },
-    onError: (error: Error) => {
-      toast.error(`Failed to create pack: ${error.message}`);
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: `Failed to create session pack: ${error.message}`,
+        variant: "destructive",
+      });
     }
   });
 };
 
-export const useUpdatePack = () => {
-  const queryClient = useQueryClient();
-  
-  return useMutation({
-    mutationFn: async ({ id, ...updates }: { id: string, [key: string]: any }) => {
-      try {
-        // Handle size conversion if it's in the updates
-        const preparedUpdates = { ...updates };
-        if (updates.size) {
-          preparedUpdates.size = packSizeToString(updates.size);
-        }
-        
-        const { data, error } = await supabase
-          .from("session_packs")
-          .update(preparedUpdates)
-          .eq('id', id)
-          .select()
-          .single();
-        
-        if (error) throw error;
-        
-        return data;
-      } catch (error: any) {
-        console.error("Error updating pack:", error);
-        throw new Error(error.message || "Failed to update session pack");
-      }
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["packs"] });
-      toast.success("Session pack updated successfully");
-    },
-    onError: (error: Error) => {
-      toast.error(`Failed to update pack: ${error.message}`);
-    }
-  });
-};
-
-export const usePacks = () => {
-  const createPack = useCreatePack();
-  const updatePack = useUpdatePack();
-  
-  return {
-    createPack: createPack.mutateAsync,
-    updatePack: updatePack.mutateAsync,
-    isPendingCreate: createPack.isPending,
-    isPendingUpdate: updatePack.isPending
-  };
-};
+// For backwards compatibility
+export const usePacks = useSessionPacks;

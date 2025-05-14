@@ -17,6 +17,8 @@ export interface ToastActionProps {
 
 type ToastOptions = Omit<ToastProps, "id"> & {
   action?: ToastActionElement;
+  title?: string;
+  description?: string;
 }
 
 // Re-export the toast function
