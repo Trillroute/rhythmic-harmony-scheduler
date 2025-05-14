@@ -9,45 +9,56 @@ export const useStudents = () => {
   return useQuery({
     queryKey: ['students'],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('students')
-        .select(`
-          id,
-          preferred_subjects,
-          preferred_teachers,
-          notes,
-          profiles (
+      try {
+        // Simplify the query to avoid complex joins that might cause infinite recursion
+        const { data, error } = await supabase
+          .from('students')
+          .select(`
             id,
-            name,
-            email,
-            role,
-            created_at,
-            updated_at
-          )
-        `);
+            preferred_subjects,
+            preferred_teachers,
+            notes
+          `);
+          
+        if (error) {
+          toast({
+            title: 'Error fetching students',
+            description: error.message,
+            variant: 'destructive',
+          });
+          throw error;
+        }
+        
+        // For each student, get their profile separately
+        const studentsWithProfiles = await Promise.all(
+          data.map(async (student) => {
+            const { data: profileData } = await supabase
+              .from('profiles')
+              .select('name, email, role, created_at, updated_at')
+              .eq('id', student.id)
+              .single();
+              
+            return {
+              id: student.id,
+              name: profileData?.name || 'Unknown',
+              email: profileData?.email || '',
+              role: profileData?.role || 'student',
+              preferredSubjects: student.preferred_subjects || [],
+              preferredTeachers: student.preferred_teachers || [],
+              packs: [], // Will need a separate query
+              notes: student.notes,
+              createdAt: profileData?.created_at ? new Date(profileData.created_at) : new Date(),
+              updatedAt: profileData?.updated_at ? new Date(profileData.updated_at) : new Date()
+            } as Student;
+          })
+        );
 
-      if (error) {
-        toast({
-          title: 'Error fetching students',
-          description: error.message,
-          variant: 'destructive',
-        });
-        throw error;
+        return studentsWithProfiles;
+      } catch (error) {
+        console.error("Error in useStudents:", error);
+        // Return an empty array instead of throwing to prevent UI from breaking
+        return [];
       }
-
-      // Transform data to match Student type - convert snake_case to camelCase
-      return data.map((item: any) => ({
-        id: item.id,
-        name: item.profiles.name,
-        email: item.profiles.email,
-        role: item.profiles.role,
-        preferredSubjects: item.preferred_subjects,
-        preferredTeachers: item.preferred_teachers,
-        packs: [], // We'll need a separate query for this
-        notes: item.notes,
-        createdAt: new Date(item.profiles.created_at),
-        updatedAt: new Date(item.profiles.updated_at)
-      } as Student));
     },
   });
 };
@@ -59,47 +70,50 @@ export const useStudent = (studentId: string | undefined) => {
     queryFn: async () => {
       if (!studentId) return null;
 
-      const { data, error } = await supabase
-        .from('students')
-        .select(`
-          id,
-          preferred_subjects,
-          preferred_teachers,
-          notes,
-          profiles (
+      try {
+        const { data, error } = await supabase
+          .from('students')
+          .select(`
             id,
-            name,
-            email,
-            role,
-            created_at,
-            updated_at
-          )
-        `)
-        .eq('id', studentId)
-        .single();
+            preferred_subjects,
+            preferred_teachers,
+            notes
+          `)
+          .eq('id', studentId)
+          .single();
 
-      if (error) {
-        toast({
-          title: 'Error fetching student',
-          description: error.message,
-          variant: 'destructive',
-        });
-        throw error;
+        if (error) {
+          toast({
+            title: 'Error fetching student',
+            description: error.message,
+            variant: 'destructive',
+          });
+          throw error;
+        }
+
+        // Get the student's profile
+        const { data: profileData } = await supabase
+          .from('profiles')
+          .select('name, email, role, created_at, updated_at')
+          .eq('id', data.id)
+          .single();
+
+        return {
+          id: data.id,
+          name: profileData?.name || 'Unknown',
+          email: profileData?.email || '',
+          role: profileData?.role || 'student',
+          preferredSubjects: data.preferred_subjects || [],
+          preferredTeachers: data.preferred_teachers || [],
+          packs: [], // Need separate query
+          notes: data.notes,
+          createdAt: profileData?.created_at ? new Date(profileData.created_at) : new Date(),
+          updatedAt: profileData?.updated_at ? new Date(profileData.updated_at) : new Date()
+        } as Student;
+      } catch (error) {
+        console.error("Error in useStudent:", error);
+        return null;
       }
-
-      // Convert snake_case to camelCase for frontend
-      return {
-        id: data.id,
-        name: data.profiles.name,
-        email: data.profiles.email,
-        role: data.profiles.role,
-        preferredSubjects: data.preferred_subjects,
-        preferredTeachers: data.preferred_teachers,
-        packs: [], // Need separate query
-        notes: data.notes,
-        createdAt: new Date(data.profiles.created_at),
-        updatedAt: new Date(data.profiles.updated_at)
-      } as Student;
     },
     enabled: !!studentId,
   });

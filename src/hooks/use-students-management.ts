@@ -9,7 +9,7 @@ export interface StudentDetail extends Student {
   activePacks?: number;
   enrolledCourses?: string[];
   isActive?: boolean;
-  createdAt?: Date; // Adding this to fix the type error
+  createdAt?: Date;
 }
 
 export const useStudentsManagement = (filters?: {
@@ -25,106 +25,111 @@ export const useStudentsManagement = (filters?: {
   const page = filters?.page || 1;
 
   const fetchStudents = async () => {
-    // Start with the base query for student profiles
-    let query = supabase
-      .from('students')
-      .select(`
-        id,
-        preferred_subjects,
-        preferred_teachers,
-        notes,
-        profiles!inner (
-          id,
-          name,
-          email,
-          role,
-          created_at,
-          updated_at
-        )
-      `);
-
-    // Apply search filter if provided
-    if (filters?.search) {
-      query = query.or(`profiles.name.ilike.%${filters.search}%,profiles.email.ilike.%${filters.search}%`);
-    }
-
-    // Apply subject filter if provided
-    if (filters?.subject) {
-      query = query.contains('preferred_subjects', [filters.subject]);
-    }
-
-    // Apply teacher filter if provided
-    if (filters?.teacherId) {
-      query = query.contains('preferred_teachers', [filters.teacherId]);
-    }
-
-    // Apply pagination
-    query = query.range((page - 1) * pageSize, page * pageSize - 1);
-
-    const { data: studentsData, error, count } = await query.order('profiles.name');
-
-    if (error) {
-      toast({
-        title: "Error fetching students",
-        description: error.message,
-        variant: "destructive",
-      });
-      throw error;
-    }
-
-    // Transform data to match StudentDetail type
-    const studentDetails: StudentDetail[] = [];
-    
-    for (const item of studentsData) {
-      // Get active packs count
-      const { data: packsData } = await supabase
-        .from('session_packs')
-        .select('id')
-        .eq('student_id', item.id)
-        .eq('is_active', true);
-      
-      // Get enrolled courses
-      const { data: enrollmentsData } = await supabase
-        .from('enrollments')
+    try {
+      // Start with the base query for student profiles
+      let query = supabase
+        .from('students')
         .select(`
-          course_id,
-          courses(name)
-        `)
-        .eq('student_id', item.id)
-        .in('status', ['active', 'on_hold']);
+          id,
+          preferred_subjects,
+          preferred_teachers,
+          notes,
+          profiles!inner (
+            id,
+            name,
+            email,
+            role,
+            created_at,
+            updated_at
+          )
+        `);
 
-      // Get assigned teacher if they have a primary preferred teacher
-      let teacherName = undefined;
-      if (item.preferred_teachers && item.preferred_teachers.length > 0) {
-        const { data: teacherData } = await supabase
-          .from('profiles')
-          .select('name')
-          .eq('id', item.preferred_teachers[0])
-          .single();
-        
-        teacherName = teacherData?.name;
+      // Apply search filter if provided
+      if (filters?.search) {
+        query = query.or(`name.ilike.%${filters.search}%,email.ilike.%${filters.search}%`);
       }
 
-      studentDetails.push({
-        id: item.id,
-        name: item.profiles.name,
-        email: item.profiles.email,
-        preferredSubjects: item.preferred_subjects,
-        preferredTeachers: item.preferred_teachers,
-        notes: item.notes,
-        createdAt: item.profiles.created_at ? new Date(item.profiles.created_at) : undefined,
-        assignedTeacherName: teacherName,
-        activePacks: packsData?.length || 0,
-        enrolledCourses: enrollmentsData?.map(e => e.courses?.name).filter(Boolean) || [],
-        isActive: true // Assuming all users are active by default
-      });
-    }
+      // Apply subject filter if provided
+      if (filters?.subject && filters.subject !== 'all') {
+        query = query.contains('preferred_subjects', [filters.subject]);
+      }
 
-    return {
-      students: studentDetails,
-      totalCount: count || studentDetails.length,
-      pageCount: Math.ceil((count || studentDetails.length) / pageSize)
-    };
+      // Apply teacher filter if provided
+      if (filters?.teacherId && filters.teacherId !== 'all') {
+        query = query.contains('preferred_teachers', [filters.teacherId]);
+      }
+
+      // Apply pagination
+      query = query.range((page - 1) * pageSize, page * pageSize - 1);
+
+      const { data: studentsData, error, count } = await query.order('id');
+
+      if (error) {
+        toast({
+          title: "Error fetching students",
+          description: error.message,
+          variant: "destructive",
+        });
+        throw error;
+      }
+
+      // Transform data to match StudentDetail type
+      const studentDetails: StudentDetail[] = [];
+      
+      for (const item of studentsData) {
+        // Get active packs count
+        const { data: packsData } = await supabase
+          .from('session_packs')
+          .select('id')
+          .eq('student_id', item.id)
+          .eq('is_active', true);
+        
+        // Get enrolled courses
+        const { data: enrollmentsData } = await supabase
+          .from('enrollments')
+          .select(`
+            course_id,
+            courses(name)
+          `)
+          .eq('student_id', item.id)
+          .in('status', ['active', 'on_hold']);
+
+        // Get assigned teacher if they have a primary preferred teacher
+        let teacherName = undefined;
+        if (item.preferred_teachers && item.preferred_teachers.length > 0) {
+          const { data: teacherData } = await supabase
+            .from('profiles')
+            .select('name')
+            .eq('id', item.preferred_teachers[0])
+            .single();
+          
+          teacherName = teacherData?.name;
+        }
+
+        studentDetails.push({
+          id: item.id,
+          name: item.profiles.name,
+          email: item.profiles.email,
+          preferredSubjects: item.preferred_subjects,
+          preferredTeachers: item.preferred_teachers,
+          notes: item.notes,
+          createdAt: item.profiles.created_at ? new Date(item.profiles.created_at) : undefined,
+          assignedTeacherName: teacherName,
+          activePacks: packsData?.length || 0,
+          enrolledCourses: enrollmentsData?.map(e => e.courses?.name).filter(Boolean) || [],
+          isActive: true // Assuming all users are active by default
+        });
+      }
+
+      return {
+        students: studentDetails,
+        totalCount: count || studentDetails.length,
+        pageCount: Math.ceil((count || studentDetails.length) / pageSize)
+      };
+    } catch (error) {
+      console.error("Error in fetchStudents:", error);
+      throw error;
+    }
   };
 
   const { data, isLoading, error, refetch } = useQuery({

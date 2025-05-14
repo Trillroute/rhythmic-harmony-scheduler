@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -164,7 +165,7 @@ const StudentManagement: React.FC = () => {
                 <SelectContent>
                   <SelectGroup>
                     <SelectLabel>Subjects</SelectLabel>
-                    <SelectItem value="">All Subjects</SelectItem>
+                    <SelectItem value="all">All Subjects</SelectItem>
                     <SelectItem value="Guitar">Guitar</SelectItem>
                     <SelectItem value="Piano">Piano</SelectItem>
                     <SelectItem value="Drums">Drums</SelectItem>
@@ -181,7 +182,7 @@ const StudentManagement: React.FC = () => {
                 <SelectContent>
                   <SelectGroup>
                     <SelectLabel>Teachers</SelectLabel>
-                    <SelectItem value="">All Teachers</SelectItem>
+                    <SelectItem value="all">All Teachers</SelectItem>
                     {Array.isArray(teachers) && teachers.map(teacher => (
                       <SelectItem key={teacher.id} value={teacher.id}>
                         {teacher.name}
