@@ -31,13 +31,13 @@ export function useReports() {
     const total = present + absent + cancelledByStudent + cancelledByTeacher + noShow;
     const cancelled = cancelledByStudent + cancelledByTeacher;
     
-    // Create additional data formats for backward compatibility
-    const distribution = [
-      { status: 'Present', count: present },
-      { status: 'Absent', count: absent },
-      { status: 'Cancelled', count: cancelled },
-      { status: 'No Show', count: noShow },
-    ];
+    // Create distribution object
+    const distribution = {
+      present,
+      absent,
+      cancelled,
+      noShow
+    };
     
     // Create time series data
     const chartData = [
@@ -70,13 +70,47 @@ export function useReports() {
       
     if (error) throw error;
     
-    // Transform the data for the chart
-    return data?.map(item => ({
-      subject: item.subject,
-      count: Number(item.count),
-      name: item.subject, // Add for compatibility
-      value: Number(item.count) // Add for compatibility
-    })) || [];
+    // Transform to structured SubjectDistributionData
+    const result: SubjectDistributionData = {
+      Guitar: 0,
+      Piano: 0,
+      Drums: 0,
+      Ukulele: 0,
+      Vocal: 0,
+      chartData: {
+        labels: [],
+        data: []
+      }
+    };
+    
+    // Process the data
+    (data || []).forEach((item, index) => {
+      const subject = item.subject;
+      const count = Number(item.count);
+      
+      // Add to structured format
+      if (subject in result) {
+        result[subject] = count;
+      }
+      
+      // Add to array-like format for backward compatibility
+      result[index] = {
+        subject,
+        count,
+        name: subject,
+        value: count
+      };
+    });
+    
+    // Prepare chart data
+    result.chartData = {
+      labels: Object.keys(data || {}).map(i => data[i].subject),
+      data: Object.keys(data || {}).map(i => Number(data[i].count))
+    };
+    
+    result.length = data?.length || 0;
+    
+    return result;
   };
   
   const generateSessionTypeReport = async (period: ReportPeriod): Promise<SessionTypeData> => {
@@ -90,29 +124,39 @@ export function useReports() {
       
     if (error) throw error;
     
-    // Group by session type
-    const sessionTypeMap = new Map();
+    // Transform to structured SessionTypeData
+    const result: SessionTypeData = {
+      Solo: { type: 'Solo', count: 0, subjects: {} },
+      Duo: { type: 'Duo', count: 0, subjects: {} },
+      Focus: { type: 'Focus', count: 0, subjects: {} }
+    };
     
-    data?.forEach(item => {
+    // Process the data
+    data?.forEach((item, index) => {
       const sessionType = item.session_type;
       const subject = item.subject;
       const count = Number(item.count);
       
-      if (!sessionTypeMap.has(sessionType)) {
-        sessionTypeMap.set(sessionType, {
-          sessionType,
-          type: sessionType, // Add for compatibility
-          count: 0,
-          subjects: []
-        });
+      // Add to structured format
+      if (sessionType in result) {
+        result[sessionType].count += count;
+        if (typeof result[sessionType].subjects === 'object') {
+          const subjects = result[sessionType].subjects as Record<string, number>;
+          subjects[subject] = count;
+        }
       }
       
-      const typeData = sessionTypeMap.get(sessionType);
-      typeData.count += count;
-      typeData.subjects.push({ subject, count });
+      // Add to array-like format for backward compatibility
+      result[index] = {
+        type: sessionType,
+        count,
+        subjects: {}
+      };
     });
     
-    return Array.from(sessionTypeMap.values());
+    result.length = data?.length || 0;
+    
+    return result;
   };
   
   const generateSessionsReport = async (period: ReportPeriod): Promise<SessionsReportData> => {
@@ -127,16 +171,27 @@ export function useReports() {
     if (error) throw error;
     
     // Format dates and counts for display
-    const result = data?.map(item => ({
+    const reportData = data?.map(item => ({
       date: item.month_name, 
       count: Number(item.count)
     })) || [];
     
     // Also create the months and counts arrays for compatibility
-    const months = result.map(item => item.date);
-    const counts = result.map(item => item.count);
+    const months = reportData.map(item => item.date);
+    const counts = reportData.map(item => item.count);
     
-    return { months, counts };
+    // Calculate totals
+    const total = counts.reduce((sum, count) => sum + count, 0);
+    
+    return {
+      total,
+      scheduled: 0,  // These would need to be calculated from actual status data
+      completed: 0,
+      cancelled: 0,
+      data: reportData,
+      months,
+      counts
+    };
   };
   
   const generateStudentProgressReport = async (period: ReportPeriod): Promise<StudentProgressData> => {
@@ -152,24 +207,31 @@ export function useReports() {
     if (error) throw error;
     
     // Transform the data
-    return data?.map(item => ({
+    const students = data?.map(item => ({
+      studentId: item.student_id,
+      studentName: item.student_name || 'Unknown Student',
+      completionPercentage: item.completion_percentage || 0,
       student: {
         id: item.student_id,
-        name: item.student_name || 'Unknown Student',
+        name: item.student_name || 'Unknown Student'
       },
       progress: {
-        id: item.student_id, // Use student_id as fallback
-        courseName: "Course", // Use placeholder
-        instrument: "Instrument", // Use placeholder
+        id: item.student_id,
+        courseName: "Course",
+        instrument: "Instrument",
         completionPercentage: item.completion_percentage || 0
-      },
-      // Also set flat properties for backward compatibility
-      id: item.student_id,
-      studentName: item.student_name,
-      courseName: "Course", 
-      instrument: "Instrument",
-      completionPercentage: item.completion_percentage || 0
+      }
     })) || [];
+    
+    // Calculate average completion
+    const averageCompletion = students.length > 0
+      ? Math.round(students.reduce((sum, student) => sum + student.completionPercentage, 0) / students.length)
+      : 0;
+    
+    return { 
+      students,
+      averageCompletion
+    };
   };
 
   return {

@@ -19,13 +19,6 @@ export const useSubjectDistributionReport = () => {
 
         if (sessionsError) throw new Error(sessionsError.message);
 
-        // Fetch subjects data from students preferences
-        const { data: studentsData, error: studentsError } = await supabase
-          .from('students')
-          .select('preferred_subjects');
-
-        if (studentsError) throw new Error(studentsError.message);
-
         // Process sessions data
         const sessionsBySubject = sessionsData.reduce((acc: Record<string, number>, session: any) => {
           const subject = session.subject;
@@ -33,29 +26,35 @@ export const useSubjectDistributionReport = () => {
           return acc;
         }, {});
 
-        // Process students data
-        const studentsBySubject = studentsData.reduce((acc: Record<string, number>, student: any) => {
-          if (student.preferred_subjects && Array.isArray(student.preferred_subjects)) {
-            student.preferred_subjects.forEach((subject: string) => {
-              acc[subject] = (acc[subject] || 0) + 1;
-            });
+        // Convert to array format
+        const result: SubjectDistributionData = {
+          Guitar: sessionsBySubject['Guitar'] || 0,
+          Piano: sessionsBySubject['Piano'] || 0,
+          Drums: sessionsBySubject['Drums'] || 0,
+          Ukulele: sessionsBySubject['Ukulele'] || 0,
+          Vocal: sessionsBySubject['Vocal'] || 0,
+          chartData: {
+            labels: Object.keys(sessionsBySubject),
+            data: Object.values(sessionsBySubject)
           }
-          return acc;
-        }, {});
-
-        // Combine data
-        const allSubjects = [...new Set([...Object.keys(sessionsBySubject), ...Object.keys(studentsBySubject)])];
-
-        const subjectData = allSubjects.map(subject => {
-          return {
-            subject: subject,
-            count: sessionsBySubject[subject] || 0,
-            name: subject, // Also include name to match usage in utils
-            value: sessionsBySubject[subject] || 0 // Also include value to match usage in utils
+        };
+        
+        // Add array-like properties for backward compatibility
+        const subjectItems = Object.keys(sessionsBySubject).map((subject, index) => {
+          const count = sessionsBySubject[subject];
+          const item = {
+            subject,
+            count,
+            name: subject,
+            value: count
           };
+          result[index] = item;
+          return item;
         });
-
-        return subjectData;
+        
+        result.length = subjectItems.length;
+        
+        return result;
       } catch (error) {
         console.error("Error fetching subject distribution data:", error);
         throw error;

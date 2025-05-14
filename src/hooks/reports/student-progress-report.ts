@@ -1,7 +1,7 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { StudentProgressData } from "./types";
+import { StudentProgressData, StudentProgressItem } from "./types";
 
 /**
  * Custom hook to fetch student progress data
@@ -34,7 +34,7 @@ export const useStudentProgressReport = () => {
         if (enrollmentError) throw new Error(enrollmentError.message);
 
         // Transform data to expected format
-        const progressData: StudentProgressData = enrollments?.map(enrollment => {
+        const students: StudentProgressItem[] = enrollments?.map(enrollment => {
           // Safely access student name
           const studentName = enrollment.students && 
                              enrollment.students.profiles && 
@@ -44,6 +44,9 @@ export const useStudentProgressReport = () => {
                              : "Unknown";
 
           return {
+            studentId: enrollment.student_id,
+            studentName,
+            completionPercentage: enrollment.completion_percentage,
             student: {
               id: enrollment.student_id,
               name: studentName
@@ -53,16 +56,19 @@ export const useStudentProgressReport = () => {
               courseName: enrollment.courses?.name || "Unknown Course",
               instrument: enrollment.courses?.instrument || "Unknown",
               completionPercentage: enrollment.completion_percentage
-            },
-            // Also set flat properties to match usage in utils
-            id: enrollment.id,
-            courseName: enrollment.courses?.name || "Unknown Course",
-            instrument: enrollment.courses?.instrument || "Unknown",
-            completionPercentage: enrollment.completion_percentage
+            }
           };
         }) || [];
 
-        return progressData;
+        // Calculate average completion percentage
+        const averageCompletion = students.length > 0
+          ? students.reduce((sum, student) => sum + student.completionPercentage, 0) / students.length
+          : 0;
+
+        return {
+          students,
+          averageCompletion: Math.round(averageCompletion)
+        };
       } catch (error) {
         console.error("Error fetching student progress data:", error);
         throw error;

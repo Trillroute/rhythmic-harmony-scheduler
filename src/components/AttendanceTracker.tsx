@@ -20,7 +20,7 @@ import {
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { useFetchSessions } from '@/hooks/sessions/use-fetch-sessions';
-import { useUpdateSessionStatus } from '@/hooks/sessions/use-update-session-status';
+import { useUpdateSessionStatus } from '@/hooks/use-update-session-status';
 import { AttendanceStatus, Session } from '@/lib/types';
 import { toast } from 'sonner';
 import { DateRangePicker } from '@/components/ui/date-range-picker';
@@ -36,19 +36,19 @@ const AttendanceTracker = () => {
   
   const [statusFilter, setStatusFilter] = useState<AttendanceStatus | undefined>();
   
-  const { data, isLoading, error, refetch } = useFetchSessions({
+  const { data: sessionsData, isLoading, error, refetch } = useFetchSessions({
     startDate: dateRange.from,
     endDate: dateRange.to,
     status: statusFilter ? [statusFilter] : undefined
   });
   
-  const updateSessionStatusMutation = useUpdateSessionStatus();
+  const updateSessionStatusMutation = useUpdateSessionStatus(["sessions", "student-sessions"]);
   
-  const handleMarkAttendance = async (session: Session, status: AttendanceStatus) => {
+  const handleMarkAttendance = async (session: any, status: AttendanceStatus) => {
     try {
-      await updateSessionStatusMutation.mutateAsync({
+      await updateSessionStatusMutation.updateSessionStatus({
         sessionId: session.id,
-        newStatus: status
+        status: status
       });
       
       toast.success(`Session marked as ${status}`);
@@ -79,7 +79,7 @@ const AttendanceTracker = () => {
   }
   
   // Extract sessions from the result properly
-  const sessions = data ? (Array.isArray(data) ? data : data.data || []) : [];
+  const sessions = sessionsData ? (Array.isArray(sessionsData) ? sessionsData : []) : [];
 
   return (
     <ErrorBoundary>
@@ -101,7 +101,7 @@ const AttendanceTracker = () => {
               
               <Select 
                 value={statusFilter} 
-                onValueChange={(value) => setStatusFilter(value as AttendanceStatus || undefined)}
+                onValueChange={(value: any) => setStatusFilter(value as AttendanceStatus || undefined)}
               >
                 <SelectTrigger className="w-[180px]">
                   <SelectValue placeholder="Filter by status" />
@@ -152,7 +152,7 @@ const AttendanceTracker = () => {
                         <TableCell>
                           {session.studentIds && session.studentIds.length > 0 ? (
                             <div className="space-y-1">
-                              {session.studentIds.map((studentId, index) => {
+                              {session.studentIds.map((studentId: string, index: number) => {
                                 // Safely display student names if available
                                 const studentName = session.studentNames && 
                                                    Array.isArray(session.studentNames) && 

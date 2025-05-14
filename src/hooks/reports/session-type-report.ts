@@ -1,6 +1,6 @@
 
 import { useState } from "react";
-import { SessionTypeData, ReportPeriod } from "./types";
+import { SessionTypeData, ReportPeriod, SessionTypeItem } from "./types";
 import { supabase } from "@/integrations/supabase/client";
 import { getDateRangeFromPeriod } from "./date-utils";
 import { assertStringArray } from "@/lib/type-utils";
@@ -8,7 +8,11 @@ import { assertStringArray } from "@/lib/type-utils";
 export function useSessionTypeReport() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [data, setData] = useState<SessionTypeData>([]);
+  const [data, setData] = useState<SessionTypeData>({
+    Solo: { type: 'Solo', count: 0, subjects: {} },
+    Duo: { type: 'Duo', count: 0, subjects: {} },
+    Focus: { type: 'Focus', count: 0, subjects: {} },
+  });
 
   const fetchData = async (period: ReportPeriod) => {
     setIsLoading(true);
@@ -44,26 +48,31 @@ export function useSessionTypeReport() {
       });
       
       // Build distribution data for chart
-      const distribution: SessionTypeData = [];
+      const distribution: Record<string, SessionTypeItem> = {
+        Solo: { type: 'Solo', count: 0, subjects: {} },
+        Duo: { type: 'Duo', count: 0, subjects: {} },
+        Focus: { type: 'Focus', count: 0, subjects: {} }
+      };
       
       typeSubjectMap.forEach((subjectMap, type) => {
         let typeTotal = 0;
-        const subjects = [] as { subject: string; count: number }[];
+        const subjects: Record<string, number> = {};
         
         subjectMap.forEach((count, subject) => {
           typeTotal += count;
-          subjects.push({ subject, count });
+          subjects[subject] = count;
         });
         
-        distribution.push({
-          sessionType: type,
-          type, // Added to match the type
-          count: typeTotal,
-          subjects
-        });
+        if (type in distribution) {
+          distribution[type] = {
+            type,
+            count: typeTotal,
+            subjects
+          };
+        }
       });
       
-      setData(distribution);
+      setData(distribution as SessionTypeData);
     } catch (err: any) {
       setError(err.message);
       console.error("Error fetching session type data:", err);

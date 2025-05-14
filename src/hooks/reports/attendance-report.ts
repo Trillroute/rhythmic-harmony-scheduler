@@ -15,6 +15,13 @@ export function useAttendanceReport() {
     absent: 0,
     cancelled: 0,
     noShow: 0,
+    distribution: {
+      present: 0,
+      absent: 0,
+      cancelled: 0,
+      noShow: 0
+    },
+    chartData: [],
     categories: [],
     data: [],
   });
@@ -61,12 +68,6 @@ export function useAttendanceReport() {
       const absentCount = statusCounts.get("Absent") || 0;
       const noShowCount = statusCounts.get("No Show") || 0;
       
-      // Build distribution data for chart
-      const distribution = Array.from(statusCounts.entries()).map(([status, count]) => ({
-        status,
-        count
-      }));
-
       // Prepare the categories and data arrays for the chart
       const categories = ["Present", "Absent", "Cancelled", "No Show"];
       const chartData = [presentCount, absentCount, cancelledCount, noShowCount];
@@ -101,7 +102,12 @@ export function useAttendanceReport() {
       setData({
         categories,
         data: chartData,
-        distribution,
+        distribution: {
+          present: presentCount,
+          absent: absentCount,
+          cancelled: cancelledCount,
+          noShow: noShowCount
+        },
         chartData: chartDataByDay,
         total: totalCount || 0,
         present: presentCount,

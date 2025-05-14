@@ -44,12 +44,47 @@ export function StatisticsCards({
   // Get most popular subject
   let popularSubject = "N/A";
   let popularSubjectCount = 0;
-  if (subjects && subjects.length > 0) {
-    const mostPopular = subjects.reduce((prev, current) => 
-      (current.count > prev.count) ? current : prev
-    );
-    popularSubject = mostPopular.subject;
-    popularSubjectCount = mostPopular.count;
+  if (subjects) {
+    // Find the subject with the highest count
+    const subjectKeys = ['Guitar', 'Piano', 'Drums', 'Ukulele', 'Vocal'];
+    let highestSubject = '';
+    let highestCount = 0;
+    
+    subjectKeys.forEach(key => {
+      const count = subjects[key as keyof SubjectDistributionData] as number || 0;
+      if (count > highestCount) {
+        highestCount = count;
+        highestSubject = key;
+      }
+    });
+    
+    popularSubject = highestSubject;
+    popularSubjectCount = highestCount;
+  }
+
+  // Calculate attendance rate safely
+  const attendanceRate = attendance && attendance.total > 0 
+    ? Math.round((attendance.present / attendance.total) * 100) 
+    : 0;
+
+  // Get most common session type
+  let commonSessionType = "N/A";
+  let commonSessionTypeCount = 0;
+  if (sessionTypes) {
+    const sessionTypeKeys = ['Solo', 'Duo', 'Focus'];
+    let highestType = '';
+    let highestCount = 0;
+    
+    sessionTypeKeys.forEach(key => {
+      const item = sessionTypes[key as keyof SessionTypeData] as SessionTypeItem;
+      if (item && item.count > highestCount) {
+        highestCount = item.count;
+        highestType = key;
+      }
+    });
+    
+    commonSessionType = highestType;
+    commonSessionTypeCount = highestCount;
   }
 
   return (
@@ -65,10 +100,10 @@ export function StatisticsCards({
 
       <Metric
         title="Attendance Rate"
-        value={attendance ? `${Math.round((attendance.present / (attendance.total || 1)) * 100)}%` : "N/A"}
+        value={`${attendanceRate}%`}
         description="Average attendance rate"
         icon={<UsersIcon className="h-4 w-4" />}
-        trend={attendance && attendance.total > 0 ? "neutral" : "neutral"}
+        trend={attendanceRate > 75 ? "up" : attendanceRate > 50 ? "neutral" : "down"}
         trendValue={attendance ? `${attendance.present} of ${attendance.total} sessions` : "No data"}
       />
 
@@ -83,11 +118,11 @@ export function StatisticsCards({
 
       <Metric
         title="Session Type"
-        value={sessionTypes && sessionTypes.length > 0 ? sessionTypes[0].sessionType : "N/A"}
+        value={commonSessionType}
         description="Most common session type"
         icon={<ClockIcon className="h-4 w-4" />}
-        trend={sessionTypes && sessionTypes.length > 0 ? "neutral" : "neutral"}
-        trendValue={sessionTypes && sessionTypes.length > 0 ? `${sessionTypes[0].count} sessions` : "No data"}
+        trend={commonSessionTypeCount > 0 ? "up" : "neutral"}
+        trendValue={commonSessionTypeCount > 0 ? `${commonSessionTypeCount} sessions` : "No data"}
       />
     </div>
   );

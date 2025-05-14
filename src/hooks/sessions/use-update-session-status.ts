@@ -3,6 +3,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { AttendanceStatus, Session } from "@/lib/types";
 import { toast } from "sonner";
+import { assertAttendanceStatus, assertStringArray } from "@/lib/type-utils";
 
 interface UpdateStatusParams {
   sessionId: string;
@@ -18,7 +19,10 @@ export const useUpdateSessionStatus = () => {
       // Update the session status
       const { data, error } = await supabase
         .from("sessions")
-        .update({ status: String(newStatus), notes: notes })
+        .update({ 
+          status: assertAttendanceStatus(String(newStatus)),
+          notes: notes 
+        })
         .eq("id", sessionId)
         .select()
         .single();
@@ -28,17 +32,22 @@ export const useUpdateSessionStatus = () => {
       }
 
       // Log the attendance event
-      const { error: attendanceError } = await supabase
-        .from("attendance_events")
-        .insert({
-          session_id: sessionId,
-          status: String(newStatus),
-          marked_by_user_id: (await supabase.auth.getUser()).data.user?.id,
-          notes: notes || `Status updated to ${newStatus}`,
-        });
+      const user = await supabase.auth.getUser();
+      const userId = user.data.user?.id;
+        
+      if (userId) {
+        const { error: attendanceError } = await supabase
+          .from("attendance_events")
+          .insert({
+            session_id: sessionId,
+            status: assertAttendanceStatus(String(newStatus)),
+            marked_by_user_id: userId,
+            notes: notes || `Status updated to ${newStatus}`,
+          });
 
-      if (attendanceError) {
-        console.error("Error recording attendance event:", attendanceError);
+        if (attendanceError) {
+          console.error("Error recording attendance event:", attendanceError);
+        }
       }
 
       return data as Session;

@@ -25,76 +25,81 @@ export interface AttendanceData {
   cancelled: number;
   noShow: number;
   distribution: AttendanceDistribution;
-  chartData: AttendanceChartData;
+  chartData: { date: string; present: number; total: number }[];
   categories: string[]; // Added for backward compatibility
   data: number[]; // Added for backward compatibility
 }
 
 export interface SubjectDistributionData {
-  Guitar: number;
-  Piano: number;
-  Drums: number;
-  Ukulele: number;
-  Vocal: number;
-  chartData: {
+  [index: number]: { subject: string; count: number; name: string; value: number };
+  length?: number;
+  map?: (callback: any) => any;
+  reduce?: (callback: any, initialValue: any) => any;
+  Guitar?: number;
+  Piano?: number;
+  Drums?: number;
+  Ukulele?: number;
+  Vocal?: number;
+  chartData?: {
     labels: string[];
     data: number[];
   };
-  length?: number; // Added for backward compatibility
-  reduce?: (callback: any, initialValue: any) => any; // Added for backward compatibility
-  map?: (callback: any) => any; // Added for backward compatibility
-  [index: number]: any; // Added for backward compatibility
 }
 
 export interface SessionTypeSubjects {
-  Guitar: number;
-  Piano: number;
-  Drums: number;
-  Ukulele: number;
-  Vocal: number;
+  [subject: string]: number;
 }
 
 export interface SessionTypeItem {
   type: string;
   count: number;
-  subjects: SessionTypeSubjects;
+  subjects: SessionTypeSubjects | { subject: string; count: number }[];
 }
 
 export interface SessionTypeData {
-  Solo: SessionTypeItem;
-  Duo: SessionTypeItem;
-  Focus: SessionTypeItem;
-  [index: number]: any; // Added for backward compatibility
-  length?: number; // Added for backward compatibility
-  map?: (callback: any) => any; // Added for backward compatibility
-  push?: (item: any) => number; // Added for backward compatibility
+  [index: number]: SessionTypeItem;
+  length?: number;
+  map?: (callback: any) => any;
+  push?: (item: any) => number;
+  Solo?: SessionTypeItem;
+  Duo?: SessionTypeItem;
+  Focus?: SessionTypeItem;
 }
 
 export interface SessionsDataItem {
   date: string;
-  label: string;
   count: number;
 }
 
 export interface SessionsReportData {
-  total: number;
-  scheduled: number;
-  completed: number;
-  cancelled: number;
-  data: SessionsDataItem[];
-  months?: string[]; // Added for backward compatibility
-  counts?: number[]; // Added for backward compatibility
+  total?: number;
+  scheduled?: number;
+  completed?: number;
+  cancelled?: number;
+  data?: SessionsDataItem[];
+  months?: string[]; // For backward compatibility
+  counts?: number[]; // For backward compatibility
 }
 
 export interface StudentProgressItem {
-  studentId: string;
-  studentName: string;
+  studentId?: string;
+  studentName?: string;
   completionPercentage: number;
+  student?: {
+    id: string;
+    name: string;
+  };
+  progress?: {
+    id: string;
+    courseName: string;
+    instrument: string;
+    completionPercentage: number;
+  };
 }
 
 export interface StudentProgressData {
-  averageCompletion: number;
-  students: StudentProgressItem[];
-  map?: (callback: any) => any; // Added for backward compatibility
-  [index: number]: any; // Added for backward compatibility
+  averageCompletion?: number;
+  students?: StudentProgressItem[];
+  [index: number]: any;
+  map?: (callback: any) => any;
 }
