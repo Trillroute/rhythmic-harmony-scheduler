@@ -4,12 +4,28 @@ import { AuthProvider } from '@/contexts/AuthContext';
 import { Toaster } from '@/components/ui/toaster';
 import Router from './routes';
 import { ErrorBoundary } from './components/ErrorBoundary';
+import { useNavigate } from 'react-router-dom';
+
+// TEMPORARY DIAGNOSTIC TEST COMPONENT
+const DiagnosticTest = () => {
+  console.log('DiagnosticTest component rendered');
+  return <div className="p-8 bg-green-100">App Loaded - Diagnostic Test</div>;
+};
 
 // Main App component
 function App() {
+  console.log('App component mounting...');
+  const navigate = useNavigate();
+  
   // Global diagnostic logging
   useEffect(() => {
-    console.log('App component mounted');
+    console.log('App component mounted - useEffect triggered');
+    
+    // Attempt to force a route render
+    setTimeout(() => {
+      console.log('Attempting to navigate to /dashboard');
+      // navigate('/dashboard'); // Uncomment if needed
+    }, 1000);
     
     // Log any unhandled promise rejections
     const unhandledRejection = (event: PromiseRejectionEvent) => {
@@ -19,9 +35,10 @@ function App() {
     window.addEventListener('unhandledrejection', unhandledRejection);
     
     return () => {
+      console.log('App component unmounting');
       window.removeEventListener('unhandledrejection', unhandledRejection);
     };
-  }, []);
+  }, [navigate]);
 
   // Fallback UI for error boundary
   const fallbackUI = (
@@ -44,18 +61,38 @@ function App() {
     </div>
   );
 
-  // TEMPORARY DIAGNOSTIC RENDERING - Uncomment this to test if App renders at all
-  // return <div className="p-8">App Loaded - Diagnostic Test</div>;
+  console.log('App rendering... attempting two render paths');
 
+  // OPTION 1: Render just the diagnostic component to test basic rendering
+  // return <DiagnosticTest />;
+  
+  // OPTION 2: Render with AuthProvider commented out
   return (
     <ErrorBoundary fallback={fallbackUI}>
+      {/* Comment out AuthProvider to test if it's blocking renders */}
+      {/* <AuthProvider> */}
+        <div className="min-h-screen">
+          <div className="p-8 bg-yellow-100 mb-4">
+            <h2 className="text-xl font-bold">Diagnostic Header</h2>
+            <p>If you can see this, basic rendering is working</p>
+          </div>
+          {/* Use Router component that defines all routes */}
+          <Router />
+          <Toaster />
+        </div>
+      {/* </AuthProvider> */}
+    </ErrorBoundary>
+  );
+  
+  // OPTION 3: Original rendering with AuthProvider (commented out for testing)
+  /* return (
+    <ErrorBoundary fallback={fallbackUI}>
       <AuthProvider>
-        {/* Use Router component that defines all routes */}
         <Router />
         <Toaster />
       </AuthProvider>
     </ErrorBoundary>
-  );
+  ); */
 }
 
 export default App;

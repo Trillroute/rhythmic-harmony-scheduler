@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { Suspense } from 'react';
 import { createRoot } from 'react-dom/client';
 import { BrowserRouter } from 'react-router-dom';
 import { Toaster } from "@/components/ui/toaster";
@@ -46,6 +46,34 @@ if (!rootElement) {
   throw new Error('Root element not found');
 }
 
+// Fallback component for Suspense
+const SuspenseFallback = () => (
+  <div className="flex items-center justify-center min-h-screen">
+    <div className="flex flex-col items-center gap-4">
+      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+      <p className="text-muted-foreground">Loading app from Suspense...</p>
+    </div>
+  </div>
+);
+
+// Global error fallback
+const GlobalErrorFallback = () => (
+  <div className="flex flex-col items-center justify-center h-screen bg-background p-4">
+    <div className="w-full max-w-md p-6 bg-card rounded-lg shadow-lg border border-border">
+      <h1 className="text-2xl font-bold mb-4 text-foreground">Critical Error</h1>
+      <p className="text-muted-foreground mb-6">
+        The application encountered a critical error during initialization and could not start.
+      </p>
+      <button
+        className="w-full px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90"
+        onClick={() => window.location.reload()}
+      >
+        Reload Application
+      </button>
+    </div>
+  </div>
+);
+
 console.log('Creating React root');
 const root = createRoot(rootElement);
 
@@ -53,25 +81,12 @@ const root = createRoot(rootElement);
 console.log('Rendering React application');
 root.render(
   <React.StrictMode>
-    <ErrorBoundary fallback={
-      <div className="flex flex-col items-center justify-center h-screen bg-background p-4">
-        <div className="w-full max-w-md p-6 bg-card rounded-lg shadow-lg border border-border">
-          <h1 className="text-2xl font-bold mb-4 text-foreground">Application Error</h1>
-          <p className="text-muted-foreground mb-6">
-            The application encountered a critical error and could not start. Please try reloading the page.
-          </p>
-          <button
-            className="w-full px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90"
-            onClick={() => window.location.reload()}
-          >
-            Reload Application
-          </button>
-        </div>
-      </div>
-    }>
+    <ErrorBoundary fallback={<GlobalErrorFallback />}>
       <BrowserRouter>
         <QueryClientProvider client={queryClient}>
-          <App />
+          <Suspense fallback={<SuspenseFallback />}>
+            <App />
+          </Suspense>
           {/* Remove this Toaster as it's already included in App.tsx */}
           {/* <Toaster /> */}
         </QueryClientProvider>

@@ -1,6 +1,6 @@
 
 import React, { Suspense, useEffect } from 'react';
-import { Routes, Route, Navigate } from 'react-router-dom';
+import { Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import NotFound from '@/pages/NotFound';
 import Index from '@/pages/Index';
 import Layout from '@/components/Layout';
@@ -11,6 +11,8 @@ import StudentRoutes from './routes/studentRoutes';
 import PublicRoutes from './routes/publicRoutes';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { toast } from '@/hooks/use-toast';
+
+console.log('Routes.tsx module loaded');
 
 // Loading fallback component
 const LoadingFallback = () => {
@@ -80,6 +82,7 @@ const DiagnosticComponent = () => {
   console.log('Rendering DiagnosticComponent');
   
   useEffect(() => {
+    console.log('DiagnosticComponent mounted');
     toast({
       title: 'Diagnostic Toast',
       description: 'This toast confirms the toast system is working'
@@ -94,8 +97,42 @@ const DiagnosticComponent = () => {
   );
 };
 
+// Temporary emergency fallback dashboard
+const EmergencyDashboard = () => {
+  console.log('Rendering EmergencyDashboard');
+  return (
+    <div className="p-8">
+      <h1 className="text-2xl font-bold mb-4">Emergency Dashboard</h1>
+      <p className="mb-4">This is a fallback dashboard shown when normal routing fails.</p>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
+        <div className="p-4 border rounded shadow bg-white">
+          <h2 className="font-bold">Quick Navigation</h2>
+          <ul className="mt-2 space-y-1">
+            <li><a href="/login" className="text-blue-600 hover:underline">Login Page</a></li>
+            <li><a href="/signup" className="text-blue-600 hover:underline">Signup Page</a></li>
+            <li><a href="/" className="text-blue-600 hover:underline">Home Page</a></li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// Force navigate component (temporary debug measure)
+const ForceNavigate = () => {
+  const navigate = useNavigate();
+  
+  useEffect(() => {
+    console.log('ForceNavigate attempting redirect to /dashboard');
+    setTimeout(() => navigate('/dashboard'), 500);
+  }, [navigate]);
+  
+  return <div>Redirecting...</div>;
+};
+
 // Use Routes directly instead of createBrowserRouter
 export default function Router() {
+  console.log('Router function executing');
   const { user, userRole, isLoading } = useAuth();
   
   useEffect(() => {
@@ -107,20 +144,29 @@ export default function Router() {
     });
   }, [user, userRole, isLoading]);
   
-  // TEMPORARY DIAGNOSTIC RENDERING - Uncomment to test if Router renders
+  // EMERGENCY RENDERING - Uncomment to test if Router renders at all
   // return <DiagnosticComponent />;
+  
+  // Simple fallback in case auth is failing
+  // return <EmergencyDashboard />;
+  
+  // Force navigate to a known route
+  // return <ForceNavigate />;
   
   if (isLoading) {
     console.log('Router is showing LoadingFallback because isLoading=true');
     return <LoadingFallback />;
   }
   
+  console.log('Router rendering actual routes');
+  
   return (
     <ErrorBoundary fallback={<RouterErrorFallback />}>
       <Suspense fallback={<LoadingFallback />}>
         <Routes>
           {/* Debug route - uncomment to test routing */}
-          {/* <Route path="/debug" element={<DiagnosticComponent />} /> */}
+          <Route path="/debug" element={<DiagnosticComponent />} />
+          <Route path="/emergency" element={<EmergencyDashboard />} />
           
           {/* Public routes */}
           <PublicRoutes />
@@ -142,6 +188,9 @@ export default function Router() {
             {user && userRole === 'admin' && <AdminRoutes userId={user?.id} />}
             {user && userRole === 'teacher' && <TeacherRoutes userId={user?.id} />}
             {user && userRole === 'student' && <StudentRoutes userId={user?.id} />}
+            
+            {/* Dashboard fallback route for emergency testing */}
+            <Route path="dashboard" element={<EmergencyDashboard />} />
             
             {/* Fallback route for unknown paths within the authenticated area */}
             <Route path="*" element={
