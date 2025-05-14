@@ -52,9 +52,9 @@ const ReportingDashboard: React.FC = () => {
       
       <DashboardFilters 
         dateRange={dateRange} 
-        onDateRangeChange={setDateRange} 
+        setDateRange={setDateRange} 
         selectedChart={selectedChart}
-        onChartChange={setSelectedChart}
+        setSelectedChart={setSelectedChart}
       />
       
       <StatisticsCards 
@@ -106,7 +106,7 @@ const ReportingDashboard: React.FC = () => {
               <CardTitle>Student Progress</CardTitle>
             </CardHeader>
             <CardContent>
-              <StudentProgressTable data={reports.studentProgress.data} />
+              <StudentProgressTable data={reports.studentProgress.data?.data || []} />
             </CardContent>
           </Card>
         </div>

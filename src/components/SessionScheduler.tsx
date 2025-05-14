@@ -16,8 +16,13 @@ interface SessionSchedulerProps {
 const SessionScheduler: React.FC<SessionSchedulerProps> = ({ onSuccess }) => {
   const [isLoading, setIsLoading] = useState(false);
   const { sessions } = useSessions();
-  const { teachers, isLoading: teachersLoading } = useTeachers();
-  const { students, isLoading: studentsLoading } = useStudents();
+  const teachersQuery = useTeachers();
+  const studentsQuery = useStudents();
+  
+  const teachers = teachersQuery.data;
+  const students = studentsQuery.data;
+  const teachersLoading = teachersQuery.isLoading;
+  const studentsLoading = studentsQuery.isLoading;
 
   const handleSuccess = (data: any) => {
     toast.success("Session scheduled successfully");

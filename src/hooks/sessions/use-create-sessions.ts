@@ -32,7 +32,7 @@ export function useCreateSessions(queryKey: any[]) {
           date_time: session.dateTime.toISOString(),
           duration: session.duration,
           notes: session.notes || null,
-          status: 'Scheduled', // Using string literal instead of enum for db compatibility
+          status: 'Scheduled' as AttendanceStatus, // Use type assertion
           reschedule_count: 0
         }));
 

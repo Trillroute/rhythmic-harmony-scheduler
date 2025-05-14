@@ -11,10 +11,10 @@ interface AttendanceChartProps {
 
 const AttendanceChart: React.FC<AttendanceChartProps> = ({ data }) => {
   const chartData = [
-    { name: 'Present', value: data.present },
-    { name: 'Absent', value: data.absent },
-    { name: 'Cancelled', value: data.cancelled },
-    { name: 'No Show', value: data.noShow },
+    { name: 'Present', value: data.summary.present },
+    { name: 'Absent', value: data.summary.absent },
+    { name: 'Cancelled', value: data.summary.cancelled },
+    { name: 'No Show', value: data.summary.noShow },
   ];
 
   return (

@@ -49,7 +49,7 @@ const AttendanceTracker: React.FC<AttendanceTrackerProps> = ({ teacherId }) => {
   
   // Fixed error checking
   if (error) {
-    const errorMessage = error ? (typeof error === 'object' && error !== null && 'message' in error ? error.message as string : 'Unknown error') : 'Unknown error';
+    const errorMessage = typeof error === 'object' && error !== null && 'message' in error ? String(error.message) : 'Unknown error';
     return <Alert variant="destructive"><AlertTitle>Error</AlertTitle><AlertDescription>Could not load sessions: {errorMessage}</AlertDescription></Alert>;
   }
   

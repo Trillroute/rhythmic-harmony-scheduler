@@ -2,16 +2,8 @@
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { SessionsProps } from "./types";
-import { transformSession } from "./session-transformers";
-import { 
-  assertSubjectType, 
-  assertSubjectTypeArray, 
-  assertSessionType, 
-  assertSessionTypeArray, 
-  assertLocationType,
-  assertAttendanceStatus,
-  assertAttendanceStatusArray
-} from "@/lib/type-utils";
+import { transformSession, DbSession } from "./session-transformers";
+import { assertAttendanceStatusArray } from "@/lib/type-utils";
 import { SessionWithStudents } from "@/lib/types";
 
 export function useFetchSessions(props?: SessionsProps) {
@@ -63,8 +55,9 @@ export function useFetchSessions(props?: SessionsProps) {
       }
 
       if (props?.status && props.status.length > 0) {
-        const safeStatus = assertAttendanceStatusArray(props.status);
-        query = query.in('status', safeStatus);
+        // Convert to string array for proper RLS handling
+        const statusArray = props.status.map(status => status.toString());
+        query = query.in('status', statusArray);
       }
 
       // Execute query and get data
@@ -80,7 +73,16 @@ export function useFetchSessions(props?: SessionsProps) {
       }
 
       // Transform data to match frontend types
-      const transformedSessions = data.map(session => transformSession(session));
+      const transformedSessions = data.map(session => {
+        // Handle the case where profiles might be an array instead of an object
+        let processedSession: any = { ...session };
+        if (Array.isArray(session.profiles)) {
+          processedSession.profiles = session.profiles.length > 0 ? session.profiles[0] : { name: 'Unknown' };
+        }
+        
+        return transformSession(processedSession as DbSession);
+      });
+      
       setSessions(transformedSessions);
     } catch (err: any) {
       console.error("Error fetching sessions:", err);
