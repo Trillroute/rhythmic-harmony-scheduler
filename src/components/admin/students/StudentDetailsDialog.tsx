@@ -32,8 +32,10 @@ export const StudentDetailsDialog: React.FC<StudentDetailsDialogProps> = ({
   const enrolledCourses = student.enrolledCourses || [];
   const activePacks = student.activePacks || 0;
 
-  // Format dates safely
-  const createdAtStr = student.createdAt ? format(new Date(student.createdAt), 'PPP') : 'Unknown';
+  // Format dates safely - check if createdAt exists and is a valid date
+  const createdAtStr = student.createdAt && student.createdAt instanceof Date
+    ? format(student.createdAt, 'PPP')
+    : 'Unknown';
   
   return (
     <Dialog open={open} onOpenChange={onClose}>

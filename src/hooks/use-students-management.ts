@@ -9,6 +9,7 @@ export interface StudentDetail extends Student {
   activePacks?: number;
   enrolledCourses?: string[];
   isActive?: boolean;
+  createdAt?: Date; // Adding this to fix the type error
 }
 
 export const useStudentsManagement = (filters?: {
@@ -111,7 +112,7 @@ export const useStudentsManagement = (filters?: {
         preferredSubjects: item.preferred_subjects,
         preferredTeachers: item.preferred_teachers,
         notes: item.notes,
-        createdAt: new Date(item.profiles.created_at),
+        createdAt: item.profiles.created_at ? new Date(item.profiles.created_at) : undefined,
         updatedAt: item.profiles.updated_at ? new Date(item.profiles.updated_at) : undefined,
         assignedTeacherName: teacherName,
         activePacks: packsData?.length || 0,
@@ -188,7 +189,7 @@ export const useStudentsManagement = (filters?: {
         description: "Student updated successfully",
       });
     },
-    onError: (error) => {
+    onError: (error: Error) => {
       toast({
         title: "Error updating student",
         description: error.message,
