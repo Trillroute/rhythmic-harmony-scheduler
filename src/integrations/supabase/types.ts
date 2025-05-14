@@ -1159,6 +1159,36 @@ export type Database = {
         }
         Returns: boolean
       }
+      count_sessions_by_month: {
+        Args: { start_date: string; end_date: string }
+        Returns: {
+          month_date: string
+          month_name: string
+          count: number
+        }[]
+      }
+      count_sessions_by_status: {
+        Args: { start_date: string; end_date: string }
+        Returns: {
+          status: string
+          count: number
+        }[]
+      }
+      count_sessions_by_subject: {
+        Args: { start_date: string; end_date: string }
+        Returns: {
+          subject: string
+          count: number
+        }[]
+      }
+      count_sessions_by_type_and_subject: {
+        Args: { start_date: string; end_date: string }
+        Returns: {
+          session_type: string
+          subject: string
+          count: number
+        }[]
+      }
       create_recurring_sessions: {
         Args: {
           teacher_id_param: string
@@ -1173,6 +1203,14 @@ export type Database = {
           student_ids_param: string[]
         }
         Returns: string[]
+      }
+      get_top_student_progress: {
+        Args: { start_date: string; end_date: string; limit_count: number }
+        Returns: {
+          student_id: string
+          student_name: string
+          completion_percentage: number
+        }[]
       }
       get_user_role: {
         Args: Record<PropertyKey, never>

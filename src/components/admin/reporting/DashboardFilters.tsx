@@ -6,6 +6,7 @@ import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrig
 import { format, subDays, startOfMonth, endOfMonth } from "date-fns";
 import { DateRange } from "react-day-picker";
 import { SubjectType, AttendanceStatus } from "@/lib/types";
+import { ReportPeriod } from '@/hooks/reports/types';
 
 interface DashboardFiltersProps {
   dateRange: DateRange;
@@ -14,6 +15,8 @@ interface DashboardFiltersProps {
   setSelectedSubjects: (subjects: SubjectType[]) => void;
   selectedStatuses: AttendanceStatus[];
   setSelectedStatuses: (statuses: AttendanceStatus[]) => void;
+  period?: ReportPeriod;
+  onPeriodChange?: (period: ReportPeriod) => void;
 }
 
 const DashboardFilters = ({
@@ -22,7 +25,9 @@ const DashboardFilters = ({
   selectedSubjects,
   setSelectedSubjects,
   selectedStatuses,
-  setSelectedStatuses
+  setSelectedStatuses,
+  period,
+  onPeriodChange
 }: DashboardFiltersProps) => {
 
   const handleSubjectChange = (value: string) => {
@@ -40,6 +45,12 @@ const DashboardFilters = ({
       setSelectedStatuses(selectedStatuses.filter(status => status !== value));
     } else {
       setSelectedStatuses([...selectedStatuses, value as AttendanceStatus]);
+    }
+  };
+  
+  const handlePeriodChange = (newPeriod: string) => {
+    if (onPeriodChange) {
+      onPeriodChange(newPeriod as ReportPeriod);
     }
   };
   
@@ -88,6 +99,26 @@ const DashboardFilters = ({
             onChange={setDateRange}
           />
         </div>
+        
+        {onPeriodChange && (
+          <div className="w-full md:w-auto">
+            <p className="text-sm font-medium mb-2">Report Period</p>
+            <Select value={period} onValueChange={handlePeriodChange}>
+              <SelectTrigger className="w-[180px]">
+                <SelectValue placeholder="Select period" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectGroup>
+                  <SelectLabel>Time Period</SelectLabel>
+                  <SelectItem value="week">This Week</SelectItem>
+                  <SelectItem value="month">This Month</SelectItem>
+                  <SelectItem value="year">This Year</SelectItem>
+                  <SelectItem value="last30days">Last 30 Days</SelectItem>
+                </SelectGroup>
+              </SelectContent>
+            </Select>
+          </div>
+        )}
         
         <div className="flex gap-2">
           <Button 

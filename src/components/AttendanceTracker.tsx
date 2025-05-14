@@ -21,7 +21,7 @@ import {
 import { format } from 'date-fns';
 import { useFetchSessions } from '@/hooks/sessions/use-fetch-sessions';
 import useUpdateSessionStatus from '@/hooks/sessions/use-update-session-status';
-import { AttendanceStatus, SessionWithStudents } from '@/lib/types';
+import { AttendanceStatus, Session } from '@/lib/types';
 import { toast } from 'sonner';
 import { DateRangePicker } from '@/components/ui/date-range-picker';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -44,7 +44,7 @@ const AttendanceTracker = () => {
   
   const { mutate: updateSessionStatus, isPending } = useUpdateSessionStatus(['sessions']);
   
-  const handleMarkAttendance = async (session: SessionWithStudents, status: AttendanceStatus) => {
+  const handleMarkAttendance = async (session: Session, status: AttendanceStatus) => {
     try {
       await updateSessionStatus({
         sessionId: session.id,

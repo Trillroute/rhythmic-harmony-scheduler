@@ -1,92 +1,78 @@
-
 import React from 'react';
-import { AttendanceData, SessionsReportData, StudentProgressData } from '@/hooks/reports/types';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Users, Calendar, CheckCircle2, BarChart } from 'lucide-react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Metric } from "@/components/ui/metric";
+import { AttendanceData, SessionsReportData, SubjectDistributionData, StudentProgressData } from "@/hooks/reports/types";
 
 interface StatisticsCardsProps {
-  sessionsData?: SessionsReportData;
   attendanceData?: AttendanceData;
+  sessionsData?: SessionsReportData;
+  subjectsData?: SubjectDistributionData;
   studentProgressData?: StudentProgressData;
-  isLoading: boolean;
 }
 
-const StatisticsCards: React.FC<StatisticsCardsProps> = ({
-  sessionsData,
-  attendanceData,
-  studentProgressData,
-  isLoading
-}) => {
+const StatisticsCards = ({ 
+  attendanceData, 
+  sessionsData, 
+  subjectsData, 
+  studentProgressData 
+}: StatisticsCardsProps) => {
   // Calculate total sessions from sessions data
-  const calculateTotalSessions = (): number => {
-    if (!sessionsData) return 0;
-    return sessionsData.reduce((total, item) => total + item.count, 0);
-  };
-
-  // Calculate attendance rate from attendance data
-  const calculateAttendanceRate = (): number => {
-    if (!attendanceData || attendanceData.total === 0) return 0;
-    return Math.round((attendanceData.present / attendanceData.total) * 100);
-  };
-
-  // Calculate active students from student progress data
-  const calculateActiveStudents = (): number => {
-    if (!studentProgressData) return 0;
-    return studentProgressData.length;
-  };
+  const totalSessions = sessionsData ? sessionsData.counts.reduce((acc, curr) => acc + curr, 0) : 0;
+  
+  // Calculate attendance rate
+  const attendanceRate = attendanceData && attendanceData.data[0] > 0 
+    ? Math.round((attendanceData.data[0] / attendanceData.data.reduce((a, b) => a + b, 0)) * 100)
+    : 0;
+  
+  // Find most popular subject
+  const mostPopularSubject = subjectsData && subjectsData.length > 0
+    ? subjectsData.reduce((prev, current) => (prev.value > current.value) ? prev : current)
+    : { name: 'N/A', value: 0 };
+    
+  // Calculate average student progress
+  const averageProgress = studentProgressData && studentProgressData.length > 0
+    ? Math.round(studentProgressData.reduce((acc, curr) => acc + curr.progress, 0) / studentProgressData.length)
+    : 0;
 
   return (
-    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+    <div className="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-4">
       <Card>
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">Total Sessions</CardTitle>
-          <Calendar className="h-4 w-4 text-muted-foreground" />
+        <CardHeader>
+          <CardTitle>Total Sessions</CardTitle>
+          <CardDescription>Total number of sessions</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="text-2xl font-bold">
-            {isLoading ? "..." : calculateTotalSessions()}
-          </div>
-          <p className="text-xs text-muted-foreground">Sessions delivered</p>
+          <Metric value={totalSessions.toString()} delta="+12%" />
         </CardContent>
       </Card>
+
       <Card>
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">Attendance Rate</CardTitle>
-          <CheckCircle2 className="h-4 w-4 text-muted-foreground" />
+        <CardHeader>
+          <CardTitle>Attendance Rate</CardTitle>
+          <CardDescription>Percentage of students attending sessions</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="text-2xl font-bold">
-            {isLoading ? "..." : `${calculateAttendanceRate()}%`}
-          </div>
-          <p className="text-xs text-muted-foreground">Of scheduled sessions</p>
+          <Metric value={`${attendanceRate}%`} delta="+4%" />
         </CardContent>
       </Card>
+
       <Card>
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">Active Students</CardTitle>
-          <Users className="h-4 w-4 text-muted-foreground" />
+        <CardHeader>
+          <CardTitle>Most Popular Subject</CardTitle>
+          <CardDescription>The subject with the most sessions</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="text-2xl font-bold">
-            {isLoading ? "..." : calculateActiveStudents()}
-          </div>
-          <p className="text-xs text-muted-foreground">Students with progress</p>
+          <Metric value={mostPopularSubject.name} delta={mostPopularSubject.value.toString()} />
         </CardContent>
       </Card>
+
       <Card>
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">Average Progress</CardTitle>
-          <BarChart className="h-4 w-4 text-muted-foreground" />
+        <CardHeader>
+          <CardTitle>Avg. Student Progress</CardTitle>
+          <CardDescription>Average completion rate across all students</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="text-2xl font-bold">
-            {isLoading ? "..." : (
-              studentProgressData && studentProgressData.length > 0 
-                ? `${Math.round(studentProgressData.reduce((sum, item) => sum + item.completionPercentage, 0) / studentProgressData.length)}%`
-                : "0%"
-            )}
-          </div>
-          <p className="text-xs text-muted-foreground">Course completion rate</p>
+          <Metric value={`${averageProgress}%`} delta="+5%" />
         </CardContent>
       </Card>
     </div>

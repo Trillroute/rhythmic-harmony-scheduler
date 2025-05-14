@@ -33,3 +33,6 @@ export function getPeriodDateRange(period: ReportPeriod) {
       };
   }
 }
+
+// Alias to maintain backward compatibility
+export const getDateRangeFromPeriod = getPeriodDateRange;

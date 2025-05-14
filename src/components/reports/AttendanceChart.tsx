@@ -10,12 +10,11 @@ interface AttendanceChartProps {
 }
 
 const AttendanceChart: React.FC<AttendanceChartProps> = ({ data }) => {
-  const chartData = [
-    { name: 'Present', value: data.present },
-    { name: 'Absent', value: data.absent },
-    { name: 'Cancelled', value: data.cancelled },
-    { name: 'No Show', value: data.noShow },
-  ];
+  // Map the data into the format expected by recharts
+  const chartData = data.categories.map((category, index) => ({
+    name: category,
+    value: data.data[index] || 0
+  })).filter(item => item.value > 0);
 
   return (
     <div className="w-full h-[200px]">

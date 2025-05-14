@@ -7,8 +7,8 @@ export interface AttendanceData {
 }
 
 export type SessionsReportData = {
-  counts: number[];
   months: string[];
+  counts: number[];
 };
 
 export type SessionTypeData = {

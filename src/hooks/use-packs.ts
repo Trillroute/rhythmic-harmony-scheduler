@@ -83,3 +83,10 @@ export const usePacks = (studentId?: string) => {
     createPack,
   };
 };
+
+// Add these exports for backward compatibility
+export const useSessionPacks = usePacks;
+export const useCreateSessionPack = (studentId?: string) => {
+  const { createPack } = usePacks(studentId);
+  return createPack;
+};

@@ -1,11 +1,12 @@
-
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { UserRole } from '@/lib/types';
 
 interface AuthContextProps {
-  user: any | null;
-  isLoading: boolean;
+  user: User | null;
+  session: Session | null;
+  loading: boolean;
+  signOut?: () => Promise<void>;
   error: Error | null;
   userRole: UserRole | null;
   login: (email: string, password: string) => Promise<void>;
@@ -15,7 +16,8 @@ interface AuthContextProps {
 
 export const AuthContext = createContext<AuthContextProps>({
   user: null,
-  isLoading: true,
+  session: null,
+  loading: true,
   error: null,
   userRole: null,
   login: async () => {},
@@ -30,9 +32,10 @@ interface AuthProviderProps {
 }
 
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
-  const [user, setUser] = useState<any | null>(null);
+  const [user, setUser] = useState<User | null>(null);
+  const [session, setSession] = useState<Session | null>(null);
   const [userRole, setUserRole] = useState<UserRole | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
   
   // Use direct window location instead of useNavigate to avoid Router conflicts
@@ -50,6 +53,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         
         if (session?.user) {
           setUser(session.user);
+          setSession(session);
           
           // Fetch user role from profiles table
           const { data: profileData, error: profileError } = await supabase
@@ -69,7 +73,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         console.error('Auth initialization error:', err);
         setError(err instanceof Error ? err : new Error('Auth initialization failed'));
       } finally {
-        setIsLoading(false);
+        setLoading(false);
         console.log('Auth initialization complete');
       }
     };
@@ -81,6 +85,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       async (event, session) => {
         if (session?.user) {
           setUser(session.user);
+          setSession(session);
           
           // Fetch user role from profiles table when auth state changes
           const { data: profileData, error: profileError } = await supabase
@@ -97,6 +102,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         } else {
           setUser(null);
           setUserRole(null);
+          setSession(null);
         }
       }
     );
@@ -108,7 +114,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   
   const login = async (email: string, password: string) => {
     try {
-      setIsLoading(true);
+      setLoading(true);
       setError(null);
       
       const { data, error } = await supabase.auth.signInWithPassword({
@@ -147,13 +153,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       setError(err instanceof Error ? err : new Error('Failed to login'));
       throw err;
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
   };
   
   const signup = async (email: string, password: string, name: string, role: UserRole) => {
     try {
-      setIsLoading(true);
+      setLoading(true);
       setError(null);
       
       // Sign up with Supabase Auth
@@ -178,13 +184,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       setError(err instanceof Error ? err : new Error('Failed to sign up'));
       throw err;
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
   };
   
   const logout = async () => {
     try {
-      setIsLoading(true);
+      setLoading(true);
       setError(null);
       
       const { error } = await supabase.auth.signOut();
@@ -193,18 +199,21 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       
       setUser(null);
       setUserRole(null);
+      setSession(null);
       navigate('/login');
     } catch (err) {
       console.error('Logout error:', err);
       setError(err instanceof Error ? err : new Error('Failed to logout'));
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
   };
   
   const contextValue: AuthContextProps = {
     user,
-    isLoading,
+    session,
+    loading,
+    signOut: logout,
     error,
     userRole,
     login,
