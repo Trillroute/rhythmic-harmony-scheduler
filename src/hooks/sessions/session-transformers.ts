@@ -1,3 +1,4 @@
+
 import { Session } from "@/lib/types";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -44,17 +45,27 @@ export const transformSessionWithStudents = async (sessionData: any): Promise<Se
     sessionType: sessionData.session_type,
     status: sessionData.status,
     packId: sessionData.pack_id,
-    students: students,
-    teacher: {
-      id: sessionData.profiles.id,
-      name: sessionData.profiles.name,
-      email: sessionData.profiles.email,
-    },
+    studentIds: students.map(s => s.id),
+    studentNames: students.map(s => s.name),
+    rescheduleCount: sessionData.reschedule_count || 0,
+    createdAt: sessionData.created_at,
+    updatedAt: sessionData.updated_at,
+    recurrenceRule: sessionData.recurrence_rule,
+    originalSessionId: sessionData.original_session_id,
+    rescheduledFrom: sessionData.rescheduled_from,
   };
 };
 
-// Add this function if it doesn't exist yet
-export const transformSessionUpdate = async (sessionData) => {
-  // Just return the raw session data for now, we can enhance this later if needed
-  return sessionData;
+// Fix the transformSessionUpdate function
+export const transformSessionUpdate = (sessionData: any) => {
+  // Convert camelCase to snake_case for the database
+  const result: Record<string, any> = {};
+  
+  if (sessionData.dateTime !== undefined) result.date_time = sessionData.dateTime;
+  if (sessionData.duration !== undefined) result.duration = sessionData.duration;
+  if (sessionData.notes !== undefined) result.notes = sessionData.notes;
+  if (sessionData.status !== undefined) result.status = sessionData.status;
+  if (sessionData.teacherId !== undefined) result.teacher_id = sessionData.teacherId;
+  
+  return result;
 };

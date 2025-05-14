@@ -64,7 +64,7 @@ const ReportingDashboard = () => {
     <div className="space-y-4 p-2 md:p-6">
       <div className="flex flex-col md:flex-row justify-between md:items-center gap-4">
         <h1 className="text-2xl font-bold">Reporting Dashboard</h1>
-        <DashboardFilters value={period} onValueChange={handlePeriodChange} />
+        <DashboardFilters period={period} onChange={handlePeriodChange} />
       </div>
       
       {loading ? (

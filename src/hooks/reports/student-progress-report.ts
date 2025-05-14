@@ -34,7 +34,7 @@ export const useStudentProgressReport = () => {
         if (enrollmentError) throw new Error(enrollmentError.message);
 
         // Transform data to expected format
-        const progressData = enrollments?.map(enrollment => {
+        const progressData: StudentProgressData = enrollments?.map(enrollment => {
           // Safely access student name
           const studentName = enrollment.students && 
                              enrollment.students.profiles && 
@@ -44,11 +44,11 @@ export const useStudentProgressReport = () => {
                              : "Unknown";
 
           return {
+            student: studentName,
+            progress: enrollment.completion_percentage,
             id: enrollment.id,
-            studentName,
             courseName: enrollment.courses?.name || "Unknown Course",
-            instrument: enrollment.courses?.instrument || "Unknown",
-            completionPercentage: enrollment.completion_percentage,
+            instrument: enrollment.courses?.instrument || "Unknown"
           };
         }) || [];
 

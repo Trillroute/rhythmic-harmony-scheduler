@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -29,7 +28,12 @@ interface StudentPacksProps {
 
 const StudentPacks = ({ studentId, onNewPack }: StudentPacksProps) => {
   const { toast } = useToast();
-  const { data: sessionPacks, isLoading, error, isError } = useSessionPacks(studentId);
+  const packsResult = useSessionPacks(studentId);
+  const sessionPacks = packsResult.data || [];
+  const isLoading = packsResult.isLoading;
+  const error = packsResult.error;
+  const isError = packsResult.isError;
+  
   const createPackMutation = useCreateSessionPack();
   
   // Form state for new pack
@@ -108,8 +112,8 @@ const StudentPacks = ({ studentId, onNewPack }: StudentPacksProps) => {
     }, {
       onSuccess: (data) => {
         // Call the callback if provided with the pack ID
-        if (onNewPack && data && data.length > 0) {
-          onNewPack(data[0].id);
+        if (onNewPack && data) {
+          onNewPack(data.id);
         }
         
         // Reset form

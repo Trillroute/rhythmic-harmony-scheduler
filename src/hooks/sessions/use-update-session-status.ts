@@ -18,18 +18,17 @@ const updateSessionStatus = async ({ sessionId, status, notes }: UpdateSessionSt
   });
 
   // Update the session
-  const { data, error } = await supabase
+  const { error } = await supabase
     .from('sessions')
     .update(updates)
-    .eq('id', sessionId)
-    .select();
+    .eq('id', sessionId);
 
   if (error) {
     console.error('Error updating session status:', error);
     throw error;
   }
 
-  return data;
+  return { sessionId, status };
 };
 
 export default function useUpdateSessionStatus(queryKeysToInvalidate: string[] = []) {

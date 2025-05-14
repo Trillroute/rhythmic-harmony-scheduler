@@ -8,7 +8,7 @@ import { assertStringArray } from "@/lib/type-utils";
 export function useSessionsReport() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [data, setData] = useState<SessionsReportData>([]);
+  const [data, setData] = useState<SessionsReportData>({ months: [], counts: [] });
 
   const fetchData = async (period: ReportPeriod) => {
     setIsLoading(true);
@@ -30,22 +30,26 @@ export function useSessionsReport() {
       
       if (sessionsError) throw new Error(sessionsError.message);
       
-      // Convert to date strings and group by day
-      const sessionsByDay = new Map<string, number>();
+      // Convert to date strings and group by month
+      const sessionsByMonth = new Map<string, number>();
       
       (sessionsData || []).forEach(session => {
-        const date = new Date(session.date_time).toISOString().split('T')[0];
-        const count = sessionsByDay.get(date) || 0;
-        sessionsByDay.set(date, count + 1);
+        const date = new Date(session.date_time);
+        const monthKey = date.toLocaleString('default', { month: 'short' }) + ' ' + date.getFullYear();
+        const count = sessionsByMonth.get(monthKey) || 0;
+        sessionsByMonth.set(monthKey, count + 1);
       });
       
       // Build data for chart
-      const timeSeriesData = Array.from(sessionsByDay).map(([date, count]) => ({
-        date,
-        count
-      }));
+      const months: string[] = [];
+      const counts: number[] = [];
       
-      setData(timeSeriesData);
+      sessionsByMonth.forEach((count, month) => {
+        months.push(month);
+        counts.push(count);
+      });
+      
+      setData({ months, counts });
     } catch (err: any) {
       setError(err.message);
       console.error("Error fetching sessions report data:", err);

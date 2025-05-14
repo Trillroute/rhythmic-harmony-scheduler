@@ -4,6 +4,14 @@ export type ReportPeriod = 'week' | 'month' | 'year' | 'last30days';
 export interface AttendanceData {
   categories: string[];
   data: number[];
+  // Optional extra properties for internal use
+  total?: number;
+  present?: number;
+  absent?: number;
+  cancelled?: number;
+  noShow?: number;
+  distribution?: Array<{ status: string; count: number }>;
+  chartData?: Array<{ date: string; present: number; total: number }>;
 }
 
 export type SessionsReportData = {
@@ -25,4 +33,9 @@ export type SubjectDistributionData = {
 export type StudentProgressData = {
   student: string;
   progress: number;
+  id?: string; // Optional properties for internal use
+  courseName?: string;
+  instrument?: string;
+  studentName?: string;
+  completionPercentage?: number;
 }[];

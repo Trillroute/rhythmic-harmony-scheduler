@@ -1,11 +1,14 @@
+
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { UserRole } from '@/lib/types';
+import type { User, Session } from '@supabase/supabase-js';
 
 interface AuthContextProps {
   user: User | null;
   session: Session | null;
   loading: boolean;
+  isLoading: boolean; // Added this property for consistency with other hooks
   signOut?: () => Promise<void>;
   error: Error | null;
   userRole: UserRole | null;
@@ -213,6 +216,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     user,
     session,
     loading,
+    isLoading: loading, // Add isLoading as an alias for loading
     signOut: logout,
     error,
     userRole,

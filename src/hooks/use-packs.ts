@@ -34,7 +34,9 @@ export const usePacks = (studentId?: string) => {
         remainingSessions: pack.remaining_sessions,
         location: pack.location as LocationType,
         isActive: pack.is_active,
-        weeklyFrequency: pack.weekly_frequency as WeeklyFrequency
+        weeklyFrequency: pack.weekly_frequency as WeeklyFrequency,
+        createdAt: pack.created_at || new Date().toISOString(),
+        updatedAt: pack.updated_at || new Date().toISOString()
       }));
 
       return packs;
@@ -44,8 +46,13 @@ export const usePacks = (studentId?: string) => {
     }
   };
 
+  const packsQuery = useQuery({
+    queryKey: ['session-packs', studentId],
+    queryFn: fetchPacks,
+  });
+
   const createPack = useMutation({
-    mutationFn: async (pack: Omit<SessionPack, 'id'>) => {
+    mutationFn: async (pack: Omit<SessionPack, 'id' | 'createdAt' | 'updatedAt'>) => {
       // Convert our SessionPack interface to match the database schema
       const { data, error } = await supabase
         .from('session_packs')
@@ -76,10 +83,11 @@ export const usePacks = (studentId?: string) => {
   });
 
   return {
-    packs: useQuery({
-      queryKey: ['session-packs', studentId],
-      queryFn: fetchPacks,
-    }),
+    data: packsQuery.data,
+    isLoading: packsQuery.isLoading,
+    isError: packsQuery.isError,
+    error: packsQuery.error,
+    packs: packsQuery,
     createPack,
   };
 };

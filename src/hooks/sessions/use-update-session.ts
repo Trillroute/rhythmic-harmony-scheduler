@@ -23,17 +23,16 @@ export function useUpdateSession() {
       // Transform frontend model to API format (camelCase to snake_case)
       const apiUpdates = transformSessionUpdate(updates);
       
-      const { data, error } = await supabase
+      const { error } = await supabase
         .from("sessions")
         .update(apiUpdates)
-        .eq("id", id)
-        .select();
+        .eq("id", id);
       
       if (error) {
         throw new Error(error.message);
       }
       
-      return data;
+      return { sessionId: id, ...updates };
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["sessions"] });

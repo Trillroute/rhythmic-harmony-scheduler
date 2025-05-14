@@ -10,13 +10,8 @@ export function useAttendanceReport() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [data, setData] = useState<AttendanceData>({
-    total: 0,
-    present: 0,
-    absent: 0,
-    cancelled: 0,
-    noShow: 0,
-    distribution: [],
-    chartData: []
+    categories: [],
+    data: [],
   });
 
   const fetchAttendanceData = async (period: ReportPeriod) => {
@@ -67,8 +62,12 @@ export function useAttendanceReport() {
         count
       }));
 
+      // Prepare the categories and data arrays for the chart
+      const categories = ["Present", "Absent", "Cancelled", "No Show"];
+      const chartData = [presentCount, absentCount, cancelledCount, noShowCount];
+
       // Create chart data - daily attendance trends
-      const chartData = [];
+      const chartDataByDay = [];
       let currentDate = new Date(startDate);
       
       while (currentDate <= endDate) {
@@ -90,18 +89,20 @@ export function useAttendanceReport() {
           }
         });
         
-        chartData.push(dayData);
+        chartDataByDay.push(dayData);
         currentDate = addDays(currentDate, 1);
       }
       
       setData({
+        categories,
+        data: chartData,
+        distribution,
+        chartData: chartDataByDay,
         total: totalCount || 0,
         present: presentCount,
         absent: absentCount,
         cancelled: cancelledCount,
-        noShow: noShowCount,
-        distribution,
-        chartData
+        noShow: noShowCount
       });
     } catch (err: any) {
       setError(err.message);

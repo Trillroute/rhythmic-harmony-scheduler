@@ -4,6 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { AttendanceStatus } from '@/lib/types';
 import { transformSessionWithStudents } from './session-transformers';
 import { SessionsProps, PaginationState } from './types';
+import { assertAttendanceStatusArray } from '@/lib/type-utils';
 
 export const useFetchSessions = (props: SessionsProps) => {
   const { 
@@ -50,9 +51,11 @@ export const useFetchSessions = (props: SessionsProps) => {
       query = query.range(from, to).order('date_time', { ascending: false });
 
       if (status && status.length > 0) {
-        // Convert array of AttendanceStatus to string array 
-        const statusStrings = status.map(s => s as string);
-        query = query.in('status', statusStrings);
+        // Convert array of AttendanceStatus to string array and ensure they are valid
+        const validStatusArray = assertAttendanceStatusArray(status);
+        if (validStatusArray.length > 0) {
+          query = query.in('status', validStatusArray as AttendanceStatus[]);
+        }
       }
 
       const { data: sessionsData, error, count } = await query;

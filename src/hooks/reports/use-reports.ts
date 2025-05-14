@@ -97,7 +97,8 @@ export function useReports() {
     // Transform the data
     return data?.map(item => ({
       student: item.student_name || 'Unknown Student',
-      progress: item.completion_percentage
+      progress: item.completion_percentage || 0,
+      id: item.student_id
     })) || [];
   };
 
