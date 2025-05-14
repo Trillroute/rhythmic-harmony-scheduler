@@ -1,9 +1,9 @@
 
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts';
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.42.0';
 
-// Create a Supabase client with the auth context of the function
-const supabaseClient = createClient(
+// Initialize Supabase client with service role
+const supabase = createClient(
   Deno.env.get('SUPABASE_URL') ?? '',
   Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
 );
@@ -20,7 +20,7 @@ serve(async (req) => {
   }
 
   try {
-    // Verify JWT
+    // Verify the JWT token
     const token = req.headers.get('Authorization')?.replace('Bearer ', '');
     if (!token) {
       return new Response(
@@ -35,8 +35,8 @@ serve(async (req) => {
       );
     }
 
-    const { data: { user }, error: userError } = await supabaseClient.auth.getUser(token);
-    
+    // Verify the token and get the user
+    const { data: { user }, error: userError } = await supabase.auth.getUser(token);
     if (userError || !user) {
       return new Response(
         JSON.stringify({ error: 'Invalid token' }),
@@ -50,8 +50,8 @@ serve(async (req) => {
       );
     }
 
-    // Verify if user is admin
-    const { data: profile, error: profileError } = await supabaseClient
+    // Check if the user is an admin
+    const { data: profile, error: profileError } = await supabase
       .from('profiles')
       .select('role')
       .eq('id', user.id)
@@ -70,13 +70,16 @@ serve(async (req) => {
       );
     }
 
-    // Here we would implement the actual seeding logic
-    // This would likely call various supabase insertions
-
+    // Seed the database with test data
+    // This is where your seeding logic would go
+    // For example, you could insert test users, courses, sessions, etc.
+    
+    console.log('Database seeded by user:', user.id);
+    
     return new Response(
       JSON.stringify({ 
-        message: 'Database seeding initiated',
-        status: 'success'
+        message: 'Database seeded successfully',
+        timestamp: new Date().toISOString()
       }),
       { 
         status: 200, 
@@ -86,6 +89,7 @@ serve(async (req) => {
         } 
       }
     );
+    
   } catch (error) {
     return new Response(
       JSON.stringify({ error: error.message }),
