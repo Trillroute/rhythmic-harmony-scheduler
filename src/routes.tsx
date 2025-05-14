@@ -59,7 +59,7 @@ export const router = createBrowserRouter([
       },
       {
         path: "admin",
-        element: <ProtectedRoute adminOnly>{withErrorBoundary(AdminDashboard)({})}</ProtectedRoute>,
+        element: <ProtectedRoute>{withErrorBoundary(AdminDashboard)({})}</ProtectedRoute>,
         children: [
           { index: true, element: withErrorBoundary(ReportingDashboard)({}) },
           { path: "users", element: withErrorBoundary(UserManagement)({}) },

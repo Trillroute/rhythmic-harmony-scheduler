@@ -46,7 +46,7 @@ const Index: React.FC = () => {
           
           <TabsContent value="attendance" className="pt-4">
             {(userRole === 'admin' || userRole === 'teacher') && (
-              <AttendanceTracker teacherId={user?.id} />
+              <AttendanceTracker />
             )}
           </TabsContent>
           

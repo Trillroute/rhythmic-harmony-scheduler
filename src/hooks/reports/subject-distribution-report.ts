@@ -1,52 +1,63 @@
 
-import { useState } from "react";
-import { SubjectDistributionData, ReportPeriod } from "./types";
-import { supabase } from "@/integrations/supabase/client";
-import { getDateRangeFromPeriod } from "./date-utils";
-import { assertStringArray } from "@/lib/type-utils";
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
+import { SubjectDistributionData } from './types';
+import { assertSubjectType } from '@/lib/type-utils';
 
-export function useSubjectDistributionReport() {
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [data, setData] = useState<SubjectDistributionData>([]);
-
-  const fetchSubjectData = async (period: ReportPeriod) => {
-    setIsLoading(true);
-    setError(null);
-
-    try {
-      const { startDate, endDate } = getDateRangeFromPeriod(period);
-      
-      // Get subject distribution - we need to use group() instead of groupBy()
-      const { data: subjectData, error: subjectError } = await supabase
-        .from("sessions")
-        .select("subject, count(*)")
-        .gte('date_time', startDate.toISOString())
-        .lte('date_time', endDate.toISOString())
-        .not('status', 'in', assertStringArray(["Cancelled by Student", "Cancelled by Teacher", "Cancelled by School"]))
-        .group('subject');
-      
-      if (subjectError) throw new Error(subjectError.message);
-      
-      // Build distribution data for chart
-      const distribution = subjectData.map(item => ({
-        name: String(item.subject),
-        value: parseInt(item.count as unknown as string, 10)
-      }));
-      
-      setData(distribution);
-    } catch (err: any) {
-      setError(err.message);
-      console.error("Error fetching subject distribution data:", err);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  return {
-    isLoading,
-    error,
-    data,
-    fetchSubjectData,
-  };
-}
+export const useSubjectDistributionReport = () => {
+  return useQuery({
+    queryKey: ['reports', 'subjects'],
+    queryFn: async (): Promise<SubjectDistributionData> => {
+      try {
+        // Get count of students by subject preference
+        const { data: studentsData, error: studentsError } = await supabase
+          .from('students')
+          .select('preferred_subjects');
+        
+        if (studentsError) throw studentsError;
+        
+        // Get count of sessions by subject
+        const { data: sessionsData, error: sessionsError } = await supabase
+          .from('sessions')
+          .select('subject');
+          
+        if (sessionsError) throw sessionsError;
+        
+        // Manually group the data since .group() is not available
+        const subjectCounts: {[key: string]: number} = {};
+        const subjectSessionCounts: {[key: string]: number} = {};
+        
+        // Process student subject preferences
+        studentsData.forEach(student => {
+          if (Array.isArray(student.preferred_subjects)) {
+            student.preferred_subjects.forEach(subject => {
+              const safeSubject = assertSubjectType(subject);
+              subjectCounts[safeSubject] = (subjectCounts[safeSubject] || 0) + 1;
+            });
+          }
+        });
+        
+        // Process session subjects
+        sessionsData.forEach(session => {
+          if (session.subject) {
+            const safeSubject = assertSubjectType(session.subject);
+            subjectSessionCounts[safeSubject] = (subjectSessionCounts[safeSubject] || 0) + 1;
+          }
+        });
+        
+        // Transform to required output format
+        const result: SubjectDistributionData = Object.keys(subjectCounts).map(subject => ({
+          subject,
+          studentCount: subjectCounts[subject] || 0,
+          sessionCount: subjectSessionCounts[subject] || 0
+        }));
+        
+        return result;
+      } catch (error) {
+        console.error('Error fetching subject distribution data:', error);
+        throw error;
+      }
+    },
+    staleTime: 1000 * 60 * 5, // 5 minutes
+  });
+};
