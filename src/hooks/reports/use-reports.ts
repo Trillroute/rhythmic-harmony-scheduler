@@ -1,205 +1,307 @@
 
-import { useQuery } from '@tanstack/react-query';
+import { useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { 
-  AttendanceData, 
-  SubjectDistributionData, 
-  SessionTypeData, 
-  SessionsReportData,
-  StudentProgressData,
-  ReportPeriod
-} from './types';
+import { AttendanceStatus, SubjectType, SessionType } from '@/lib/types';
 import { getDateRangeFromPeriod } from './date-utils';
+import { ReportPeriod, AttendanceData, SubjectDistributionData, SessionTypeData, SessionsReportData, StudentProgressData } from './types';
 
-export const useReports = (period: ReportPeriod = 'month') => {
-  const { startDate, endDate } = getDateRangeFromPeriod(period);
+export const useReports = () => {
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<Error | null>(null);
 
-  const fetchReportData = async () => {
+  // Generate attendance report
+  const generateAttendanceReport = useCallback(async (period: ReportPeriod): Promise<AttendanceData> => {
+    setIsLoading(true);
+    setError(null);
+    
     try {
-      // Attendance data
-      const { data: attendanceData, error: attendanceError } = await supabase
+      const { from, to } = getDateRangeFromPeriod(period);
+      
+      const { data: sessions, error: sessionsError } = await supabase
         .from('sessions')
-        .select('*')
-        .gte('date_time', startDate.toISOString())
-        .lte('date_time', endDate.toISOString());
+        .select('status')
+        .gte('date_time', from.toISOString())
+        .lte('date_time', to.toISOString());
+        
+      if (sessionsError) throw new Error(sessionsError.message);
+      
+      // Count each status type
+      const presentCount = sessions.filter(session => session.status === 'Present').length;
+      const absentCount = sessions.filter(session => session.status === 'Absent').length;
+      const scheduledCount = sessions.filter(session => session.status === 'Scheduled').length;
+      const cancelledByStudentCount = sessions.filter(session => session.status === 'Cancelled by Student').length;
+      const cancelledByTeacherCount = sessions.filter(session => session.status === 'Cancelled by Teacher').length;
+      const cancelledBySchoolCount = sessions.filter(session => session.status === 'Cancelled by School').length;
+      const noShowCount = sessions.filter(session => session.status === 'No Show').length;
+      
+      return {
+        labels: ['Present', 'Absent', 'Scheduled', 'Cancelled by Student', 'Cancelled by Teacher', 'Cancelled by School', 'No Show'],
+        datasets: [
+          {
+            data: [presentCount, absentCount, scheduledCount, cancelledByStudentCount, cancelledByTeacherCount, cancelledBySchoolCount, noShowCount],
+            backgroundColor: [
+              '#4ade80', // Present - Green
+              '#f87171', // Absent - Red
+              '#60a5fa', // Scheduled - Blue
+              '#fbbf24', // Cancelled by Student - Yellow
+              '#a78bfa', // Cancelled by Teacher - Purple
+              '#94a3b8', // Cancelled by School - Gray
+              '#fb7185'  // No Show - Pink
+            ]
+          }
+        ]
+      };
+    } catch (err) {
+      const error = err instanceof Error ? err : new Error('Failed to generate attendance report');
+      setError(error);
+      return {
+        labels: [],
+        datasets: [{ data: [], backgroundColor: [] }]
+      };
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
 
-      if (attendanceError) throw new Error(attendanceError.message);
+  // Generate subject distribution report
+  const generateSubjectDistributionReport = useCallback(async (period: ReportPeriod): Promise<SubjectDistributionData> => {
+    setIsLoading(true);
+    setError(null);
+    
+    try {
+      const { from, to } = getDateRangeFromPeriod(period);
+      
+      const { data: sessions, error: sessionsError } = await supabase
+        .from('sessions')
+        .select('subject')
+        .gte('date_time', from.toISOString())
+        .lte('date_time', to.toISOString());
+        
+      if (sessionsError) throw new Error(sessionsError.message);
+      
+      // Count each subject type
+      const guitarCount = sessions.filter(session => session.subject === 'Guitar').length;
+      const pianoCount = sessions.filter(session => session.subject === 'Piano').length;
+      const drumsCount = sessions.filter(session => session.subject === 'Drums').length;
+      const ukuleleCount = sessions.filter(session => session.subject === 'Ukulele').length;
+      const vocalCount = sessions.filter(session => session.subject === 'Vocal').length;
+      
+      return {
+        labels: ['Guitar', 'Piano', 'Drums', 'Ukulele', 'Vocal'],
+        datasets: [
+          {
+            data: [guitarCount, pianoCount, drumsCount, ukuleleCount, vocalCount],
+            backgroundColor: [
+              '#4ade80', // Guitar - Green
+              '#60a5fa', // Piano - Blue
+              '#f87171', // Drums - Red
+              '#fbbf24', // Ukulele - Yellow
+              '#a78bfa'  // Vocal - Purple
+            ]
+          }
+        ]
+      };
+    } catch (err) {
+      const error = err instanceof Error ? err : new Error('Failed to generate subject distribution report');
+      setError(error);
+      return {
+        labels: [],
+        datasets: [{ data: [], backgroundColor: [] }]
+      };
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
 
-      // Student progress data
-      const { data: progressData, error: progressError } = await supabase
+  // Generate session type report
+  const generateSessionTypeReport = useCallback(async (period: ReportPeriod): Promise<SessionTypeData> => {
+    setIsLoading(true);
+    setError(null);
+    
+    try {
+      const { from, to } = getDateRangeFromPeriod(period);
+      
+      const { data: sessions, error: sessionsError } = await supabase
+        .from('sessions')
+        .select('session_type')
+        .gte('date_time', from.toISOString())
+        .lte('date_time', to.toISOString());
+        
+      if (sessionsError) throw new Error(sessionsError.message);
+      
+      // Count each session type
+      const soloCount = sessions.filter(session => session.session_type === 'Solo').length;
+      const duoCount = sessions.filter(session => session.session_type === 'Duo').length;
+      const focusCount = sessions.filter(session => session.session_type === 'Focus').length;
+      
+      return {
+        labels: ['Solo', 'Duo', 'Focus'],
+        datasets: [
+          {
+            data: [soloCount, duoCount, focusCount],
+            backgroundColor: [
+              '#4ade80', // Solo - Green
+              '#60a5fa', // Duo - Blue
+              '#f87171'  // Focus - Red
+            ]
+          }
+        ]
+      };
+    } catch (err) {
+      const error = err instanceof Error ? err : new Error('Failed to generate session type report');
+      setError(error);
+      return {
+        labels: [],
+        datasets: [{ data: [], backgroundColor: [] }]
+      };
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  // Generate sessions over time report
+  const generateSessionsReport = useCallback(async (period: ReportPeriod): Promise<SessionsReportData> => {
+    setIsLoading(true);
+    setError(null);
+    
+    try {
+      const { from, to } = getDateRangeFromPeriod(period);
+      
+      const { data: sessions, error: sessionsError } = await supabase
+        .from('sessions')
+        .select('date_time')
+        .gte('date_time', from.toISOString())
+        .lte('date_time', to.toISOString())
+        .order('date_time');
+        
+      if (sessionsError) throw new Error(sessionsError.message);
+      
+      // Group sessions by week or month depending on the period
+      const timeFormat = period === 'week' || period === 'month' ? 'day' : 'week';
+      
+      // Format dates for display
+      const dateLabels: string[] = [];
+      const sessionCounts: number[] = [];
+      
+      // Simple grouping by date for now - can be enhanced for more complex periods
+      const dateMap = new Map<string, number>();
+      
+      sessions.forEach(session => {
+        const date = new Date(session.date_time);
+        const dateString = date.toLocaleDateString();
+        
+        if (dateMap.has(dateString)) {
+          dateMap.set(dateString, dateMap.get(dateString)! + 1);
+        } else {
+          dateMap.set(dateString, 1);
+        }
+      });
+      
+      // Convert map to arrays
+      for (const [date, count] of dateMap.entries()) {
+        dateLabels.push(date);
+        sessionCounts.push(count);
+      }
+      
+      return {
+        labels: dateLabels,
+        datasets: [
+          {
+            label: 'Sessions',
+            data: sessionCounts,
+            backgroundColor: '#60a5fa',
+            borderColor: '#3b82f6',
+            borderWidth: 1
+          }
+        ]
+      };
+    } catch (err) {
+      const error = err instanceof Error ? err : new Error('Failed to generate sessions report');
+      setError(error);
+      return {
+        labels: [],
+        datasets: [{ label: 'Sessions', data: [], backgroundColor: '', borderColor: '', borderWidth: 1 }]
+      };
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  // Generate student progress report
+  const generateStudentProgressReport = useCallback(async (): Promise<StudentProgressData> => {
+    setIsLoading(true);
+    setError(null);
+    
+    try {
+      // Get top 10 students by completion percentage
+      const { data: progresses, error: progressError } = await supabase
         .from('student_progress')
         .select(`
-          *,
+          completion_percentage,
+          enrollment_id,
           enrollment:enrollment_id(
             student_id,
             course_id,
-            profiles:student_id(name),
-            courses:course_id(name, instrument)
+            course:course_id(name)
           )
         `)
-        .gte('updated_at', startDate.toISOString())
-        .lte('updated_at', endDate.toISOString());
-
-      if (progressError) throw new Error(progressError.message);
-
-      // Process the data to generate reports
-      const total = attendanceData?.length || 0;
-      const present = attendanceData?.filter(s => s.status === 'Present').length || 0;
-      const absent = attendanceData?.filter(s => s.status === 'Absent').length || 0;
-      const cancelled = attendanceData?.filter(s => s.status.includes('Cancelled')).length || 0;
-      const noShow = attendanceData?.filter(s => s.status === 'No Show').length || 0;
-      
-      // Create attendance distribution data for chart
-      const distribution = [
-        { status: 'Present', count: present },
-        { status: 'Absent', count: absent },
-        { status: 'Cancelled', count: cancelled },
-        { status: 'No Show', count: noShow }
-      ];
-      
-      // Create time series data (grouped by date)
-      const dateMap = new Map();
-      if (attendanceData) {
-        attendanceData.forEach(session => {
-          const dateStr = new Date(session.date_time).toISOString().split('T')[0];
-          if (!dateMap.has(dateStr)) {
-            dateMap.set(dateStr, { present: 0, total: 0 });
-          }
-          dateMap.get(dateStr).total += 1;
-          if (session.status === 'Present') {
-            dateMap.get(dateStr).present += 1;
-          }
-        });
-      }
-      
-      const attendanceChartData = Array.from(dateMap).map(([date, data]) => ({
-        date,
-        present: data.present,
-        total: data.total
-      }));
-      
-      // Process subject distribution
-      const subjectCounts = new Map();
-      if (attendanceData) {
-        attendanceData.forEach(session => {
-          const subject = session.subject;
-          subjectCounts.set(subject, (subjectCounts.get(subject) || 0) + 1);
-        });
-      }
-      
-      const subjectDistribution = Array.from(subjectCounts).map(([name, value]) => ({ name, value }));
-      
-      // Process session types
-      const typeCounts = new Map();
-      if (attendanceData) {
-        attendanceData.forEach(session => {
-          const key = `${session.session_type}-${session.subject}`;
-          typeCounts.set(key, {
-            type: session.session_type,
-            subject: session.subject,
-            count: (typeCounts.get(key)?.count || 0) + 1
-          });
-        });
-      }
-      
-      const sessionTypeData = Array.from(typeCounts.values());
-      
-      // Group sessions by date or month depending on range
-      const isLongRange = (endDate.getTime() - startDate.getTime()) > (30 * 24 * 60 * 60 * 1000);
-      
-      const groupedSessions = new Map();
-      if (attendanceData) {
-        attendanceData.forEach(session => {
-          const date = new Date(session.date_time);
-          let key;
-          
-          if (isLongRange) {
-            // Group by month for longer ranges
-            key = `${date.getFullYear()}-${date.getMonth() + 1}`;
-          } else {
-            // Group by date for shorter ranges
-            key = date.toISOString().split('T')[0];
-          }
-          
-          groupedSessions.set(key, (groupedSessions.get(key) || 0) + 1);
-        });
-      }
-      
-      const sessionsOverTime = Array.from(groupedSessions).map(([date, count]) => {
-        // Format date label
-        let formattedDate = date;
-        if (isLongRange) {
-          const [year, month] = date.split('-');
-          const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-          formattedDate = monthNames[parseInt(month) - 1];
-        }
+        .order('completion_percentage', { ascending: false })
+        .limit(10);
         
-        return { date: formattedDate, count };
-      }).sort((a, b) => a.date.localeCompare(b.date));
+      if (progressError) throw new Error(progressError.message);
       
-      // Process student progress
-      const studentProgress = progressData ? progressData.map(item => {
+      // Get student names
+      const studentIds = progresses.map(p => p.enrollment?.student_id).filter(Boolean);
+      
+      let studentNames: { [key: string]: string } = {};
+      
+      if (studentIds.length > 0) {
+        const { data: students, error: studentsError } = await supabase
+          .from('profiles')
+          .select('id, name')
+          .in('id', studentIds);
+          
+        if (studentsError) throw new Error(studentsError.message);
+        
+        studentNames = students.reduce((acc, student) => {
+          acc[student.id] = student.name;
+          return acc;
+        }, {} as { [key: string]: string });
+      }
+      
+      // Format data for chart
+      const studentData = progresses.map(progress => {
+        const studentId = progress.enrollment?.student_id;
+        const courseName = progress.enrollment?.course?.name || 'Unknown Course';
+        const studentName = studentId ? (studentNames[studentId] || 'Unknown Student') : 'Unknown Student';
+        
         return {
-          id: item.id,
-          studentName: item.enrollment?.profiles?.name || 'Unknown Student',
-          courseName: item.enrollment?.courses?.name || 'Unknown Course',
-          instrument: item.enrollment?.courses?.instrument || 'Unknown',
-          completionPercentage: item.completion_percentage || 0
+          studentName,
+          courseName,
+          completionPercentage: progress.completion_percentage
         };
-      }) : [];
-
-      return {
-        attendanceData: {
-          total,
-          present,
-          absent,
-          cancelled,
-          noShow,
-          distribution,
-          chartData: attendanceChartData
-        },
-        subjectDistribution,
-        sessionTypeData,
-        sessionsOverTime,
-        studentProgress,
-      };
-    } catch (error) {
-      console.error('Error fetching report data:', error);
-      throw error;
+      });
+      
+      return studentData;
+    } catch (err) {
+      const error = err instanceof Error ? err : new Error('Failed to generate student progress report');
+      setError(error);
+      return [];
+    } finally {
+      setIsLoading(false);
     }
-  };
-
-  const { data, isLoading, isError, refetch } = useQuery({
-    queryKey: ['reports', period],
-    queryFn: fetchReportData
-  });
+  }, []);
 
   return {
-    attendance: {
-      data: data?.attendanceData || {
-        total: 0,
-        present: 0,
-        absent: 0,
-        cancelled: 0,
-        noShow: 0,
-        distribution: [],
-        chartData: []
-      }
-    },
-    subjectDistribution: {
-      data: data?.subjectDistribution || []
-    },
-    sessionType: {
-      data: data?.sessionTypeData || []
-    },
-    sessions: {
-      data: data?.sessionsOverTime || []
-    },
-    studentProgress: {
-      data: data?.studentProgress || []
-    },
     isLoading,
-    isError,
-    refetch
+    error,
+    generateAttendanceReport,
+    generateSubjectDistributionReport,
+    generateSessionTypeReport,
+    generateSessionsReport,
+    generateStudentProgressReport
   };
 };
+
+// Re-export the types from the types file
+export type { ReportPeriod, AttendanceData, SubjectDistributionData, SessionTypeData, SessionsReportData, StudentProgressData };

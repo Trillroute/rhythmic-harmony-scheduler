@@ -4,7 +4,6 @@ import { supabase } from '@/integrations/supabase/client';
 import { AttendanceStatus } from '@/lib/types';
 import { transformSessionWithStudents } from './session-transformers';
 import { SessionsProps, PaginationState } from './types';
-import { assertAttendanceStatusArray, assertStringArray } from '@/lib/type-utils';
 
 export const useFetchSessions = (props: SessionsProps) => {
   const { 
@@ -23,7 +22,7 @@ export const useFetchSessions = (props: SessionsProps) => {
       .select(`
         *,
         profiles:teacher_id(*),
-        session_students(student_id, profiles(*))
+        session_students(student_id)
       `, { count: 'exact' });
 
     // Apply filters
@@ -50,9 +49,9 @@ export const useFetchSessions = (props: SessionsProps) => {
     }
 
     if (status && status.length > 0) {
-      // Use assertAttendanceStatusArray to properly validate the status array
-      const validStatuses = assertAttendanceStatusArray(status);
-      query = query.in('status', validStatuses);
+      // Convert array of AttendanceStatus to string array for Supabase
+      const statusStrings = status.map(s => s.toString());
+      query = query.in('status', statusStrings);
     }
 
     // Apply pagination
@@ -67,8 +66,11 @@ export const useFetchSessions = (props: SessionsProps) => {
       throw error;
     }
 
-    // Transform the raw sessions
-    const transformedSessions = data.map(session => transformSessionWithStudents(session));
+    // Transform the raw sessions - adjust for missing profiles relationship
+    const transformedSessions = data.map(session => {
+      // For each session, we need to separately fetch the student information
+      return transformSessionWithStudents(session);
+    });
 
     // Calculate pagination info
     const totalPages = count ? Math.ceil(count / pageSize) : 0;

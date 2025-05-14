@@ -16,6 +16,7 @@ import { Plus, Eye, Pencil, Trash2, Loader2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
 interface CourseMaterial {
   id: string;
@@ -37,23 +38,30 @@ const CourseMaterials = () => {
   const { data: materials, isLoading, error } = useQuery({
     queryKey: ['course_materials'],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('course_materials')
-        .select(`
-          *,
-          course: course_id (name)
-        `)
-        .order('created_at', { ascending: false });
+      try {
+        const { data, error } = await supabase
+          .from('course_materials')
+          .select('*, course:course_id(name)')
+          .order('created_at', { ascending: false });
+          
+        if (error) {
+          console.error("Error fetching course materials:", error);
+          throw error;
+        }
         
-      if (error) throw new Error(`Error fetching course materials: ${error.message}`);
-      return data as CourseMaterial[];
+        return data as CourseMaterial[];
+      } catch (error) {
+        console.error("Failed to fetch course materials:", error);
+        toast.error("Failed to load course materials");
+        return [];
+      }
     }
   });
 
   // Filter materials based on search query
   const filteredMaterials = materials?.filter(material => 
     material.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    material.course?.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    (material.course?.name || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
     material.file_type.toLowerCase().includes(searchQuery.toLowerCase())
   );
 

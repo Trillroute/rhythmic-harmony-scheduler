@@ -80,12 +80,14 @@ export default function Router() {
             <Route path="students/:studentId" element={withErrorBoundary(StudentProfile, "Student Profile")({})} />
             <Route path="courses" element={withErrorBoundary(CourseManagement, "Course Management")({})} />
             <Route path="plans" element={withErrorBoundary(SessionPlans, "Session Plans")({})} />
+            <Route path="reports" element={withErrorBoundary(ReportingDashboard, "Reporting Dashboard")({})} />
             <Route path="scheduler" element={withErrorBoundary(AdvancedScheduler, "Advanced Scheduler")({})} />
             <Route path="invoices" element={withErrorBoundary(InvoiceManagement, "Invoice Management")({})} />
             <Route path="materials" element={withErrorBoundary(CourseMaterials, "Course Materials")({})} />
             <Route path="export" element={withErrorBoundary(DataExport, "Data Export")({})} />
             <Route path="settings" element={withErrorBoundary(SystemSettings, "System Settings")({})} />
             <Route path="bulk-upload" element={withErrorBoundary(BulkUploadPage, "Bulk Upload")({})} />
+            <Route path="session-plans" element={<Navigate to="/admin/plans" replace />} />
           </Route>
         </Route>
         
