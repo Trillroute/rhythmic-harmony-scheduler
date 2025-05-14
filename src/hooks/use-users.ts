@@ -11,7 +11,7 @@ export const useUsers = (filters?: { role?: UserRole; email?: string }) => {
   const { data: users, isLoading, error } = useQuery({
     queryKey: ['users', filters],
     queryFn: async () => {
-      // Start with profiles query
+      // Start with profiles query - this will respect RLS policies
       let query = supabase
         .from('profiles')
         .select('*');
@@ -28,7 +28,12 @@ export const useUsers = (filters?: { role?: UserRole; email?: string }) => {
       const { data: profiles, error } = await query;
       
       if (error) {
+        console.error('Error fetching profiles:', error);
         throw new Error(error.message);
+      }
+      
+      if (!profiles || profiles.length === 0) {
+        return [];
       }
       
       // For each profile, fetch role-specific data
@@ -167,8 +172,8 @@ export const useUsers = (filters?: { role?: UserRole; email?: string }) => {
   // Delete user
   const deleteUser = useMutation({
     mutationFn: async (userId: string) => {
-      // We can't directly delete from auth.users via Supabase client
-      // This is a simplified version - in production, you'd use an Edge Function
+      // Delete from profiles table - because of cascading deletes, this will remove
+      // the user from role-specific tables as well
       const { error } = await supabase
         .from('profiles')
         .delete()

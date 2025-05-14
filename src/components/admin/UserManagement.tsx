@@ -44,6 +44,8 @@ import { useUsers } from "@/hooks/use-users";
 import { UserRole, UserWithRole } from "@/lib/types";
 import { format } from "date-fns";
 import { toast } from "sonner";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { useAuth } from "@/contexts/AuthContext";
 
 const formSchema = z.object({
   name: z.string().min(2, {
@@ -62,6 +64,7 @@ const UserManagement = () => {
   const [filters, setFilters] = useState<{ role?: UserRole; email?: string }>({});
   const [searchQuery, setSearchQuery] = useState("");
   const [roleFilter, setRoleFilter] = useState<UserRole | undefined>(undefined);
+  const { userRole } = useAuth();
   
   const { users, isLoading, updateUser, deleteUser, isPendingUpdate, isPendingDelete } = useUsers(filters);
   
@@ -138,11 +141,21 @@ const UserManagement = () => {
     setOpen(true);
   };
   
-  const handleDeleteUser = (user: UserWithRole) => {
-    if (window.confirm(`Are you sure you want to delete ${user.name}?`)) {
-      deleteUser(user.id);
-    }
-  };
+  // Only admins can manage users
+  if (userRole !== 'admin') {
+    return (
+      <div className="container py-6">
+        <Card>
+          <CardHeader>
+            <CardTitle>Access Denied</CardTitle>
+            <CardDescription>
+              You don't have permission to access user management.
+            </CardDescription>
+          </CardHeader>
+        </Card>
+      </div>
+    );
+  }
   
   return (
     <div className="container py-6">
@@ -306,7 +319,30 @@ const UserManagement = () => {
                       </TableCell>
                       <TableCell className="space-x-2">
                         <Button variant="outline" size="sm" onClick={() => handleEditUser(user)}>Edit</Button>
-                        <Button variant="outline" size="sm" className="text-destructive hover:bg-destructive/10" onClick={() => handleDeleteUser(user)}>Delete</Button>
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button variant="outline" size="sm" className="text-destructive hover:bg-destructive/10">Delete</Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>Are you sure you want to delete this user?</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                This action cannot be undone. This will permanently delete the user account
+                                and all associated data.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Cancel</AlertDialogCancel>
+                              <AlertDialogAction 
+                                onClick={() => deleteUser(user.id)}
+                                disabled={isPendingDelete}
+                                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                              >
+                                {isPendingDelete ? "Deleting..." : "Delete"}
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
                       </TableCell>
                     </TableRow>
                   ))}
