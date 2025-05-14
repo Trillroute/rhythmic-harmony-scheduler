@@ -17,7 +17,7 @@ import StudentProgressTable from '@/components/reports/StudentProgressTable';
 
 const ReportingDashboard: React.FC = () => {
   const [period, setPeriod] = useState<ReportPeriod>('month');
-  const reports = useReports();
+  const reports = useReports(period);
   
   useEffect(() => {
     reports.refetch();

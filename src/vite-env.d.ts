@@ -23,4 +23,12 @@ interface FeePlanSummary {
     amount: number;
   } | null;
   status: PaymentStatus;
+  // Add these properties to match usage in FeePlanDetails
+  paidAmount: number;
+  dueAmount: number;
+  paymentPercentage: number;
+  nextDueDate: {
+    date: string | Date;
+    amount: number;
+  } | null;
 }

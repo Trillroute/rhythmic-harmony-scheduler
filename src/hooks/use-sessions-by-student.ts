@@ -1,18 +1,18 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Session } from "@/lib/types";
+import { AttendanceStatus, SessionWithStudents } from "@/lib/types";
 import { transformSessionWithStudents } from "./sessions/session-transformers";
 
 interface Filters {
   studentId?: string;
   dateRange?: { from: string; to: string };
-  status?: string[];
+  status?: AttendanceStatus;
 }
 
-export const useSessionsByStudent = (filters: Filters) => {
+export const useSessionsByStudent = (studentId?: string, filters: Omit<Filters, 'studentId'> = {}) => {
   const fetchSessions = async () => {
-    if (!filters.studentId) {
+    if (!studentId) {
       return [];
     }
     
@@ -23,9 +23,17 @@ export const useSessionsByStudent = (filters: Filters) => {
         profiles:teacher_id(*),
         session_students(student_id, profiles(*))
       `)
-      .eq('session_students.student_id', filters.studentId);
+      .eq('session_students.student_id', studentId);
 
-    query = buildQueryFilters(query, filters);
+    // Add filters
+    if (filters.dateRange) {
+      query = query.gte('date_time', filters.dateRange.from);
+      query = query.lte('date_time', filters.dateRange.to);
+    }
+
+    if (filters.status) {
+      query = query.eq('status', filters.status);
+    }
 
     const { data: rawSessions, error } = await query;
 
@@ -34,30 +42,13 @@ export const useSessionsByStudent = (filters: Filters) => {
       throw error;
     }
 
-    // Transform the raw sessions to match our Session type
+    // Transform the raw sessions to match our SessionWithStudents type
     return rawSessions.map((session: any) => transformSessionWithStudents(session));
   };
 
-  return useQuery({
-    queryKey: ['sessions', 'student', filters],
+  return useQuery<SessionWithStudents[], Error>({
+    queryKey: ['sessions', 'student', studentId, filters],
     queryFn: fetchSessions,
-    enabled: !!filters.studentId, // Only run query if studentId is provided
+    enabled: !!studentId, // Only run query if studentId is provided
   });
 };
-
-// Function to build query filters dynamically
-function buildQueryFilters(query: any, filters: Filters) {
-  if (filters.dateRange) {
-    query = query.gte('date_time', filters.dateRange.from);
-    query = query.lte('date_time', filters.dateRange.to);
-  }
-
-  // Modify the buildQueryFilters function to properly cast status values
-  if (filters.status && filters.status.length > 0) {
-    // Cast the status array to string[] to match what Supabase expects
-    const statusValues = filters.status as string[];
-    query = query.in('status', statusValues);
-  }
-
-  return query;
-}

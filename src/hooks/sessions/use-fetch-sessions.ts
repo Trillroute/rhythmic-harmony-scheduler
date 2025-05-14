@@ -3,7 +3,8 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { AttendanceStatus } from '@/lib/types';
 import { transformSessionWithStudents } from './session-transformers';
-import { SessionsProps, PaginationState } from './types';
+import { SessionsProps } from './types';
+import { assertAttendanceStatusArray } from '@/lib/type-utils';
 
 export const useFetchSessions = (props: SessionsProps) => {
   const { 
@@ -49,7 +50,11 @@ export const useFetchSessions = (props: SessionsProps) => {
     }
 
     if (status && status.length > 0) {
-      query = query.in('status', status);
+      // Convert status array to proper AttendanceStatus array
+      const validStatusArray = assertAttendanceStatusArray(status);
+      if (validStatusArray.length > 0) {
+        query = query.in('status', validStatusArray as unknown as string[]);
+      }
     }
 
     // Apply pagination
@@ -69,7 +74,7 @@ export const useFetchSessions = (props: SessionsProps) => {
 
     // Calculate pagination info
     const totalPages = count ? Math.ceil(count / pageSize) : 0;
-    const pagination: PaginationState = {
+    const pagination = {
       currentPage: page,
       totalPages,
       pageSize,

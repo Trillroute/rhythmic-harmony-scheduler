@@ -35,12 +35,21 @@ export const useReports = (period: ReportPeriod = 'month') => {
     queryFn: () => fetchStudentProgressData(period),
   });
 
+  const refetch = () => {
+    attendanceQuery.refetch();
+    subjectDistributionQuery.refetch();
+    sessionTypeQuery.refetch();
+    sessionsOverTimeQuery.refetch();
+    studentProgressQuery.refetch();
+  };
+
   return {
     attendanceData: attendanceQuery.data,
-    subjectDistribution: subjectDistributionQuery.data,
-    sessionTypeData: sessionTypeQuery.data,
-    sessionsOverTime: sessionsOverTimeQuery.data,
-    studentProgress: studentProgressQuery.data,
+    attendance: { data: attendanceQuery.data }, // Add this alias for backward compatibility
+    subjectDistribution: { data: subjectDistributionQuery.data }, // Return data within object
+    sessionType: { data: sessionTypeQuery.data }, // Return data within object
+    sessions: { data: sessionsOverTimeQuery.data }, // Return data within object
+    studentProgress: { data: studentProgressQuery.data }, // Return data within object
     isLoading: 
       attendanceQuery.isLoading || 
       subjectDistributionQuery.isLoading || 
@@ -53,5 +62,6 @@ export const useReports = (period: ReportPeriod = 'month') => {
       sessionTypeQuery.isError || 
       sessionsOverTimeQuery.isError || 
       studentProgressQuery.isError,
+    refetch // Add the refetch method
   };
 };

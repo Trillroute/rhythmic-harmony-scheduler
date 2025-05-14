@@ -17,7 +17,7 @@ interface StudentAttendanceTabProps {
 export const StudentAttendanceTab: React.FC<StudentAttendanceTabProps> = ({ studentId }) => {
   const [statusFilter, setStatusFilter] = useState<AttendanceStatus | undefined>();
   
-  const { sessions, isLoading, error } = useSessionsByStudent(studentId, {
+  const { data: sessions, isLoading, error } = useSessionsByStudent(studentId, {
     status: statusFilter
   });
 

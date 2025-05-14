@@ -37,8 +37,8 @@ const AttendanceTracker = () => {
   const [statusFilter, setStatusFilter] = useState<AttendanceStatus | undefined>();
   
   const { data, isLoading, error, refetch } = useFetchSessions({
-    dateFrom: dateRange.from,
-    dateTo: dateRange.to,
+    fromDate: dateRange.from,
+    toDate: dateRange.to,
     status: statusFilter ? [statusFilter] : undefined
   });
   
