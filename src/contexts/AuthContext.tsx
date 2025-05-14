@@ -1,11 +1,10 @@
+
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Session, User } from '@supabase/supabase-js';
 import { useNavigate } from 'react-router-dom';
 import { toast } from '@/hooks/use-toast';
 import { UserRole } from '@/lib/types';
-
-console.log('AuthContext.tsx module loaded');
 
 interface AuthContextType {
   user: User | null;
@@ -22,7 +21,6 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 const cleanupAuthState = () => {
   // Only remove expired or temporary auth state items
   // We're more selective now to avoid removing active sessions
-  console.log('Cleaning up auth state');
   
   // Remove items related to one-time tokens or errors
   localStorage.removeItem('supabase.auth.token');
@@ -34,8 +32,6 @@ const cleanupAuthState = () => {
   keysToRemove.forEach(key => {
     localStorage.removeItem(key);
   });
-
-  console.log('Auth state cleanup complete');
 };
 
 // Helper function to get redirect path based on user role
@@ -51,91 +47,62 @@ const getRoleBasedRedirectPath = (role: UserRole | null): string => {
 };
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  console.log('AuthProvider component mounting');
-
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
-  const [isLoading, setIsLoading] = useState<boolean>(false);
-  const [initialLoadComplete, setInitialLoadComplete] = useState<boolean>(false);
+  const [isLoading, setIsLoading] = useState(false); // Initialize to false
+  const [initialLoadComplete, setInitialLoadComplete] = useState(false);
   const [userRole, setUserRole] = useState<UserRole | null>(null);
   const navigate = useNavigate();
 
-  // Log the current state for debugging
-  console.log('AuthProvider state:', {
-    hasUser: !!user,
-    hasSession: !!session,
-    userRole,
-    isLoading,
-    initialLoadComplete
-  });
-
   // Initialize auth state on component mount
   useEffect(() => {
-    console.log('AuthProvider useEffect running');
-    let isMounted = true;
-    
     const initializeAuth = async () => {
       try {
         // Only set loading true for the initial auth check
-        if (isMounted) setIsLoading(true);
+        setIsLoading(true);
         console.log('Starting auth initialization');
         
         const { data, error } = await supabase.auth.getSession();
         
         if (error) {
           console.error('Error getting initial session:', error);
-          if (isMounted) {
-            toast({
-              title: 'Authentication error',
-              description: 'Could not retrieve your session. Please try again.',
-              variant: 'destructive',
-            });
-          }
-        }
-        
-        if (isMounted) {
-          console.log('Got session data:', {
-            hasSession: !!data?.session,
-            hasUser: !!data?.session?.user
+          toast({
+            title: 'Authentication error',
+            description: 'Could not retrieve your session. Please try again.',
+            variant: 'destructive',
           });
-          
-          setSession(data?.session || null);
-          setUser(data?.session?.user || null);
         }
         
-        if (data?.session?.user && isMounted) {
-          console.log('Fetching user role for user ID:', data.session.user.id);
+        setSession(data?.session || null);
+        setUser(data?.session?.user || null);
+        
+        if (data?.session?.user) {
           await fetchUserRole(data.session.user.id);
         }
       } catch (err) {
         console.error('Unexpected error during auth initialization:', err);
       } finally {
         // Always reset loading and mark initialization as complete
-        if (isMounted) {
-          setIsLoading(false);
-          setInitialLoadComplete(true);
-          console.log('Auth initialization complete');
-        }
+        setIsLoading(false);
+        setInitialLoadComplete(true);
+        console.log('Auth initialization complete');
       }
     };
     
     initializeAuth();
     
     // Set up auth state listener
-    console.log('Setting up auth state listener');
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         console.log('Auth state changed:', event);
-        if (isMounted) {
-          setSession(session);
-          setUser(session?.user || null);
-        }
+        setSession(session);
+        setUser(session?.user || null);
         
         // Handle session expiration events
         if (event === 'SIGNED_OUT' || event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED') {
           console.log(`Auth event ${event} detected`);
           
-          if (!session && isMounted) {
+          if (!session) {
             // Session expired or user signed out
             setUserRole(null);
             toast({
@@ -147,30 +114,24 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           }
         }
         
-        if (session?.user && isMounted) {
+        if (session?.user) {
           // Defer fetching user role to prevent potential deadlocks
-          console.log('Deferring user role fetch to prevent deadlocks');
           setTimeout(async () => {
-            if (isMounted) {
-              await fetchUserRole(session.user.id);
-            }
+            await fetchUserRole(session.user.id);
           }, 0);
-        } else if (isMounted) {
+        } else {
           setUserRole(null);
         }
       }
     );
     
     return () => {
-      console.log('AuthProvider useEffect cleanup running');
-      isMounted = false;
       subscription.unsubscribe();
     };
   }, [navigate]);
   
   // Fetch user role from profiles table
   const fetchUserRole = async (userId: string) => {
-    console.log('Fetching user role for user ID:', userId);
     try {
       const { data, error } = await supabase
         .from('profiles')
@@ -184,10 +145,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
       
       if (data) {
-        console.log('User role found:', data.role);
         setUserRole(data.role as UserRole);
-      } else {
-        console.warn('No user role found for user ID:', userId);
       }
     } catch (error) {
       console.error('Error in fetchUserRole:', error);
@@ -351,9 +309,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
   
-  console.log('AuthProvider rendering children');
-  
-  // Render the content with or without a loading indicator
   return (
     <AuthContext.Provider value={{
       user,
@@ -364,31 +319,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       signIn,
       signOut
     }}>
-      {isLoading ? (
-        <div className="flex items-center justify-center h-screen">
-          <div className="flex flex-col items-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
-            <p className="mt-4 text-gray-600">Loading authentication...</p>
-          </div>
-        </div>
-      ) : (
-        <>
-          {/* Debug message on screen for development */}
-          <div className="fixed bottom-0 right-0 p-2 bg-black text-white text-xs opacity-50 z-50">
-            Auth: {user ? 'Logged in' : 'Not logged in'}, Role: {userRole || 'none'}
-          </div>
-          {children}
-        </>
-      )}
+      {children}
     </AuthContext.Provider>
   );
 };
 
 export const useAuth = () => {
   const context = useContext(AuthContext);
-  console.log('useAuth hook called, context exists:', !!context);
   if (context === undefined) {
-    console.error('useAuth must be used within an AuthProvider');
     throw new Error('useAuth must be used within an AuthProvider');
   }
   return context;

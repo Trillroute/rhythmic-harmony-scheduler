@@ -18,7 +18,6 @@ export interface SessionWithStudents {
   updatedAt: string;
   studentIds: string[];
   teacherName?: string;
-  studentNames?: string[];
 }
 
 export interface SessionsProps {
@@ -31,11 +30,7 @@ export interface SessionsProps {
 
 export interface SessionUpdateProps {
   id: string;
-  status?: AttendanceStatus;
-  notes?: string;
-  dateTime?: Date;
-  teacherId?: string;
-  duration?: number;
+  status: AttendanceStatus;
 }
 
 export interface SessionCreateProps {

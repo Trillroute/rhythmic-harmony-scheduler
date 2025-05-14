@@ -2,10 +2,17 @@
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { SessionsProps } from "./types";
-import { transformSession, DbSession } from "./session-transformers";
-import { SessionWithStudents, AttendanceStatus } from "@/lib/types";
-import { toast } from "@/hooks/use-toast";
-import { assertAttendanceStatusArray } from "@/lib/type-utils";
+import { transformSession } from "./session-transformers";
+import { 
+  assertSubjectType, 
+  assertSubjectTypeArray, 
+  assertSessionType, 
+  assertSessionTypeArray, 
+  assertLocationType,
+  assertAttendanceStatus,
+  assertAttendanceStatusArray
+} from "@/lib/type-utils";
+import { SessionWithStudents } from "@/lib/types";
 
 export function useFetchSessions(props?: SessionsProps) {
   const [sessions, setSessions] = useState<SessionWithStudents[]>([]);
@@ -56,12 +63,8 @@ export function useFetchSessions(props?: SessionsProps) {
       }
 
       if (props?.status && props.status.length > 0) {
-        // Convert status array to strings for the database query
-        // We need to ensure these are valid AttendanceStatus values
-        const statusValues = assertAttendanceStatusArray(props.status);
-        if (statusValues.length > 0) {
-          query = query.in('status', statusValues);
-        }
+        const safeStatus = assertAttendanceStatusArray(props.status);
+        query = query.in('status', safeStatus);
       }
 
       // Execute query and get data
@@ -77,16 +80,7 @@ export function useFetchSessions(props?: SessionsProps) {
       }
 
       // Transform data to match frontend types
-      const transformedSessions = data.map(session => {
-        // Handle the case where profiles might be an array instead of an object
-        let processedSession: any = { ...session };
-        if (Array.isArray(session.profiles)) {
-          processedSession.profiles = session.profiles.length > 0 ? session.profiles[0] : { name: 'Unknown' };
-        }
-        
-        return transformSession(processedSession as DbSession);
-      });
-      
+      const transformedSessions = data.map(session => transformSession(session));
       setSessions(transformedSessions);
     } catch (err: any) {
       console.error("Error fetching sessions:", err);

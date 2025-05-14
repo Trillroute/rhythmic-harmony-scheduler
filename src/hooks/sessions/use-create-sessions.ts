@@ -1,7 +1,7 @@
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { toast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 import { SubjectType, SessionType, LocationType, AttendanceStatus } from "@/lib/types";
 
 interface SessionCreateProps {
@@ -23,7 +23,6 @@ export function useCreateSessions(queryKey: any[]) {
     mutationFn: async (sessionDataArray: SessionCreateProps[]) => {
       try {
         // Create array of session objects with proper snake_case for database
-        // Each session has to match the database schema exactly
         const sessionObjects = sessionDataArray.map(session => ({
           teacher_id: session.teacherId,
           pack_id: session.packId,
@@ -33,7 +32,7 @@ export function useCreateSessions(queryKey: any[]) {
           date_time: session.dateTime.toISOString(),
           duration: session.duration,
           notes: session.notes || null,
-          status: 'Scheduled' as AttendanceStatus,
+          status: 'Scheduled', // Using string literal instead of enum for db compatibility
           reschedule_count: 0
         }));
 
@@ -99,17 +98,10 @@ export function useCreateSessions(queryKey: any[]) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey });
-      toast({
-        title: "Success",
-        description: "Sessions created successfully"
-      });
+      toast.success("Sessions created successfully");
     },
     onError: (error) => {
-      toast({
-        title: "Error",
-        description: `Session creation failed: ${error.message}`,
-        variant: "destructive"
-      });
+      toast.error(`Session creation failed: ${error.message}`);
     }
   });
 }

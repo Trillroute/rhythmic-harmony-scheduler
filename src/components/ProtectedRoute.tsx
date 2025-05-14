@@ -3,8 +3,7 @@ import React, { useEffect } from 'react';
 import { Navigate, useLocation, Outlet } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { UserRole } from '@/lib/types';
-import { toast } from '@/hooks/use-toast';
-import { ErrorBoundary } from './ErrorBoundary';
+import { toast } from 'sonner';
 
 interface ProtectedRouteProps {
   children?: React.ReactNode;
@@ -26,18 +25,9 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   useEffect(() => {
     // If user is authenticated but doesn't have the required role, show a toast
     if (user && userRole && effectiveRoles && !effectiveRoles.includes(userRole)) {
-      console.warn(`Access denied: User ${user.id} with role ${userRole} attempted to access route requiring ${effectiveRoles.join(', ')}`);
-      
-      toast({
-        title: "Access Denied",
-        description: `You don't have permission to access this page.`,
-        variant: "destructive"
-      });
+      toast.error(`Access Denied: You don't have permission to access this page.`);
     }
   }, [user, userRole, effectiveRoles]);
-  
-  // Log helpful debugging information
-  console.log(`ProtectedRoute: path=${location.pathname}, isLoading=${isLoading}, hasUser=${!!user}, userRole=${userRole}`);
   
   if (isLoading) {
     return (
@@ -52,7 +42,6 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   
   if (!user) {
     // Save the attempted URL to redirect back after login
-    console.log(`ProtectedRoute: No user found, redirecting to login from ${location.pathname}`);
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
   
@@ -64,26 +53,14 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
       userRole === 'student' ? '/student/dashboard' : 
       '/';
     
-    console.log(`ProtectedRoute: Role mismatch - user has ${userRole}, needs ${effectiveRoles.join(' or ')}, redirecting to ${roleBasedPath}`);
     return <Navigate to={roleBasedPath} replace />;
   }
   
   return (
-    <ErrorBoundary fallback={
-      <div className="p-8 text-red-600">
-        <h2 className="text-xl font-bold mb-4">Error loading protected content</h2>
-        <p>There was a problem rendering this page.</p>
-        <button 
-          className="mt-4 px-4 py-2 bg-primary text-white rounded"
-          onClick={() => window.location.reload()}
-        >
-          Try again
-        </button>
-      </div>
-    }>
+    <>
       {children}
       <Outlet />
-    </ErrorBoundary>
+    </>
   );
 };
 

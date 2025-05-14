@@ -52,11 +52,11 @@ const ReportChart = ({
     }
     else if (selectedChart === "sessions" && subjectDistributionData) {
       return {
-        labels: subjectDistributionData.map(d => d.name),
+        labels: subjectDistributionData.map(d => d.subject),
         datasets: [
           {
             label: 'Sessions',
-            data: subjectDistributionData.map(d => d.value),
+            data: subjectDistributionData.map(d => d.count),
             backgroundColor: [
               'rgba(255, 99, 132, 0.5)',
               'rgba(54, 162, 235, 0.5)',

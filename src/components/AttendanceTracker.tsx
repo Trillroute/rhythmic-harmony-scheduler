@@ -1,220 +1,141 @@
-// This component is read-only, so let's create a wrapper component that includes proper error handling
-import React from 'react';
-import { ErrorBoundary } from './ErrorBoundary';
-import { toast } from '@/hooks/use-toast';
-import { useSessions } from '@/hooks/use-sessions';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Calendar, Clock, MapPin, User, Users } from 'lucide-react';
-import { AttendanceStatus, SessionWithStudents } from '@/lib/types';
-import { format } from 'date-fns';
+
+import React, { useState, useEffect } from "react";
+import {
+  Table,
+  TableBody,
+  TableCaption,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table"
+import { useSessions } from "@/hooks/use-sessions";
+import { AttendanceStatus } from "@/lib/types";
+import { toast } from "sonner";
+import { Badge } from "@/components/ui/badge";
+import { MoreVertical, Pencil, User, Users } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import { Button } from "@/components/ui/button";
 
 interface AttendanceTrackerProps {
   teacherId?: string;
 }
 
 const AttendanceTracker: React.FC<AttendanceTrackerProps> = ({ teacherId }) => {
-  if (!teacherId) {
-    return (
-      <div className="p-6 bg-muted/20 rounded-lg border border-muted text-center">
-        <p className="text-muted-foreground">No teacher ID provided. Cannot display attendance records.</p>
-      </div>
-    );
+  const [selectedSession, setSelectedSession] = useState<any | null>(null);
+  const {
+    sessions,
+    isLoading,
+    error,
+    refetchSessions,
+    updateSessionStatus
+  } = useSessions({ teacherId });
+  
+  useEffect(() => {
+    refetchSessions();
+  }, [teacherId, refetchSessions]);
+  
+  if (isLoading) {
+    return <Alert><AlertTitle>Loading sessions...</AlertTitle><AlertDescription>Fetching the latest session data for attendance tracking.</AlertDescription></Alert>;
   }
   
-  return (
-    <ErrorBoundary fallback={
-      <div className="p-6 bg-red-50 border border-red-200 rounded-lg">
-        <h3 className="text-lg font-medium text-red-800 mb-2">Unable to load attendance data</h3>
-        <p className="text-red-700">There was a problem loading the attendance tracker. Please try again later.</p>
-        <button 
-          className="mt-4 px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
-          onClick={() => window.location.reload()}
-        >
-          Reload page
-        </button>
-      </div>
-    }>
-      <AttendanceTrackerContent teacherId={teacherId} />
-    </ErrorBoundary>
-  );
-};
-
-const AttendanceTrackerContent: React.FC<{ teacherId: string }> = ({ teacherId }) => {
-  const { 
-    sessions, 
-    isLoading, 
-    error, 
-    updateSessionStatus 
-  } = useSessions({ teacherId });
-
-  const handleMarkAttendance = async (sessionId: string, status: AttendanceStatus) => {
+  // Fixed error checking
+  if (error) {
+    const errorMessage = error ? (typeof error === 'object' && error !== null && 'message' in error ? error.message as string : 'Unknown error') : 'Unknown error';
+    return <Alert variant="destructive"><AlertTitle>Error</AlertTitle><AlertDescription>Could not load sessions: {errorMessage}</AlertDescription></Alert>;
+  }
+  
+  if (!sessions || sessions.length === 0) {
+    return <Alert><AlertTitle>No Sessions</AlertTitle><AlertDescription>No sessions found for the selected criteria.</AlertDescription></Alert>;
+  }
+  
+  const handleMarkAttendance = async (session: any, status: AttendanceStatus) => {
     try {
-      await updateSessionStatus({ id: sessionId, status });
-      toast({
-        title: "Attendance updated",
-        description: `Session marked as ${status}`,
+      await updateSessionStatus({
+        id: session.id,
+        status
       });
-    } catch (err) {
-      console.error('Error updating attendance:', err);
-      toast({
-        title: "Update failed",
-        description: "Could not update attendance status",
-        variant: "destructive",
-      });
+      
+      toast.success(`Session marked as ${status}`);
+      
+      // Refresh data
+      refetchSessions();
+    } catch (error) {
+      console.error("Error marking attendance:", error);
+      toast.error("Failed to update attendance status");
     }
   };
 
-  if (isLoading) {
-    return (
-      <div className="flex justify-center items-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="p-6 bg-red-50 border border-red-200 rounded-lg">
-        <h3 className="text-lg font-medium text-red-800 mb-2">Error loading sessions</h3>
-        <p className="text-red-700">{error}</p>
-        <Button 
-          variant="destructive" 
-          className="mt-4"
-          onClick={() => window.location.reload()}
-        >
-          Retry
-        </Button>
-      </div>
-    );
-  }
-
-  if (!sessions || sessions.length === 0) {
-    return (
-      <div className="p-6 bg-muted/20 rounded-lg border border-muted text-center">
-        <p className="text-muted-foreground">No sessions found for this teacher.</p>
-      </div>
-    );
-  }
-
-  // Group sessions by date for better organization
-  const sessionsByDate = sessions.reduce((acc, session) => {
-    const date = format(new Date(session.dateTime), 'yyyy-MM-dd');
-    if (!acc[date]) {
-      acc[date] = [];
-    }
-    acc[date].push(session);
-    return acc;
-  }, {} as Record<string, SessionWithStudents[]>);
-
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-bold">Attendance Tracker</h2>
-      </div>
-
-      {Object.entries(sessionsByDate).map(([date, dateSessions]) => (
-        <div key={date} className="space-y-4">
-          <h3 className="text-lg font-medium border-b pb-2">
-            {format(new Date(date), 'EEEE, MMMM d, yyyy')}
-          </h3>
-          
-          <div className="grid gap-4 md:grid-cols-2">
-            {dateSessions.map(session => (
-              <Card key={session.id} className="overflow-hidden">
-                <CardHeader className="bg-muted/50 pb-2">
-                  <div className="flex justify-between items-start">
-                    <CardTitle className="text-lg">{session.subject}</CardTitle>
-                    <AttendanceStatusBadge status={session.status} />
-                  </div>
-                </CardHeader>
-                
-                <CardContent className="pt-4">
-                  <div className="space-y-3">
-                    <div className="flex items-center text-sm">
-                      <Clock className="h-4 w-4 mr-2 text-muted-foreground" />
-                      <span>
-                        {format(new Date(session.dateTime), 'h:mm a')} - 
-                        {format(new Date(new Date(session.dateTime).getTime() + session.duration * 60000), 'h:mm a')}
-                      </span>
-                    </div>
-                    
-                    <div className="flex items-center text-sm">
-                      <MapPin className="h-4 w-4 mr-2 text-muted-foreground" />
-                      <span>{session.location}</span>
-                    </div>
-                    
-                    <div className="flex items-center text-sm">
-                      <Users className="h-4 w-4 mr-2 text-muted-foreground" />
-                      <span>{session.sessionType} Session</span>
-                    </div>
-                    
-                    {session.studentNames && session.studentNames.length > 0 && (
-                      <div className="flex items-start text-sm">
-                        <User className="h-4 w-4 mr-2 mt-0.5 text-muted-foreground" />
-                        <div>
-                          <span className="font-medium">Students: </span>
-                          <span>{session.studentNames.join(', ')}</span>
-                        </div>
-                      </div>
-                    )}
-                    
-                    {session.status === 'Scheduled' && (
-                      <div className="flex flex-wrap gap-2 pt-2">
-                        <Button 
-                          size="sm" 
-                          variant="default"
-                          onClick={() => handleMarkAttendance(session.id, 'Present')}
-                        >
-                          Mark Present
-                        </Button>
-                        <Button 
-                          size="sm" 
-                          variant="outline"
-                          onClick={() => handleMarkAttendance(session.id, 'Absent')}
-                        >
-                          Mark Absent
-                        </Button>
-                        <Button 
-                          size="sm" 
-                          variant="outline"
-                          onClick={() => handleMarkAttendance(session.id, 'No Show')}
-                        >
-                          No Show
-                        </Button>
-                      </div>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </div>
-      ))}
+    <div className="container py-4">
+      <h1 className="text-2xl font-bold mb-4">Attendance Tracker</h1>
+      <Table>
+        <TableCaption>A list of your recent sessions.</TableCaption>
+        <TableHeader>
+          <TableRow>
+            <TableHead className="w-[100px]">Date</TableHead>
+            <TableHead>Subject</TableHead>
+            <TableHead>Type</TableHead>
+            <TableHead>Location</TableHead>
+            <TableHead>Students</TableHead>
+            <TableHead>Status</TableHead>
+            <TableHead className="text-right">Actions</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {sessions.map((session) => (
+            <TableRow key={session.id}>
+              <TableCell className="font-medium">{new Date(session.dateTime).toLocaleDateString()}</TableCell>
+              <TableCell>{session.subject}</TableCell>
+              <TableCell>{session.sessionType}</TableCell>
+              <TableCell>{session.location}</TableCell>
+              <TableCell>
+                {session.studentIds && session.studentIds.length > 0 ? (
+                  <Badge variant="secondary">{session.studentIds.length} <Users className="h-4 w-4 ml-1 inline-block" /></Badge>
+                ) : (
+                  <Badge variant="outline">Solo <User className="h-4 w-4 ml-1 inline-block" /></Badge>
+                )}
+              </TableCell>
+              <TableCell>
+                <Badge>{session.status}</Badge>
+              </TableCell>
+              <TableCell className="text-right">
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" className="h-8 w-8 p-0">
+                      <span className="sr-only">Open menu</span>
+                      <MoreVertical className="h-4 w-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                    <DropdownMenuItem onClick={() => handleMarkAttendance(session, 'Present')}>
+                      Mark Present
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => handleMarkAttendance(session, 'Absent')}>
+                      Mark Absent
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem>
+                      Edit <Pencil className="h-4 w-4 ml-2" />
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
     </div>
   );
-};
-
-const AttendanceStatusBadge: React.FC<{ status: AttendanceStatus }> = ({ status }) => {
-  let variant: "default" | "secondary" | "destructive" | "outline" = "outline";
-  
-  switch (status) {
-    case 'Present':
-      variant = "default";
-      break;
-    case 'Absent':
-    case 'No Show':
-      variant = "destructive";
-      break;
-    case 'Scheduled':
-      variant = "secondary";
-      break;
-    default:
-      variant = "outline";
-  }
-  
-  return <Badge variant={variant}>{status}</Badge>;
 };
 
 export default AttendanceTracker;

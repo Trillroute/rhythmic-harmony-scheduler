@@ -1,155 +1,103 @@
 
-import { useState, useEffect, useCallback } from 'react';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { SessionPack, SubjectType, SessionType, LocationType, WeeklyFrequency, PackSize } from '@/lib/types';
-import { toast } from '@/hooks/use-toast';
-import { assertSubjectType, assertSessionType, assertLocationType, assertWeeklyFrequency } from '@/lib/type-utils';
+import { SessionPack, PackSize, SubjectType, SessionType, LocationType, WeeklyFrequency } from '@/lib/types';
+import { toast } from 'sonner';
+import { 
+  assertSubjectType, 
+  assertSessionType, 
+  assertLocationType,
+  assertWeeklyFrequency 
+} from '@/lib/type-utils';
 
-// Define the interface for session pack data
-interface SessionPackData {
-  id: string;
+interface CreateSessionPackInput {
   studentId: string;
   size: PackSize;
   subject: SubjectType;
   sessionType: SessionType;
   location: LocationType;
-  purchasedDate: string | Date;
-  expiryDate?: string | Date;
+  purchasedDate: Date;
+  expiryDate?: Date;
   remainingSessions: number;
   isActive: boolean;
   weeklyFrequency: WeeklyFrequency;
-  createdAt: string | Date;
-  updatedAt: string | Date;
 }
 
-// Define interface for create session pack props
-interface CreateSessionPackProps {
-  studentId: string;
-  size: PackSize;
-  subject: SubjectType;
-  sessionType: SessionType;
-  location: LocationType;
-  weeklyFrequency: WeeklyFrequency;
-}
-
-// Transform database session pack to frontend session pack
-const transformSessionPack = (dbPack: any): SessionPack => {
-  return {
-    id: dbPack.id,
-    studentId: dbPack.student_id,
-    size: dbPack.size as PackSize,
-    subject: assertSubjectType(dbPack.subject),
-    sessionType: assertSessionType(dbPack.session_type),
-    location: assertLocationType(dbPack.location),
-    purchasedDate: dbPack.purchased_date,
-    expiryDate: dbPack.expiry_date,
-    remainingSessions: dbPack.remaining_sessions,
-    isActive: dbPack.is_active,
-    weeklyFrequency: assertWeeklyFrequency(dbPack.weekly_frequency),
-    createdAt: dbPack.created_at,
-    updatedAt: dbPack.updated_at
-  };
-};
-
-// Hook to fetch session packs
+// Hook for fetching session packs
 export const useSessionPacks = (studentId?: string) => {
-  const [sessionPacks, setSessionPacks] = useState<SessionPack[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  const fetchSessionPacks = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-
-    try {
+  return useQuery({
+    queryKey: ['session-packs', studentId],
+    queryFn: async () => {
+      // Build query with optional filters
       let query = supabase.from('session_packs').select('*');
       
+      // Apply student filter if provided
       if (studentId) {
         query = query.eq('student_id', studentId);
       }
       
-      const { data, error: fetchError } = await query;
+      // Execute query
+      const { data, error } = await query;
       
-      if (fetchError) throw new Error(fetchError.message);
-      
-      const transformedPacks = data?.map(transformSessionPack) || [];
-      setSessionPacks(transformedPacks);
-    } catch (err: any) {
-      console.error('Error fetching session packs:', err);
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
-  }, [studentId]);
-
-  useEffect(() => {
-    fetchSessionPacks();
-  }, [fetchSessionPacks]);
-
-  return {
-    sessionPacks,
-    loading,
-    error,
-    refetch: fetchSessionPacks
-  };
-};
-
-// Hook to create a session pack
-export const useCreateSessionPack = () => {
-  const queryClient = useQueryClient();
-  
-  return useMutation({
-    mutationFn: async (packData: CreateSessionPackProps) => {
-      try {
-        // Calculate expiry date (3 months from purchase)
-        const purchaseDate = new Date();
-        const expiryDate = new Date();
-        expiryDate.setMonth(expiryDate.getMonth() + 3);
-        
-        // Prepare the data object for the database
-        const dbPackData = {
-          student_id: packData.studentId,
-          size: String(packData.size) as "4" | "10" | "20" | "30",
-          subject: packData.subject,
-          session_type: packData.sessionType,
-          location: packData.location,
-          weekly_frequency: packData.weeklyFrequency,
-          remaining_sessions: packData.size,
-          expiry_date: expiryDate.toISOString(),
-          is_active: true
-        };
-        
-        const { data, error } = await supabase
-          .from('session_packs')
-          .insert(dbPackData)
-          .select()
-          .single();
-        
-        if (error) throw new Error(error.message);
-        
-        return transformSessionPack(data);
-      } catch (err: any) {
-        console.error('Error creating session pack:', err);
-        throw new Error(err.message);
+      if (error) {
+        throw new Error(error.message);
       }
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['sessionPacks'] });
-      toast({
-        title: "Success",
-        description: "Session pack created successfully",
-      });
-    },
-    onError: (error) => {
-      toast({
-        title: "Error",
-        description: `Failed to create session pack: ${error.message}`,
-        variant: "destructive",
-      });
+      
+      // Transform data to match frontend types
+      return data.map((pack: any) => ({
+        id: pack.id,
+        studentId: pack.student_id,
+        size: pack.size,
+        subject: assertSubjectType(pack.subject),
+        sessionType: assertSessionType(pack.session_type),
+        location: assertLocationType(pack.location),
+        purchasedDate: new Date(pack.purchased_date),
+        expiryDate: pack.expiry_date ? new Date(pack.expiry_date) : undefined,
+        remainingSessions: pack.remaining_sessions,
+        isActive: pack.is_active,
+        weeklyFrequency: assertWeeklyFrequency(pack.weekly_frequency),
+        createdAt: new Date(pack.created_at),
+        updatedAt: new Date(pack.updated_at)
+      }) as SessionPack);
     }
   });
 };
 
-// For backwards compatibility
-export const usePacks = useSessionPacks;
+// Hook for creating a session pack
+export const useCreateSessionPack = () => {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async (packData: CreateSessionPackInput) => {
+      // Convert frontend types to database format
+      const { data, error } = await supabase
+        .from('session_packs')
+        .insert({
+          student_id: packData.studentId,
+          size: packData.size,
+          subject: packData.subject,
+          session_type: packData.sessionType,
+          location: packData.location,
+          purchased_date: packData.purchasedDate.toISOString(),
+          expiry_date: packData.expiryDate?.toISOString(),
+          remaining_sessions: packData.remainingSessions,
+          is_active: packData.isActive,
+          weekly_frequency: packData.weeklyFrequency
+        })
+        .select();
+      
+      if (error) {
+        throw new Error(error.message);
+      }
+      
+      return data;
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['session-packs', variables.studentId] });
+      toast.success('Session pack created successfully');
+    },
+    onError: (error) => {
+      toast.error(`Failed to create session pack: ${error.message}`);
+    }
+  });
+};

@@ -57,36 +57,3 @@ export function transformSession(dbSession: DbSession): Session {
     updatedAt: dbSession.updated_at
   };
 }
-
-// Add a new function to transform session update props to database format
-export function transformSessionUpdate(updateData: {
-  status?: AttendanceStatus;
-  notes?: string;
-  dateTime?: Date;
-  teacherId?: string;
-  duration?: number;
-}) {
-  const dbUpdates: Record<string, any> = {};
-  
-  if (updateData.status) {
-    dbUpdates.status = updateData.status;
-  }
-  
-  if (updateData.notes !== undefined) {
-    dbUpdates.notes = updateData.notes;
-  }
-  
-  if (updateData.dateTime) {
-    dbUpdates.date_time = updateData.dateTime.toISOString();
-  }
-  
-  if (updateData.teacherId) {
-    dbUpdates.teacher_id = updateData.teacherId;
-  }
-  
-  if (updateData.duration) {
-    dbUpdates.duration = updateData.duration;
-  }
-  
-  return dbUpdates;
-}

@@ -14,8 +14,6 @@ interface DashboardFiltersProps {
   setSelectedSubjects: (subjects: SubjectType[]) => void;
   selectedStatuses: AttendanceStatus[];
   setSelectedStatuses: (statuses: AttendanceStatus[]) => void;
-  selectedChart?: "attendance" | "sessions" | "students";
-  setSelectedChart?: (chart: "attendance" | "sessions" | "students") => void;
 }
 
 const DashboardFilters = ({
@@ -24,9 +22,7 @@ const DashboardFilters = ({
   selectedSubjects,
   setSelectedSubjects,
   selectedStatuses,
-  setSelectedStatuses,
-  selectedChart,
-  setSelectedChart
+  setSelectedStatuses
 }: DashboardFiltersProps) => {
 
   const handleSubjectChange = (value: string) => {
@@ -44,12 +40,6 @@ const DashboardFilters = ({
       setSelectedStatuses(selectedStatuses.filter(status => status !== value));
     } else {
       setSelectedStatuses([...selectedStatuses, value as AttendanceStatus]);
-    }
-  };
-
-  const handleChartChange = (value: "attendance" | "sessions" | "students") => {
-    if (setSelectedChart) {
-      setSelectedChart(value);
     }
   };
   
@@ -130,32 +120,6 @@ const DashboardFilters = ({
           </Button>
         </div>
       </div>
-      
-      {selectedChart && setSelectedChart && (
-        <div className="mb-6">
-          <p className="text-sm font-medium mb-2">Chart Type</p>
-          <div className="flex gap-2">
-            <Button
-              variant={selectedChart === "attendance" ? "default" : "outline"}
-              onClick={() => handleChartChange("attendance")}
-            >
-              Attendance
-            </Button>
-            <Button
-              variant={selectedChart === "sessions" ? "default" : "outline"}
-              onClick={() => handleChartChange("sessions")}
-            >
-              Sessions
-            </Button>
-            <Button
-              variant={selectedChart === "students" ? "default" : "outline"}
-              onClick={() => handleChartChange("students")}
-            >
-              Students
-            </Button>
-          </div>
-        </div>
-      )}
       
       <div className="mb-6 flex flex-col md:flex-row gap-4">
         <div className="w-full md:w-1/2 lg:w-1/3">

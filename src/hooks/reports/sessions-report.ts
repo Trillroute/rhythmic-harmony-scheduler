@@ -1,6 +1,6 @@
 
 import { useState } from "react";
-import { SessionsReportData, ReportPeriod, SessionsReportPoint } from "./types";
+import { SessionsReportData, ReportPeriod } from "./types";
 import { supabase } from "@/integrations/supabase/client";
 import { getDateRangeFromPeriod } from "./date-utils";
 import { assertStringArray } from "@/lib/type-utils";
@@ -8,10 +8,7 @@ import { assertStringArray } from "@/lib/type-utils";
 export function useSessionsReport() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [data, setData] = useState<SessionsReportData>({
-    totalSessions: 0,
-    chartData: []
-  });
+  const [data, setData] = useState<SessionsReportData>([]);
 
   const fetchData = async (period: ReportPeriod) => {
     setIsLoading(true);
@@ -20,20 +17,10 @@ export function useSessionsReport() {
     try {
       const { startDate, endDate } = getDateRangeFromPeriod(period);
       
-      // Get sessions count
-      const { count: totalCount, error: countError } = await supabase
-        .from("sessions")
-        .select("*", { count: 'exact', head: true })
-        .gte('date_time', startDate.toISOString())
-        .lte('date_time', endDate.toISOString())
-        .not('status', 'in', assertStringArray(["Cancelled by Student", "Cancelled by Teacher", "Cancelled by School"]));
-      
-      if (countError) throw new Error(countError.message);
-      
-      // Get sessions for time series
+      // Get sessions aggregated by day
       const { data: sessionsData, error: sessionsError } = await supabase
         .from("sessions")
-        .select("date_time")
+        .select("date_time, count")
         .gte('date_time', startDate.toISOString())
         .lte('date_time', endDate.toISOString())
         .not('status', 'in', assertStringArray(["Cancelled by Student", "Cancelled by Teacher", "Cancelled by School"]))
@@ -51,15 +38,12 @@ export function useSessionsReport() {
       });
       
       // Build data for chart
-      const chartData: SessionsReportPoint[] = Array.from(sessionsByDay).map(([date, count]) => ({
+      const timeSeriesData = Array.from(sessionsByDay).map(([date, count]) => ({
         date,
         count
       }));
       
-      setData({
-        totalSessions: totalCount || 0,
-        chartData
-      });
+      setData(timeSeriesData);
     } catch (err: any) {
       setError(err.message);
       console.error("Error fetching sessions report data:", err);
