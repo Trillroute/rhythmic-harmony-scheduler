@@ -11,7 +11,7 @@ import { useFeePlans, FeePlan } from "@/hooks/use-fee-plans";
 import { usePayments } from "@/hooks/use-payments";
 import { FeePlanForm } from "./FeePlanForm";
 import { PaymentForm } from "./PaymentForm";
-import { PlusIcon, Pencil2Icon, ReceiptIcon, MoreVertical, BanknoteIcon } from "lucide-react";
+import { PlusIcon, PencilIcon, ReceiptIcon, MoreVertical, BanknoteIcon } from "lucide-react";
 import { calculateFeePlanSummary, formatDueStatus, getStatusBadgeVariant } from "@/lib/fee-utils";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
@@ -22,7 +22,6 @@ interface FeePlanDetailsProps {
 
 export const FeePlanDetails: React.FC<FeePlanDetailsProps> = ({ studentId }) => {
   const { feePlans, createFeePlan, updateFeePlan, deleteFeePlan, isLoading: isLoadingPlans, isPendingCreate, isPendingUpdate, isPendingDelete } = useFeePlans(studentId);
-  
   const [isAddingPlan, setIsAddingPlan] = useState(false);
   const [isEditingPlan, setIsEditingPlan] = useState<FeePlan | null>(null);
   const [selectedPlanForPayment, setSelectedPlanForPayment] = useState<FeePlan | null>(null);
@@ -125,7 +124,7 @@ export const FeePlanDetails: React.FC<FeePlanDetailsProps> = ({ studentId }) => 
                             Record Payment
                           </DropdownMenuItem>
                           <DropdownMenuItem onClick={() => handleEditPlan(plan)}>
-                            <Pencil2Icon className="h-4 w-4 mr-2" />
+                            <PencilIcon className="h-4 w-4 mr-2" />
                             Edit Plan
                           </DropdownMenuItem>
                           <DropdownMenuSeparator />
@@ -317,11 +316,8 @@ export const FeePlanDetails: React.FC<FeePlanDetailsProps> = ({ studentId }) => 
             <PaymentForm
               studentId={studentId}
               feePlanId={selectedPlanForPayment.id}
-              onSubmit={(data) => {
-                const { payments } = usePayments(studentId, selectedPlanForPayment.id);
-                const summary = calculateFeePlanSummary(selectedPlanForPayment, payments);
-                
-                createPayment(data);
+              onSubmit={() => {
+                // This will be handled by the PaymentForm component using the usePayments hook
                 setSelectedPlanForPayment(null);
               }}
               onCancel={() => setSelectedPlanForPayment(null)}
