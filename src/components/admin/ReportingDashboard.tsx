@@ -14,9 +14,20 @@ import SubjectDistributionChart from '@/components/reports/SubjectDistributionCh
 import SessionTypeChart from '@/components/reports/SessionTypeChart';
 import SessionsOverTimeChart from '@/components/reports/SessionsOverTimeChart';
 import StudentProgressTable from '@/components/reports/StudentProgressTable';
+import StatisticsCards from '@/components/admin/reporting/StatisticsCards';
+import ReportChart from '@/components/admin/reporting/ReportChart';
+import { DateRange } from 'react-day-picker';
+import { sub } from 'date-fns';
+import DashboardFilters from './reporting/DashboardFilters';
 
 const ReportingDashboard: React.FC = () => {
   const [period, setPeriod] = useState<ReportPeriod>('month');
+  const [dateRange, setDateRange] = useState<DateRange>({
+    from: sub(new Date(), { months: 1 }),
+    to: new Date()
+  });
+  const [selectedChart, setSelectedChart] = useState<"attendance" | "sessions" | "students">("attendance");
+  
   const reports = useReports();
   
   useEffect(() => {
@@ -39,6 +50,31 @@ const ReportingDashboard: React.FC = () => {
         </Select>
       </div>
       
+      <DashboardFilters 
+        dateRange={dateRange} 
+        onDateRangeChange={setDateRange} 
+        selectedChart={selectedChart}
+        onChartChange={setSelectedChart}
+      />
+      
+      <StatisticsCards 
+        attendanceData={reports.attendance.data} 
+        sessionsData={reports.sessions.data}
+        studentProgressData={reports.studentProgress.data}
+        isLoading={reports.isLoading}
+      />
+      
+      <ReportChart
+        selectedChart={selectedChart}
+        attendanceData={reports.attendance.data}
+        sessionsData={reports.sessions.data}
+        subjectDistributionData={reports.subjectDistribution.data}
+        sessionTypeData={reports.sessionType.data}
+        studentProgressData={reports.studentProgress.data}
+        isLoading={reports.isLoading}
+        dateRange={dateRange}
+      />
+      
       {reports.isLoading ? (
         <div className="text-center py-10">Loading reports...</div>
       ) : reports.error ? (
@@ -47,15 +83,6 @@ const ReportingDashboard: React.FC = () => {
         </div>
       ) : (
         <div className="grid gap-6 md:grid-cols-2">
-          <Card>
-            <CardHeader>
-              <CardTitle>Attendance</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <AttendanceChart data={reports.attendance.data} />
-            </CardContent>
-          </Card>
-          
           <Card>
             <CardHeader>
               <CardTitle>Subject Distribution</CardTitle>
@@ -71,15 +98,6 @@ const ReportingDashboard: React.FC = () => {
             </CardHeader>
             <CardContent>
               <SessionTypeChart data={reports.sessionType.data} />
-            </CardContent>
-          </Card>
-          
-          <Card>
-            <CardHeader>
-              <CardTitle>Sessions Over Time</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <SessionsOverTimeChart data={reports.sessions.data} />
             </CardContent>
           </Card>
           

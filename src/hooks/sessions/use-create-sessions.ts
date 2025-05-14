@@ -2,7 +2,8 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { SubjectType, SessionType, LocationType } from "@/lib/types";
+import { SubjectType, SessionType, LocationType, AttendanceStatus } from "@/lib/types";
+import { assertSubjectType, assertSessionType, assertLocationType, assertAttendanceStatus } from "@/lib/type-utils";
 
 interface SessionCreateProps {
   teacherId: string;
@@ -22,7 +23,7 @@ export function useCreateSessions(queryKey: any[]) {
   return useMutation({
     mutationFn: async (sessionDataArray: SessionCreateProps[]) => {
       try {
-        // Create array of session objects
+        // Create array of session objects with proper type handling
         const sessionObjects = sessionDataArray.map(session => ({
           teacher_id: session.teacherId,
           pack_id: session.packId,
@@ -32,7 +33,7 @@ export function useCreateSessions(queryKey: any[]) {
           date_time: session.dateTime.toISOString(),
           duration: session.duration,
           notes: session.notes || null,
-          status: "Scheduled",
+          status: "Scheduled" as AttendanceStatus,
           reschedule_count: 0
         }));
 
@@ -70,7 +71,7 @@ export function useCreateSessions(queryKey: any[]) {
           // Update session pack to decrement remaining_sessions
           const { error: packUpdateError } = await supabase
             .from("session_packs")
-            .update({ remaining_sessions: supabase.rpc('decrement', { x: 1 }) })
+            .update({ remaining_sessions: session.remaining_sessions - 1 })
             .eq('id', session.pack_id);
 
           if (packUpdateError) {

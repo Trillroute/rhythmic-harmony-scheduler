@@ -1,38 +1,62 @@
 
+// Report period type
 export type ReportPeriod = 'week' | 'month' | 'year';
 
-export interface AttendanceData {
-  total: number;
+// Attendance data types
+export interface AttendanceChartPoint {
+  date: string;
   present: number;
-  absent: number;
-  cancelled: number;
-  noShow: number;
-  distribution: {
-    status: string;
-    count: number;
-  }[];
+  total: number;
 }
 
-export interface SubjectDistributionData {
-  name: string;
-  value: number;
-}[];
+export interface AttendanceData {
+  attendanceRate: number;
+  chartData: AttendanceChartPoint[];
+  summary: {
+    present: number;
+    absent: number;
+    total: number;
+  };
+}
 
-export interface SessionTypeData {
+// Subject distribution data types
+export interface SubjectDistributionPoint {
+  subject: string;
+  count: number;
+}
+
+export type SubjectDistributionData = SubjectDistributionPoint[];
+
+// Session type data types
+export interface SessionTypePoint {
   type: string;
   subject: string;
   count: number;
-}[];
+}
 
-export interface SessionsReportData {
+export type SessionTypeData = SessionTypePoint[];
+
+// Sessions report data types
+export interface SessionsReportPoint {
   date: string;
   count: number;
-}[];
+}
 
-export interface StudentProgressData {
+export interface SessionsReportData {
+  totalSessions: number;
+  chartData: SessionsReportPoint[];
+}
+
+// Student progress data types
+export interface StudentProgressPoint {
   id: string;
   studentName: string;
   courseName: string;
   instrument: string;
   completionPercentage: number;
-}[];
+}
+
+export interface StudentProgressData {
+  activeStudents: number;
+  chartData: StudentProgressPoint[];
+}

@@ -4,13 +4,15 @@ import { format } from 'date-fns';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Chart } from "@/components/ui/chart";
 import { DateRange } from "react-day-picker";
-import { AttendanceData, SessionsReportData, StudentProgressData } from "@/hooks/reports/types";
+import { AttendanceData, SessionsReportData, StudentProgressData, SubjectDistributionData, SessionTypeData } from "@/hooks/reports/types";
 
 interface ReportChartProps {
   selectedChart: "attendance" | "sessions" | "students";
   attendanceData?: AttendanceData;
   sessionsData?: SessionsReportData;
   studentProgressData?: StudentProgressData;
+  subjectDistributionData?: SubjectDistributionData;
+  sessionTypeData?: SessionTypeData;
   isLoading: boolean;
   dateRange: DateRange;
 }
@@ -20,6 +22,8 @@ const ReportChart = ({
   attendanceData,
   sessionsData,
   studentProgressData,
+  subjectDistributionData,
+  sessionTypeData,
   isLoading,
   dateRange
 }: ReportChartProps) => {
@@ -46,13 +50,13 @@ const ReportChart = ({
         ]
       };
     }
-    else if (selectedChart === "sessions" && sessionsData?.chartData) {
+    else if (selectedChart === "sessions" && subjectDistributionData) {
       return {
-        labels: sessionsData.chartData.map(d => d.subject),
+        labels: subjectDistributionData.map(d => d.subject),
         datasets: [
           {
             label: 'Sessions',
-            data: sessionsData.chartData.map(d => d.count),
+            data: subjectDistributionData.map(d => d.count),
             backgroundColor: [
               'rgba(255, 99, 132, 0.5)',
               'rgba(54, 162, 235, 0.5)',
@@ -74,11 +78,11 @@ const ReportChart = ({
     }
     else if (selectedChart === "students" && studentProgressData?.chartData) {
       return {
-        labels: studentProgressData.chartData.map(d => d.name),
+        labels: studentProgressData.chartData.map(d => d.studentName),
         datasets: [
           {
-            label: 'Students',
-            data: studentProgressData.chartData.map(d => d.value),
+            label: 'Completion %',
+            data: studentProgressData.chartData.map(d => d.completionPercentage),
             backgroundColor: [
               'rgba(255, 99, 132, 0.5)',
               'rgba(54, 162, 235, 0.5)',
