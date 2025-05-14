@@ -1,4 +1,3 @@
-
 export type UserRole = 'admin' | 'teacher' | 'student';
 
 // Ensure these match exactly with the database enum values
@@ -55,6 +54,14 @@ export interface Student {
   preferredTeachers?: string[];
   notes?: string;
   status?: 'active' | 'inactive'; // Adding status field
+}
+
+// Let's add a StudentDetail interface to match what's used in StudentManagement
+export interface StudentDetail extends Student {
+  assignedTeacherName?: string;
+  activePacks?: number;
+  enrolledCourses?: string[];
+  isActive?: boolean;
 }
 
 export interface Session {

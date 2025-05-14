@@ -1,8 +1,9 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { LocationType, PackSize, SessionType, SubjectType, WeeklyFrequency } from "@/lib/types";
+import { LocationType, SubjectType, SessionType, WeeklyFrequency } from "@/lib/types";
 import { toast } from "sonner";
+import { assertPackSize } from "@/lib/type-utils";
 
 // Export the SessionPack type so it can be used in other files
 export interface SessionPack {
@@ -11,7 +12,7 @@ export interface SessionPack {
   subject: SubjectType;
   session_type: SessionType;
   location: LocationType;
-  size: PackSize;
+  size: string;
   remaining_sessions: number;
   purchased_date: string;
   expiry_date: string | null;
@@ -26,7 +27,7 @@ interface CreatePackParams {
   subject: SubjectType;
   sessionType: SessionType;
   location: LocationType;
-  size: PackSize;
+  size: string;
   weeklyFrequency: WeeklyFrequency;
   purchasedDate?: Date;
   expiryDate?: Date;
@@ -35,7 +36,12 @@ interface CreatePackParams {
 export const usePacks = (studentId?: string) => {
   const queryClient = useQueryClient();
 
-  const packQuery = useQuery({
+  const { 
+    data, 
+    isLoading, 
+    error, 
+    isError 
+  } = useQuery({
     queryKey: ["session-packs", studentId],
     queryFn: async () => {
       let query = supabase
@@ -52,7 +58,7 @@ export const usePacks = (studentId?: string) => {
       
       if (error) throw error;
       
-      return data;
+      return data as SessionPack[];
     },
     enabled: !!studentId
   });
@@ -76,7 +82,7 @@ export const usePacks = (studentId?: string) => {
         subject,
         session_type: sessionType,
         location,
-        size: size.toString(), // Convert to string for DB compatibility
+        size, // Already a string
         remaining_sessions: Number(size),
         purchased_date: purchasedDate.toISOString(),
         expiry_date: expiryDate ? expiryDate.toISOString() : null,
@@ -108,10 +114,9 @@ export const usePacks = (studentId?: string) => {
     mutationFn: async (pack: Partial<SessionPack> & { id: string }) => {
       const { id, ...updatedData } = pack;
       
-      // Convert size and dates to string for DB compatibility
+      // Convert dates to string for DB compatibility
       const packData = {
         ...updatedData,
-        size: updatedData.size?.toString(),
         purchased_date: updatedData.purchased_date ? new Date(updatedData.purchased_date).toISOString() : undefined,
         expiry_date: updatedData.expiry_date ? new Date(updatedData.expiry_date).toISOString() : null
       };
@@ -138,9 +143,10 @@ export const usePacks = (studentId?: string) => {
   });
 
   return {
-    packs: packQuery.data || [],
-    isLoading: packQuery.isLoading,
-    error: packQuery.error,
+    packs: data || [],
+    isLoading,
+    error,
+    isError,
     createPack: createPackMutation.mutateAsync,
     updatePack: updatePackMutation.mutateAsync,
     isPendingCreate: createPackMutation.isPending,

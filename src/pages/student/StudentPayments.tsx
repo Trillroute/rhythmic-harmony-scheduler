@@ -46,14 +46,13 @@ const StudentPayments = () => {
     }
   }, [packs, isPacksLoading]);
 
-  const calculatePackPrice = (sessionType: string, size: string | number): number => {
+  const calculatePackPrice = (sessionType: string, size: string): number => {
     // Mock pricing logic
     const basePrice = sessionType === 'Solo' ? 50 : 
                      sessionType === 'Duo' ? 35 : 
                      sessionType === 'Focus' ? 40 : 30;
     
-    const packSize = typeof size === 'string' ? parseInt(size) : size;
-    return basePrice * packSize;
+    return basePrice * parseInt(size);
   };
 
   const formatCurrency = (amount: number): string => {

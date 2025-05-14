@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -14,7 +15,6 @@ import {
   SubjectType, 
   SessionType, 
   LocationType,
-  PackSize,
   WeeklyFrequency
 } from '@/lib/types';
 import { useSessionPacks, useCreateSessionPack, SessionPack } from '@/hooks/use-packs';
@@ -27,11 +27,7 @@ interface StudentPacksProps {
 
 const StudentPacks = ({ studentId, onNewPack }: StudentPacksProps) => {
   const { toast } = useToast();
-  const { packs } = useSessionPacks(studentId);
-  const sessionPacks = packs.data || [];
-  const isLoading = packs.isLoading;
-  const error = packs.error;
-  const isError = packs.isError;
+  const { packs, isLoading, error, isError } = useSessionPacks(studentId);
   
   const { createPack } = useCreateSessionPack();
   
@@ -50,7 +46,7 @@ const StudentPacks = ({ studentId, onNewPack }: StudentPacksProps) => {
   const subjectOptions: SubjectType[] = ['Guitar', 'Piano', 'Drums', 'Ukulele', 'Vocal'];
   const sessionTypeOptions: SessionType[] = ['Solo', 'Duo', 'Focus'];
   const locationOptions: LocationType[] = ['Online', 'Offline'];
-  const packSizeOptions: PackSize[] = [4, 10, 20, 30];
+  const packSizeOptions: string[] = ['4', '10', '20', '30'];
   const frequencyOptions: WeeklyFrequency[] = ['once', 'twice'];
   
   // Check if selected options are valid
@@ -62,7 +58,7 @@ const StudentPacks = ({ studentId, onNewPack }: StudentPacksProps) => {
   };
   
   // Filter the packs based on user selections
-  const filteredPacks = sessionPacks?.filter(pack => {
+  const filteredPacks = packs?.filter(pack => {
     // Filter by subject
     if (subjectFilter && pack.subject !== subjectFilter) return false;
     
@@ -100,16 +96,14 @@ const StudentPacks = ({ studentId, onNewPack }: StudentPacksProps) => {
     // Create new pack using the mutation
     createPack({
       studentId: studentId,
-      size: parseInt(newPackSize) as PackSize,
+      size: newPackSize,
       subject: newPackSubject,
       sessionType: newPackType,
       location: newPackLocation,
       purchasedDate: new Date(),
-      remainingSessions: parseInt(newPackSize),
-      isActive: true,
       weeklyFrequency: newPackFrequency,
-    }, {
-      onSuccess: (data) => {
+    })
+      .then((data) => {
         // Call the callback if provided with the pack ID
         if (onNewPack && data) {
           onNewPack(data.id);
@@ -121,8 +115,7 @@ const StudentPacks = ({ studentId, onNewPack }: StudentPacksProps) => {
         setNewPackLocation('');
         setNewPackSize('');
         setNewPackFrequency('once');
-      }
-    });
+      });
   };
   
   // Loading state
@@ -369,7 +362,7 @@ const StudentPacks = ({ studentId, onNewPack }: StudentPacksProps) => {
                 </SelectTrigger>
                 <SelectContent>
                   {packSizeOptions.map(size => (
-                    <SelectItem key={size} value={size.toString()}>
+                    <SelectItem key={size} value={size}>
                       {size} sessions
                     </SelectItem>
                   ))}
@@ -396,9 +389,9 @@ const StudentPacks = ({ studentId, onNewPack }: StudentPacksProps) => {
             <Button 
               className="w-full mt-2" 
               onClick={handleCreatePack}
-              disabled={!newPackSubject || !newPackType || !newPackLocation || !newPackSize || !isLocationValid() || packs.isLoading}
+              disabled={!newPackSubject || !newPackType || !newPackLocation || !newPackSize || !isLocationValid() || isLoading}
             >
-              {packs.isLoading ? 'Creating...' : 'Create Pack'}
+              {isLoading ? 'Creating...' : 'Create Pack'}
             </Button>
             
             {isError && (
