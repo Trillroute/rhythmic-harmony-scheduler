@@ -17,14 +17,14 @@ export function useSubjectDistributionReport() {
     try {
       const { startDate, endDate } = getDateRangeFromPeriod(period);
       
-      // Get subject distribution
+      // Get subject distribution - we need to use group() instead of groupBy()
       const { data: subjectData, error: subjectError } = await supabase
         .from("sessions")
         .select("subject, count(*)")
         .gte('date_time', startDate.toISOString())
         .lte('date_time', endDate.toISOString())
         .not('status', 'in', assertStringArray(["Cancelled by Student", "Cancelled by Teacher", "Cancelled by School"]))
-        .groupBy('subject');
+        .group('subject');
       
       if (subjectError) throw new Error(subjectError.message);
       

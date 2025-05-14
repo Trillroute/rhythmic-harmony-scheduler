@@ -105,8 +105,10 @@ export const FeePlanDetails: React.FC<FeePlanDetailsProps> = ({ studentId }) => 
             const planPayments = payments.filter(p => p.fee_plan_id === plan.id);
             const summary = calculateFeePlanSummary(plan, planPayments);
             const dueStatus = formatDueStatus(summary);
-            // Use 'default' for 'warning' as a fallback since 'warning' is not a supported variant
-            const statusVariant = getStatusBadgeVariant(dueStatus) === 'warning' ? 'default' : getStatusBadgeVariant(dueStatus);
+            // Use 'default' for 'warning' as a fallback since 'warning' may not be a supported variant
+            const statusVariant = getStatusBadgeVariant(dueStatus);
+            // Ensure statusVariant is a valid Badge variant
+            const safeVariant = statusVariant === 'warning' ? 'default' : statusVariant;
             
             return (
               <Card key={plan.id} className="overflow-hidden">
@@ -121,7 +123,7 @@ export const FeePlanDetails: React.FC<FeePlanDetailsProps> = ({ studentId }) => 
                     </div>
                     
                     <div className="flex items-center gap-2">
-                      <Badge variant={statusVariant}>
+                      <Badge variant={safeVariant}>
                         {dueStatus}
                       </Badge>
                       
@@ -161,29 +163,29 @@ export const FeePlanDetails: React.FC<FeePlanDetailsProps> = ({ studentId }) => 
                     <div className="grid grid-cols-2 gap-4">
                       <div>
                         <p className="text-sm text-muted-foreground">Paid Amount</p>
-                        <p className="text-lg font-medium text-green-600">${summary.paidAmount.toFixed(2)}</p>
+                        <p className="text-lg font-medium text-green-600">${summary.paid.toFixed(2)}</p>
                       </div>
                       <div>
                         <p className="text-sm text-muted-foreground">Due Amount</p>
-                        <p className="text-lg font-medium text-amber-600">${summary.dueAmount.toFixed(2)}</p>
+                        <p className="text-lg font-medium text-amber-600">${summary.due.toFixed(2)}</p>
                       </div>
                       <div>
                         <p className="text-sm text-muted-foreground">Payment Progress</p>
                         <div className="w-full bg-gray-200 rounded-full h-2.5 mt-2">
                           <div 
                             className="bg-primary h-2.5 rounded-full" 
-                            style={{ width: `${summary.percentagePaid}%` }}
+                            style={{ width: `${summary.percentage}%` }}
                           ></div>
                         </div>
-                        <p className="text-xs text-right mt-1">{summary.percentagePaid.toFixed(1)}% paid</p>
+                        <p className="text-xs text-right mt-1">{summary.percentage.toFixed(1)}% paid</p>
                       </div>
                       <div>
                         <p className="text-sm text-muted-foreground">Next Due Date</p>
                         <p className="text-sm font-medium">
-                          {summary.nextDueDate ? (
+                          {summary.nextDue ? (
                             <>
-                              {new Date(summary.nextDueDate.date).toLocaleDateString()}: 
-                              ${summary.nextDueDate.amount.toFixed(2)}
+                              {new Date(summary.nextDue.date).toLocaleDateString()}: 
+                              ${summary.nextDue.amount.toFixed(2)}
                             </>
                           ) : 'No upcoming due dates'}
                         </p>
@@ -235,7 +237,6 @@ export const FeePlanDetails: React.FC<FeePlanDetailsProps> = ({ studentId }) => 
           <FeePlanForm
             onSubmit={handleCreatePlan}
             onCancel={() => setIsAddingPlan(false)}
-            isSubmitting={isPendingCreate}
           />
         </DialogContent>
       </Dialog>
@@ -255,7 +256,6 @@ export const FeePlanDetails: React.FC<FeePlanDetailsProps> = ({ studentId }) => 
               initialData={isEditingPlan}
               onSubmit={handleUpdatePlan}
               onCancel={() => setIsEditingPlan(null)}
-              isSubmitting={isPendingUpdate}
             />
           )}
         </DialogContent>
@@ -280,6 +280,7 @@ export const FeePlanDetails: React.FC<FeePlanDetailsProps> = ({ studentId }) => 
                 setSelectedPlanForPayment(null);
               }}
               onCancel={() => setSelectedPlanForPayment(null)}
+              isPending={false}
             />
           )}
         </DialogContent>

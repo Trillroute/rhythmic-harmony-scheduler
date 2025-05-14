@@ -23,8 +23,8 @@ export function useStudentProgressReport() {
             id,
             student_id, 
             course_id,
-            profiles:profiles (name),
-            courses:courses (name, instrument)
+            profiles!enrollments_student_id_fkey (name),
+            courses!enrollments_course_id_fkey (name, instrument)
           )
         `)
         .order('completion_percentage', { ascending: false })
@@ -32,14 +32,21 @@ export function useStudentProgressReport() {
       
       if (progressError) throw new Error(progressError.message);
       
-      // Process data for the report
-      const processedData = (progressData || []).map(record => ({
-        id: record.id,
-        studentName: record.enrollments?.profiles?.name || 'Unknown Student',
-        courseName: record.enrollments?.courses?.name || 'Unknown Course',
-        instrument: record.enrollments?.courses?.instrument || 'Unknown Instrument',
-        completionPercentage: record.completion_percentage
-      }));
+      // Process data for the report, with proper type checking
+      const processedData = (progressData || []).map(record => {
+        // Access the properly joined relations
+        const studentName = record.enrollments?.profiles?.name || 'Unknown Student';
+        const courseName = record.enrollments?.courses?.name || 'Unknown Course';
+        const instrument = record.enrollments?.courses?.instrument || 'Unknown Instrument';
+        
+        return {
+          id: record.id,
+          studentName,
+          courseName,
+          instrument,
+          completionPercentage: record.completion_percentage
+        };
+      });
       
       setData(processedData);
     } catch (err: any) {
