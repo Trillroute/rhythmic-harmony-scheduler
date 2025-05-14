@@ -1,60 +1,46 @@
 
-import { ReportPeriod } from "./types";
 import { useAttendanceReport } from "./attendance-report";
 import { useSubjectDistributionReport } from "./subject-distribution-report";
 import { useSessionTypeReport } from "./session-type-report";
 import { useSessionsReport } from "./sessions-report";
 import { useStudentProgressReport } from "./student-progress-report";
+import { ReportPeriod } from "./types";
 
-// Main hook that combines all report data
-export const useReports = (period: 'week' | 'month' | 'quarter' = 'month', filters?: ReportPeriod) => {
-  const attendanceQuery = useAttendanceReport(period, filters);
-  const subjectQuery = useSubjectDistributionReport(filters);
-  const sessionTypeQuery = useSessionTypeReport(filters);
-  const sessionsQuery = useSessionsReport(filters);
-  const studentProgressQuery = useStudentProgressReport(filters);
-  
-  return {
-    // Attendance data
-    attendanceData: attendanceQuery.data,
-    isLoadingAttendance: attendanceQuery.isLoading,
-    attendanceError: attendanceQuery.error,
-    
-    // Subject distribution data
-    subjectData: subjectQuery.data,
-    isLoadingSubject: subjectQuery.isLoading,
-    subjectError: subjectQuery.error,
-    
-    // Session type data
-    sessionTypeData: sessionTypeQuery.data,
-    isLoadingSessionType: sessionTypeQuery.isLoading,
-    sessionTypeError: sessionTypeQuery.error,
-    
-    // Sessions report data
-    sessionsData: sessionsQuery.data,
-    isLoadingSessions: sessionsQuery.isLoading,
-    sessionsError: sessionsQuery.error,
-    
-    // Student progress data
-    studentProgressData: studentProgressQuery.data,
-    isLoadingStudentProgress: studentProgressQuery.isLoading,
-    studentProgressError: studentProgressQuery.error,
-    
-    // Combined loading state
-    isLoading: 
-      attendanceQuery.isLoading || 
-      subjectQuery.isLoading || 
-      sessionTypeQuery.isLoading ||
-      sessionsQuery.isLoading ||
-      studentProgressQuery.isLoading,
-    
-    // Function to refetch all reports
-    refetchReports: () => {
-      attendanceQuery.refetch();
-      subjectQuery.refetch();
-      sessionTypeQuery.refetch();
-      sessionsQuery.refetch();
-      studentProgressQuery.refetch();
-    }
+export function useReports() {
+  const attendanceReport = useAttendanceReport();
+  const subjectDistributionReport = useSubjectDistributionReport();
+  const sessionTypeReport = useSessionTypeReport();
+  const sessionsReport = useSessionsReport();
+  const studentProgressReport = useStudentProgressReport();
+
+  const fetchReports = async (period: ReportPeriod) => {
+    await Promise.all([
+      attendanceReport.fetchAttendanceData(period),
+      subjectDistributionReport.fetchSubjectDistribution(period),
+      sessionTypeReport.fetchSessionTypeData(period),
+      sessionsReport.fetchSessionsData(period),
+      studentProgressReport.fetchStudentProgress()
+    ]);
   };
-};
+
+  return {
+    fetchReports,
+    attendance: attendanceReport,
+    subjectDistribution: subjectDistributionReport,
+    sessionType: sessionTypeReport,
+    sessions: sessionsReport,
+    studentProgress: studentProgressReport,
+    isLoading: 
+      attendanceReport.isLoading || 
+      subjectDistributionReport.isLoading || 
+      sessionTypeReport.isLoading || 
+      sessionsReport.isLoading || 
+      studentProgressReport.isLoading,
+    error: 
+      attendanceReport.error || 
+      subjectDistributionReport.error || 
+      sessionTypeReport.error || 
+      sessionsReport.error || 
+      studentProgressReport.error
+  };
+}

@@ -1,95 +1,101 @@
 
-import { useQuery } from "@tanstack/react-query";
+import { useCallback, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { safeConvertStatus, safeConvertSubjects } from "./utils";
 import { ReportPeriod, AttendanceData } from "./types";
-import { assertAttendanceStatusArray, assertSubjectTypeArray } from "@/lib/type-utils";
+import { format } from "date-fns";
 
-// Fetch attendance data for reports
-export const useAttendanceReport = (filters?: ReportPeriod) => {
-  const fetchAttendanceData = async (): Promise<AttendanceData> => {
-    let query = supabase
-      .from('sessions')
-      .select('status, date_time');
-    
-    // Apply date range filters if provided
-    if (filters?.startDate) {
-      query = query.gte('date_time', filters.startDate.toISOString());
-    }
-    
-    if (filters?.endDate) {
-      query = query.lte('date_time', filters.endDate.toISOString());
-    }
-    
-    // Apply subject filter if provided
-    if (filters?.subjects && filters.subjects.length > 0) {
-      // Use the assertion utility to ensure proper types
-      const subjectArray = assertSubjectTypeArray(filters.subjects);
-      // Convert to string array for query
-      const subjectStrings = subjectArray.map(s => s.toString());
-      query = query.in('subject', subjectStrings);
-    }
-    
-    // Apply status filter if provided
-    if (filters?.status && filters.status.length > 0) {
-      // Use the assertion utility to ensure proper types
-      const statusArray = assertAttendanceStatusArray(filters.status);
-      // Convert to string array for query
-      const statusStrings = statusArray.map(s => s.toString());
-      query = query.in('status', statusStrings);
-    }
+export function useAttendanceReport() {
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [data, setData] = useState<AttendanceData | null>(null);
+
+  const fetchAttendanceData = useCallback(async (period: ReportPeriod) => {
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      // Start with a base query for sessions
+      let query = supabase
+        .from("sessions")
+        .select("id, date_time, status");
       
-    const { data, error } = await query;
-      
-    if (error) throw error;
-    
-    // Count by status
-    const statusCounts: Record<string, number> = {
-      'Present': 0,
-      'Absent': 0,
-      'Scheduled': 0,
-      'Cancelled by Student': 0,
-      'Cancelled by Teacher': 0,
-      'Cancelled by School': 0,
-      'No Show': 0
-    };
-    
-    // Count sessions by day
-    const sessionsByDay: Record<string, number> = {};
-    
-    data.forEach(session => {
-      statusCounts[session.status] += 1;
-      
-      // Extract day for daily distribution
-      const day = session.date_time.substring(0, 10);
-      if (!sessionsByDay[day]) {
-        sessionsByDay[day] = 0;
+      // Apply date filters
+      if (period.startDate) {
+        query = query.gte('date_time', period.startDate.toISOString());
       }
       
-      sessionsByDay[day] += 1;
-    });
-    
-    // Transform for chart data
-    const statusData = Object.entries(statusCounts).map(([status, count]) => ({
-      name: status,
-      value: count
-    }));
-    
-    const dailyData = Object.entries(sessionsByDay)
-      .map(([date, count]) => ({
+      if (period.endDate) {
+        query = query.lte('date_time', period.endDate.toISOString());
+      }
+      
+      // Apply subject filter if specified
+      if (period.subjects && period.subjects.length > 0) {
+        query = query.in('subject', safeConvertSubjects(period.subjects as string[]));
+      }
+      
+      // Apply status filter if specified
+      if (period.status && period.status.length > 0) {
+        query = query.in('status', safeConvertStatus(period.status as string[]));
+      }
+
+      const { data: sessions, error } = await query;
+
+      if (error) throw error;
+
+      // Process the data
+      const totalSessions = sessions.length;
+      const presentSessions = sessions.filter(s => s.status === 'Present').length;
+      const attendanceRate = totalSessions > 0 
+        ? (presentSessions / totalSessions) * 100 
+        : 0;
+
+      // Group sessions by date for chart data
+      const sessionsByDate = sessions.reduce((acc: Record<string, any>, session) => {
+        const date = format(new Date(session.date_time), 'yyyy-MM-dd');
+        
+        if (!acc[date]) {
+          acc[date] = {
+            total: 0,
+            present: 0
+          };
+        }
+        
+        acc[date].total += 1;
+        if (session.status === 'Present') {
+          acc[date].present += 1;
+        }
+        
+        return acc;
+      }, {});
+
+      // Convert to chart data format
+      const chartData = Object.keys(sessionsByDate).map(date => ({
         date,
-        sessions: count
-      }))
-      .sort((a, b) => a.date.localeCompare(b.date));
-    
-    return {
-      totalSessions: data.length,
-      statusData,
-      dailyData
-    };
+        total: sessionsByDate[date].total,
+        present: sessionsByDate[date].present,
+        rate: sessionsByDate[date].total > 0 
+          ? (sessionsByDate[date].present / sessionsByDate[date].total) * 100 
+          : 0
+      })).sort((a, b) => a.date.localeCompare(b.date));
+
+      setData({
+        attendanceRate,
+        chartData
+      });
+      
+    } catch (err: any) {
+      console.error("Error fetching attendance data:", err);
+      setError(err.message || "An error occurred while fetching attendance data");
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  return {
+    isLoading,
+    error,
+    data,
+    fetchAttendanceData
   };
-  
-  return useQuery({
-    queryKey: ['reports', 'attendance', filters],
-    queryFn: fetchAttendanceData,
-  });
-};
+}

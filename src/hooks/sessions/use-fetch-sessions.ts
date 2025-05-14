@@ -1,105 +1,103 @@
 
-import { useQuery } from "@tanstack/react-query";
+import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { FilterOptions } from "@/lib/types";
-import { transformSessionsFromDB } from "./session-transformers";
-import { Session } from "@/lib/types";
+import { SessionsProps } from "./types";
+import { transformSession } from "./session-transformers";
 import { 
   assertSubjectType, 
   assertSubjectTypeArray, 
   assertSessionType, 
   assertSessionTypeArray, 
-  assertLocationType, 
-  assertAttendanceStatus, 
-  assertAttendanceStatusArray 
+  assertLocationType,
+  assertAttendanceStatus,
+  assertAttendanceStatusArray
 } from "@/lib/type-utils";
+import { SessionWithStudents } from "@/lib/types";
 
-export const useFetchSessions = (
-  filters: FilterOptions = {},
-  enabled: boolean = true
-) => {
-  const fetchSessions = async (): Promise<Session[]> => {
-    let query = supabase
-      .from("sessions")
-      .select("*, session_students(student_id)");
+export function useFetchSessions(props?: SessionsProps) {
+  const [sessions, setSessions] = useState<SessionWithStudents[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-    // Apply filters if present
-    if (filters.teacherId) {
-      query = query.eq("teacher_id", filters.teacherId);
-    }
+  const fetchSessions = useCallback(async () => {
+    setLoading(true);
+    setError(null);
 
-    if (filters.startDate) {
-      query = query.gte("date_time", new Date(filters.startDate).toISOString());
-    }
+    try {
+      // Start with a base query
+      let query = supabase
+        .from("sessions")
+        .select(`
+          id, 
+          subject, 
+          session_type, 
+          location,
+          date_time, 
+          duration, 
+          status, 
+          notes,
+          reschedule_count,
+          teacher_id,
+          pack_id,
+          created_at,
+          updated_at,
+          profiles(name),
+          session_students(student_id, profiles(name))
+        `);
 
-    if (filters.endDate) {
-      query = query.lte("date_time", new Date(filters.endDate).toISOString());
-    }
-
-    if (filters.subject) {
-      // Convert to string for Supabase query using the assertion utility
-      const subjectString = assertSubjectType(filters.subject).toString();
-      query = query.eq("subject", subjectString);
-    }
-
-    if (filters.subjects && filters.subjects.length > 0) {
-      // Use assertion utility to ensure proper types then cast to string array
-      const subjectArray = assertSubjectTypeArray(filters.subjects);
-      const subjectStrings = subjectArray.map(s => s.toString());
-      query = query.in("subject", subjectStrings);
-    }
-
-    if (filters.sessionType) {
-      // Convert to string for Supabase query using the assertion utility
-      const sessionTypeString = assertSessionType(filters.sessionType).toString();
-      query = query.eq("session_type", sessionTypeString);
-    }
-
-    if (filters.sessionTypes && filters.sessionTypes.length > 0) {
-      // Use assertion utility to ensure proper types then cast to string array
-      const sessionTypeArray = assertSessionTypeArray(filters.sessionTypes);
-      const sessionTypeStrings = sessionTypeArray.map(s => s.toString());
-      query = query.in("session_type", sessionTypeStrings);
-    }
-
-    if (filters.location) {
-      // Convert to string for Supabase query using the assertion utility
-      const locationString = assertLocationType(filters.location).toString();
-      query = query.eq("location", locationString);
-    }
-
-    if (filters.status) {
-      if (Array.isArray(filters.status)) {
-        // Use assertion utility to ensure proper types then cast to string array
-        const statusArray = assertAttendanceStatusArray(filters.status);
-        const statusStrings = statusArray.map(s => s.toString());
-        query = query.in("status", statusStrings);
-      } else {
-        // Convert to string for Supabase query using the assertion utility
-        const statusString = assertAttendanceStatus(filters.status).toString();
-        query = query.eq("status", statusString);
+      // Apply filters if provided
+      if (props?.teacherId) {
+        query = query.eq('teacher_id', props.teacherId);
       }
+
+      if (props?.studentId) {
+        query = query.eq('session_students.student_id', props.studentId);
+      }
+
+      if (props?.fromDate) {
+        query = query.gte('date_time', props.fromDate.toISOString());
+      }
+
+      if (props?.toDate) {
+        query = query.lte('date_time', props.toDate.toISOString());
+      }
+
+      if (props?.status && props.status.length > 0) {
+        const safeStatus = assertAttendanceStatusArray(props.status);
+        query = query.in('status', safeStatus);
+      }
+
+      // Execute query and get data
+      const { data, error: fetchError } = await query;
+
+      if (fetchError) {
+        throw new Error(fetchError.message);
+      }
+
+      if (!data) {
+        setSessions([]);
+        return;
+      }
+
+      // Transform data to match frontend types
+      const transformedSessions = data.map(session => transformSession(session));
+      setSessions(transformedSessions);
+    } catch (err: any) {
+      console.error("Error fetching sessions:", err);
+      setError(err.message || "An error occurred while fetching sessions");
+    } finally {
+      setLoading(false);
     }
+  }, [props]);
 
-    // Always order by date_time
-    query = query.order("date_time", { ascending: true });
+  useEffect(() => {
+    fetchSessions();
+  }, [fetchSessions]);
 
-    const { data, error } = await query;
-
-    if (error) {
-      console.error("Error fetching sessions:", error);
-      throw new Error(error.message);
-    }
-
-    if (!data) return [];
-
-    // Transform to Session type
-    return transformSessionsFromDB(data);
+  return {
+    sessions,
+    loading,
+    error,
+    refreshSessions: fetchSessions,
   };
-
-  return useQuery({
-    queryKey: ["sessions", filters],
-    queryFn: fetchSessions,
-    enabled,
-  });
-};
+}

@@ -1,186 +1,228 @@
 
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
-import { SessionPack, SubjectType, SessionType, LocationType, WeeklyFrequency, PackSize } from "@/lib/types";
-import { assertLocationType, assertSessionType, assertSubjectType, assertWeeklyFrequency } from "@/lib/type-utils";
+import { SessionPack, PackSize, SubjectType, SessionType, LocationType, WeeklyFrequency } from "@/lib/types";
+import { assertSubjectType, assertSessionType, assertLocationType, assertWeeklyFrequency } from "@/lib/type-utils";
 
-// Transform database pack to frontend pack
-const transformPackFromDB = (dbPack: any): SessionPack => {
-  return {
-    id: dbPack.id,
-    studentId: dbPack.student_id,
-    size: parseInt(dbPack.size) as PackSize,
-    subject: assertSubjectType(dbPack.subject),
-    sessionType: assertSessionType(dbPack.session_type),
-    location: assertLocationType(dbPack.location),
-    purchasedDate: dbPack.purchased_date,
-    expiryDate: dbPack.expiry_date,
-    remainingSessions: dbPack.remaining_sessions,
-    isActive: dbPack.is_active,
-    weeklyFrequency: assertWeeklyFrequency(dbPack.weekly_frequency),
-    createdAt: dbPack.created_at,
-    updatedAt: dbPack.updated_at
-  };
-};
+interface UsePacksOptions {
+  studentId?: string;
+  active?: boolean;
+  withSessions?: boolean;
+}
 
-// Get session packs for a student
-export const useSessionPacks = (studentId?: string) => {
-  return useQuery({
-    queryKey: ["sessionPacks", studentId],
-    queryFn: async () => {
-      let query = supabase.from("session_packs").select("*");
-      
+export function usePacks({ studentId, active, withSessions }: UsePacksOptions = {}) {
+  const [packs, setPacks] = useState<SessionPack[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<Error | null>(null);
+
+  const fetchPacks = useCallback(async () => {
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      let query = supabase
+        .from("session_packs")
+        .select(`
+          id,
+          student_id,
+          size,
+          subject,
+          session_type,
+          location,
+          purchased_date,
+          expiry_date,
+          remaining_sessions,
+          is_active,
+          weekly_frequency,
+          created_at,
+          updated_at
+          ${withSessions ? ', sessions(*)' : ''}
+        `);
+        
       if (studentId) {
-        query = query.eq("student_id", studentId);
+        query = query.eq('student_id', studentId);
       }
       
-      const { data, error } = await query;
-      
-      if (error) throw error;
-      
-      return data ? data.map(transformPackFromDB) : [];
-    },
-    enabled: !!studentId,
-  });
-};
+      if (active !== undefined) {
+        query = query.eq('is_active', active);
+      }
 
-// Get a single pack by ID
-export const useSessionPack = (packId?: string) => {
-  return useQuery({
-    queryKey: ["sessionPack", packId],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("session_packs")
-        .select("*")
-        .eq("id", packId)
-        .single();
-      
-      if (error) throw error;
-      
-      return transformPackFromDB(data);
-    },
-    enabled: !!packId,
-  });
-};
+      const { data, error: supabaseError } = await query;
 
-// Update a session pack
-export const useUpdateSessionPack = () => {
-  const queryClient = useQueryClient();
-  
-  return useMutation({
-    mutationFn: async (pack: Partial<SessionPack> & { id: string }) => {
-      const { id, ...packData } = pack;
+      if (supabaseError) {
+        throw new Error(supabaseError.message);
+      }
+
+      // Transform data to match frontend types
+      const transformedPacks: SessionPack[] = data?.map((pack) => ({
+        id: pack.id,
+        studentId: pack.student_id,
+        size: Number(pack.size) as PackSize,
+        subject: assertSubjectType(pack.subject),
+        sessionType: assertSessionType(pack.session_type),
+        location: assertLocationType(pack.location),
+        purchasedDate: pack.purchased_date,
+        expiryDate: pack.expiry_date || undefined,
+        remainingSessions: pack.remaining_sessions,
+        isActive: pack.is_active,
+        weeklyFrequency: assertWeeklyFrequency(pack.weekly_frequency),
+        sessions: pack.sessions ? pack.sessions : undefined,
+        createdAt: pack.created_at,
+        updatedAt: pack.updated_at
+      })) || [];
       
-      // Transform frontend data to database format
-      const dbData: Record<string, any> = {
-        ...(packData.studentId && { student_id: packData.studentId }),
-        ...(packData.size && { size: packData.size.toString() }),
-        ...(packData.subject && { subject: packData.subject.toString() }),
-        ...(packData.sessionType && { session_type: packData.sessionType.toString() }),
-        ...(packData.location && { location: packData.location.toString() }),
-        ...(packData.purchasedDate && { purchased_date: packData.purchasedDate.toString() }),
-        ...(packData.expiryDate && { expiry_date: packData.expiryDate.toString() }),
-        ...(packData.remainingSessions !== undefined && { remaining_sessions: packData.remainingSessions }),
-        ...(packData.isActive !== undefined && { is_active: packData.isActive }),
-        ...(packData.weeklyFrequency && { weekly_frequency: packData.weeklyFrequency.toString() }),
+      setPacks(transformedPacks);
+    } catch (err) {
+      console.error("Error fetching packs:", err);
+      setError(err as Error);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [studentId, active, withSessions]);
+
+  useEffect(() => {
+    fetchPacks();
+  }, [fetchPacks]);
+
+  const createPack = async (packData: Omit<SessionPack, "id" | "createdAt" | "updatedAt">) => {
+    setIsLoading(true);
+    setError(null);
+    
+    try {
+      // Convert the data to appropriate DB format
+      const dbPackData = {
+        student_id: packData.studentId,
+        size: String(packData.size) as any, // Convert number to string for enum
+        subject: packData.subject,
+        session_type: packData.sessionType,
+        location: packData.location,
+        remaining_sessions: packData.remainingSessions,
+        is_active: packData.isActive,
+        weekly_frequency: packData.weeklyFrequency,
+        purchased_date: packData.purchasedDate instanceof Date 
+          ? packData.purchasedDate.toISOString() 
+          : packData.purchasedDate,
+        expiry_date: packData.expiryDate instanceof Date 
+          ? packData.expiryDate.toISOString() 
+          : packData.expiryDate,
       };
       
-      const { data, error } = await supabase
+      const { data, error: insertError } = await supabase
         .from("session_packs")
-        .update(dbData)
-        .eq("id", id)
-        .select();
-      
-      if (error) throw error;
-      
-      return data && data.length > 0 ? transformPackFromDB(data[0]) : null;
-    },
-    onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: ["sessionPacks"] });
-      queryClient.invalidateQueries({ queryKey: ["sessionPack", variables.id] });
-      toast.success("Session pack updated successfully");
-    },
-    onError: (error: Error) => {
-      toast.error(`Failed to update session pack: ${error.message}`);
-    },
-  });
-};
-
-// Create one or more session packs
-export const useCreateSessionPack = () => {
-  const queryClient = useQueryClient();
-  
-  return useMutation({
-    mutationFn: async (packs: Partial<SessionPack> | Partial<SessionPack>[]) => {
-      // Handle single or multiple packs
-      const packsArray = Array.isArray(packs) ? packs : [packs];
-      
-      const createdPacks = [];
-      
-      // Process each pack individually to ensure proper type handling
-      for (const pack of packsArray) {
-        // Format data for insert with proper type casting
-        const formattedPack = {
-          student_id: pack.studentId,
-          size: pack.size?.toString(),
-          subject: pack.subject?.toString(),
-          session_type: pack.sessionType?.toString(),
-          location: pack.location?.toString(),
-          remaining_sessions: pack.remainingSessions,
-          is_active: pack.isActive,
-          weekly_frequency: pack.weeklyFrequency?.toString(),
-          purchased_date: pack.purchasedDate?.toString(),
-          expiry_date: pack.expiryDate?.toString(),
-        };
+        .insert(dbPackData)
+        .select()
+        .single();
         
-        // Insert each pack individually
-        const { data, error } = await supabase
-          .from("session_packs")
-          .insert(formattedPack)
-          .select();
-        
-        if (error) throw error;
-        
-        if (data && data.length > 0) {
-          createdPacks.push(transformPackFromDB(data[0]));
-        }
+      if (insertError) {
+        throw new Error(insertError.message);
       }
       
-      return createdPacks;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["sessionPacks"] });
-      toast.success("Session pack(s) created successfully");
-    },
-    onError: (error: Error) => {
-      toast.error(`Failed to create session pack: ${error.message}`);
-    },
-  });
-};
+      // Transform the response to match frontend types
+      const newPack: SessionPack = {
+        id: data.id,
+        studentId: data.student_id,
+        size: Number(data.size) as PackSize,
+        subject: assertSubjectType(data.subject),
+        sessionType: assertSessionType(data.session_type),
+        location: assertLocationType(data.location),
+        purchasedDate: data.purchased_date,
+        expiryDate: data.expiry_date || undefined,
+        remainingSessions: data.remaining_sessions,
+        isActive: data.is_active,
+        weeklyFrequency: assertWeeklyFrequency(data.weekly_frequency),
+        createdAt: data.created_at,
+        updatedAt: data.updated_at
+      };
+      
+      setPacks(prevPacks => [...prevPacks, newPack]);
+      return newPack;
+    } catch (err) {
+      console.error("Error creating pack:", err);
+      setError(err as Error);
+      return null;
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
-// Delete a session pack
-export const useDeleteSessionPack = () => {
-  const queryClient = useQueryClient();
-  
-  return useMutation({
-    mutationFn: async (packId: string) => {
-      const { error } = await supabase
+  const updatePack = async (id: string, updates: Partial<Omit<SessionPack, "id" | "createdAt" | "updatedAt">>) => {
+    setIsLoading(true);
+    setError(null);
+    
+    try {
+      // Convert to DB format
+      const dbUpdates: Record<string, any> = {};
+      
+      if ('studentId' in updates) dbUpdates.student_id = updates.studentId;
+      if ('size' in updates) dbUpdates.size = String(updates.size);
+      if ('subject' in updates) dbUpdates.subject = updates.subject;
+      if ('sessionType' in updates) dbUpdates.session_type = updates.sessionType;
+      if ('location' in updates) dbUpdates.location = updates.location;
+      if ('remainingSessions' in updates) dbUpdates.remaining_sessions = updates.remainingSessions;
+      if ('isActive' in updates) dbUpdates.is_active = updates.isActive;
+      if ('weeklyFrequency' in updates) dbUpdates.weekly_frequency = updates.weeklyFrequency;
+      
+      if ('purchasedDate' in updates) {
+        dbUpdates.purchased_date = updates.purchasedDate instanceof Date 
+          ? updates.purchasedDate.toISOString() 
+          : updates.purchasedDate;
+      }
+      
+      if ('expiryDate' in updates) {
+        dbUpdates.expiry_date = updates.expiryDate instanceof Date 
+          ? updates.expiryDate.toISOString() 
+          : updates.expiryDate;
+      }
+      
+      const { data, error: updateError } = await supabase
         .from("session_packs")
-        .delete()
-        .eq("id", packId);
+        .update(dbUpdates)
+        .eq('id', id)
+        .select()
+        .single();
+        
+      if (updateError) {
+        throw new Error(updateError.message);
+      }
       
-      if (error) throw error;
+      // Transform the response
+      const updatedPack: SessionPack = {
+        id: data.id,
+        studentId: data.student_id,
+        size: Number(data.size) as PackSize,
+        subject: assertSubjectType(data.subject),
+        sessionType: assertSessionType(data.session_type),
+        location: assertLocationType(data.location),
+        purchasedDate: data.purchased_date,
+        expiryDate: data.expiry_date || undefined,
+        remainingSessions: data.remaining_sessions,
+        isActive: data.is_active,
+        weeklyFrequency: assertWeeklyFrequency(data.weekly_frequency),
+        createdAt: data.created_at,
+        updatedAt: data.updated_at
+      };
       
-      return packId;
-    },
-    onSuccess: (packId) => {
-      queryClient.invalidateQueries({ queryKey: ["sessionPacks"] });
-      queryClient.invalidateQueries({ queryKey: ["sessionPack", packId] });
-      toast.success("Session pack deleted successfully");
-    },
-    onError: (error: Error) => {
-      toast.error(`Failed to delete session pack: ${error.message}`);
-    },
-  });
-};
+      // Update the local state
+      setPacks(prevPacks => 
+        prevPacks.map(pack => pack.id === id ? updatedPack : pack)
+      );
+      
+      return updatedPack;
+    } catch (err) {
+      console.error("Error updating pack:", err);
+      setError(err as Error);
+      return null;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  return {
+    packs,
+    isLoading,
+    error,
+    fetchPacks,
+    createPack,
+    updatePack
+  };
+}

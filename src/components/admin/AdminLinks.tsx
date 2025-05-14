@@ -1,23 +1,22 @@
 
 import React from "react";
 import { NavLink } from "react-router-dom";
-import { 
-  UsersIcon, 
-  SettingsIcon, 
-  PieChartIcon, 
-  FileTextIcon, 
-  CalendarIcon, 
-  ClipboardCheckIcon, 
-  PackageIcon, 
+import {
+  BarChartIcon,
+  CalendarIcon,
+  ClipboardCheckIcon,
+  FileIcon,
   HomeIcon,
+  SettingsIcon,
+  UsersIcon,
+  GraduationCapIcon,
   BookOpenIcon,
-  LayoutListIcon,
   CreditCardIcon,
-  FileImageIcon,
-  GraduationCapIcon
+  PackageIcon,
+  FileTextIcon
 } from "lucide-react";
 
-const AdminLinks = () => {
+const AdminLinks: React.FC = () => {
   return (
     <div className="space-y-1">
       <NavLink
@@ -45,18 +44,6 @@ const AdminLinks = () => {
       </NavLink>
       
       <NavLink
-        to="/admin/settings"
-        className={({ isActive }) =>
-          `flex items-center px-3 py-2 text-sm rounded-md ${
-            isActive ? "bg-primary text-primary-foreground" : "hover:bg-secondary"
-          }`
-        }
-      >
-        <SettingsIcon className="mr-2 h-4 w-4" />
-        System Settings
-      </NavLink>
-      
-      <NavLink
         to="/admin/reports"
         className={({ isActive }) =>
           `flex items-center px-3 py-2 text-sm rounded-md ${
@@ -64,25 +51,9 @@ const AdminLinks = () => {
           }`
         }
       >
-        <PieChartIcon className="mr-2 h-4 w-4" />
+        <BarChartIcon className="mr-2 h-4 w-4" />
         Reports
       </NavLink>
-      
-      <NavLink
-        to="/admin/export"
-        className={({ isActive }) =>
-          `flex items-center px-3 py-2 text-sm rounded-md ${
-            isActive ? "bg-primary text-primary-foreground" : "hover:bg-secondary"
-          }`
-        }
-      >
-        <FileTextIcon className="mr-2 h-4 w-4" />
-        Data Export
-      </NavLink>
-      
-      <div className="pt-4 pb-2">
-        <div className="px-3 text-xs font-semibold text-muted-foreground">Operations</div>
-      </div>
       
       <NavLink
         to="/admin/scheduler"
@@ -93,7 +64,7 @@ const AdminLinks = () => {
         }
       >
         <CalendarIcon className="mr-2 h-4 w-4" />
-        Session Scheduler
+        Advanced Scheduler
       </NavLink>
       
       <NavLink
@@ -108,6 +79,22 @@ const AdminLinks = () => {
         Attendance Tracker
       </NavLink>
       
+      <div className="pt-4 pb-2">
+        <div className="px-3 text-xs font-semibold text-muted-foreground">Academic</div>
+      </div>
+      
+      <NavLink
+        to="/admin/students"
+        className={({ isActive }) =>
+          `flex items-center px-3 py-2 text-sm rounded-md ${
+            isActive ? "bg-primary text-primary-foreground" : "hover:bg-secondary"
+          }`
+        }
+      >
+        <GraduationCapIcon className="mr-2 h-4 w-4" />
+        Student Management
+      </NavLink>
+      
       <NavLink
         to="/admin/packs"
         className={({ isActive }) =>
@@ -117,7 +104,7 @@ const AdminLinks = () => {
         }
       >
         <PackageIcon className="mr-2 h-4 w-4" />
-        Student Packs
+        Session Packs
       </NavLink>
       
       <NavLink
@@ -140,8 +127,20 @@ const AdminLinks = () => {
           }`
         }
       >
-        <LayoutListIcon className="mr-2 h-4 w-4" />
+        <FileTextIcon className="mr-2 h-4 w-4" />
         Session Plans
+      </NavLink>
+      
+      <NavLink
+        to="/admin/materials"
+        className={({ isActive }) =>
+          `flex items-center px-3 py-2 text-sm rounded-md ${
+            isActive ? "bg-primary text-primary-foreground" : "hover:bg-secondary"
+          }`
+        }
+      >
+        <FileIcon className="mr-2 h-4 w-4" />
+        Course Materials
       </NavLink>
       
       <NavLink
@@ -156,28 +155,32 @@ const AdminLinks = () => {
         Invoice Management
       </NavLink>
       
+      <div className="pt-4 pb-2">
+        <div className="px-3 text-xs font-semibold text-muted-foreground">System</div>
+      </div>
+      
       <NavLink
-        to="/admin/materials"
+        to="/admin/export"
         className={({ isActive }) =>
           `flex items-center px-3 py-2 text-sm rounded-md ${
             isActive ? "bg-primary text-primary-foreground" : "hover:bg-secondary"
           }`
         }
       >
-        <FileImageIcon className="mr-2 h-4 w-4" />
-        Course Materials
+        <FileIcon className="mr-2 h-4 w-4" />
+        Data Export
       </NavLink>
       
       <NavLink
-        to="/admin/students"
+        to="/admin/settings"
         className={({ isActive }) =>
           `flex items-center px-3 py-2 text-sm rounded-md ${
             isActive ? "bg-primary text-primary-foreground" : "hover:bg-secondary"
           }`
         }
       >
-        <GraduationCapIcon className="mr-2 h-4 w-4" />
-        Student Management
+        <SettingsIcon className="mr-2 h-4 w-4" />
+        System Settings
       </NavLink>
     </div>
   );
