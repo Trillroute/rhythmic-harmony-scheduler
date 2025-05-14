@@ -2,7 +2,6 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Session, User } from '@supabase/supabase-js';
-import { useNavigate, useLocation } from 'react-router-dom';
 import { toast } from '@/hooks/use-toast';
 import { UserRole } from '@/lib/types';
 
@@ -50,10 +49,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [isLoading, setIsLoading] = useState(true);
   const [initialLoadComplete, setInitialLoadComplete] = useState(false);
   const [userRole, setUserRole] = useState<UserRole | null>(null);
-  
-  // Only use router hooks if we're in a browser environment and not in SSR
-  const navigate = typeof window !== 'undefined' ? useNavigate() : null;
-  const location = typeof window !== 'undefined' ? useLocation() : null;
   
   // Initialize auth state on component mount
   useEffect(() => {
@@ -191,7 +186,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         console.log('User metadata:', data.user.user_metadata);
         console.log('Redirect URL:', `${appUrl}/verify`);
         
-        if (navigate) navigate('/');
+        window.location.href = '/';
       }
     } catch (error) {
       console.error('Error in signUp:', error);
@@ -245,11 +240,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           
           // Redirect based on user role
           const redirectPath = getRoleBasedRedirectPath(role);
-          if (navigate) navigate(redirectPath);
+          window.location.href = redirectPath;
         } catch (roleError) {
           console.error('Error fetching user role for redirect:', roleError);
           // Default redirect if role fetch fails
-          if (navigate) navigate('/');
+          window.location.href = '/';
         }
       }
     } catch (error) {
@@ -289,7 +284,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         description: 'You have been signed out successfully.',
       });
       
-      if (navigate) navigate('/login');
+      window.location.href = '/login';
     } catch (error) {
       console.error('Error in signOut:', error);
       toast({

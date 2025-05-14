@@ -1,5 +1,5 @@
 
-import { createBrowserRouter, RouterProvider } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import Layout from "./components/Layout";
 import Index from "./pages/Index";
 import Login from "./pages/Login";
@@ -34,64 +34,63 @@ const withErrorBoundary = (Component: React.ComponentType<any>, componentName: s
   );
 };
 
-// Define routes
-const routes = [
-  {
-    path: "/",
-    element: <Layout />,
-    errorElement: <NotFound />,
-    children: [
-      { index: true, element: <Index /> },
-      {
-        path: "dashboard",
-        element: <ProtectedRoute>{withErrorBoundary(Dashboard, "Dashboard")({})}</ProtectedRoute>,
-      },
-      {
-        path: "scheduler",
-        element: <ProtectedRoute>{withErrorBoundary(SessionScheduler, "Session Scheduler")({})}</ProtectedRoute>,
-      },
-      {
-        path: "attendance",
-        element: <ProtectedRoute>{withErrorBoundary(AttendanceTracker, "Attendance Tracker")({})}</ProtectedRoute>,
-      },
-      {
-        path: "packs",
-        element: <ProtectedRoute>{withErrorBoundary(StudentPacks, "Student Packs")({})}</ProtectedRoute>,
-      },
-      {
-        path: "admin",
-        element: <ProtectedRoute>{withErrorBoundary(AdminDashboard, "Admin Dashboard")({})}</ProtectedRoute>,
-        children: [
-          { index: true, element: withErrorBoundary(ReportingDashboard, "Reporting Dashboard")({}) },
-          { path: "users", element: withErrorBoundary(UserManagement, "User Management")({}) },
-          { path: "students", element: withErrorBoundary(StudentManagement, "Student Management")({}) },
-          { path: "students/:studentId", element: withErrorBoundary(StudentProfile, "Student Profile")({}) },
-          { path: "courses", element: withErrorBoundary(CourseManagement, "Course Management")({}) },
-          { path: "plans", element: withErrorBoundary(SessionPlans, "Session Plans")({}) },
-          { path: "scheduler", element: withErrorBoundary(AdvancedScheduler, "Advanced Scheduler")({}) },
-          { path: "invoices", element: withErrorBoundary(InvoiceManagement, "Invoice Management")({}) },
-          { path: "materials", element: withErrorBoundary(CourseMaterials, "Course Materials")({}) },
-          { path: "export", element: withErrorBoundary(DataExport, "Data Export")({}) },
-          { path: "settings", element: withErrorBoundary(SystemSettings, "System Settings")({}) },
-          { path: "bulk-upload", element: withErrorBoundary(BulkUploadPage, "Bulk Upload")({}) }
-        ]
-      }
-    ],
-  },
-  {
-    path: "/login",
-    element: <Login />,
-  },
-  {
-    path: "/signup",
-    element: <Signup />,
-  },
-];
-
-// Create the router
-export const router = createBrowserRouter(routes);
-
-// Export the RouterProvider component
-export default function Routes() {
-  return <RouterProvider router={router} />;
+// Main Routes component
+export default function Router() {
+  return (
+    <BrowserRouter>
+      <Routes>
+        <Route path="/login" element={<Login />} />
+        <Route path="/signup" element={<Signup />} />
+        
+        <Route path="/" element={<Layout />}>
+          <Route index element={<Index />} />
+          
+          <Route path="dashboard" element={
+            <ProtectedRoute>
+              {withErrorBoundary(Dashboard, "Dashboard")({})}
+            </ProtectedRoute>
+          } />
+          
+          <Route path="scheduler" element={
+            <ProtectedRoute>
+              {withErrorBoundary(SessionScheduler, "Session Scheduler")({})}
+            </ProtectedRoute>
+          } />
+          
+          <Route path="attendance" element={
+            <ProtectedRoute>
+              {withErrorBoundary(AttendanceTracker, "Attendance Tracker")({})}
+            </ProtectedRoute>
+          } />
+          
+          <Route path="packs" element={
+            <ProtectedRoute>
+              {withErrorBoundary(StudentPacks, "Student Packs")({})}
+            </ProtectedRoute>
+          } />
+          
+          <Route path="admin" element={
+            <ProtectedRoute>
+              {withErrorBoundary(AdminDashboard, "Admin Dashboard")({})}
+            </ProtectedRoute>
+          }>
+            <Route index element={withErrorBoundary(ReportingDashboard, "Reporting Dashboard")({})} />
+            <Route path="users" element={withErrorBoundary(UserManagement, "User Management")({})} />
+            <Route path="students" element={withErrorBoundary(StudentManagement, "Student Management")({})} />
+            <Route path="students/:studentId" element={withErrorBoundary(StudentProfile, "Student Profile")({})} />
+            <Route path="courses" element={withErrorBoundary(CourseManagement, "Course Management")({})} />
+            <Route path="plans" element={withErrorBoundary(SessionPlans, "Session Plans")({})} />
+            <Route path="scheduler" element={withErrorBoundary(AdvancedScheduler, "Advanced Scheduler")({})} />
+            <Route path="invoices" element={withErrorBoundary(InvoiceManagement, "Invoice Management")({})} />
+            <Route path="materials" element={withErrorBoundary(CourseMaterials, "Course Materials")({})} />
+            <Route path="export" element={withErrorBoundary(DataExport, "Data Export")({})} />
+            <Route path="settings" element={withErrorBoundary(SystemSettings, "System Settings")({})} />
+            <Route path="bulk-upload" element={withErrorBoundary(BulkUploadPage, "Bulk Upload")({})} />
+          </Route>
+        </Route>
+        
+        <Route path="*" element={<NotFound />} />
+      </Routes>
+    </BrowserRouter>
+  );
 }
