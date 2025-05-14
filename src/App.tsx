@@ -11,8 +11,10 @@ function App() {
     <ErrorBoundary>
       <AuthProvider>
         <Suspense fallback={<AppLoading />}>
-          <Router />
-          <Toaster />
+          <ErrorBoundary>
+            <Router />
+            <Toaster />
+          </ErrorBoundary>
         </Suspense>
       </AuthProvider>
     </ErrorBoundary>

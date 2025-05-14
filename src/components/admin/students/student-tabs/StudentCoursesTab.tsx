@@ -41,7 +41,7 @@ export const StudentCoursesTab: React.FC<StudentCoursesTabProps> = ({ studentId 
         </CardTitle>
       </CardHeader>
       <CardContent>
-        {enrollments.length > 0 ? (
+        {enrollments && enrollments.length > 0 ? (
           <div className="rounded-md border">
             <Table>
               <TableHeader>
@@ -56,7 +56,7 @@ export const StudentCoursesTab: React.FC<StudentCoursesTabProps> = ({ studentId 
                 {enrollments.map((enrollment) => (
                   <TableRow key={enrollment.id}>
                     <TableCell className="font-medium">{enrollment.courseName}</TableCell>
-                    <TableCell>{format(new Date(enrollment.startDate), "MMM d, yyyy")}</TableCell>
+                    <TableCell>{enrollment.startDate && format(new Date(enrollment.startDate), "MMM d, yyyy")}</TableCell>
                     <TableCell>
                       <Badge
                         variant={

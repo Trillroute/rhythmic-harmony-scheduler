@@ -15,7 +15,10 @@ const safeToast = (options: {
     variant: options.variant
   };
   
-  return sonnerToast(safeOptions);
+  return sonnerToast(safeOptions.title, {
+    description: safeOptions.description,
+    className: safeOptions.variant === 'destructive' ? 'destructive' : undefined
+  });
 };
 
 // Export our safe toast function

@@ -8,9 +8,9 @@ export const useSessionsByStudent = (
   studentId: string | undefined, 
   filters?: Partial<FilterOptions>
 ) => {
-  return useQuery({
+  const query = useQuery({
     queryKey: ['sessions', 'student', studentId, filters],
-    queryFn: async () => {
+    queryFn: async (): Promise<any[]> => {
       if (!studentId) return [];
 
       const { data: sessionIds, error: sessionIdsError } = await supabase
@@ -27,7 +27,7 @@ export const useSessionsByStudent = (
         throw sessionIdsError;
       }
 
-      if (sessionIds.length === 0) {
+      if (!sessionIds || sessionIds.length === 0) {
         return [];
       }
 
@@ -62,8 +62,10 @@ export const useSessionsByStudent = (
       }
 
       // Apply status filter if provided
-      if (filters?.status && filters.status.length > 0) {
-        query = query.in('status', filters.status);
+      if (filters?.status) {
+        // Convert string or array of strings to array safely
+        const statusArray = Array.isArray(filters.status) ? filters.status : [filters.status];
+        query = query.in('status', statusArray);
       }
 
       const { data, error } = await query;
@@ -78,7 +80,7 @@ export const useSessionsByStudent = (
       }
 
       // Transform data to match Session type with teacher name
-      return data.map((item: any) => ({
+      return (data || []).map((item: any) => ({
         id: item.id,
         teacherId: item.teacher_id,
         teacherName: item.teachers?.profiles?.name,
@@ -93,4 +95,10 @@ export const useSessionsByStudent = (
     },
     enabled: !!studentId,
   });
+
+  return {
+    sessions: query.data || [],
+    isLoading: query.isLoading,
+    error: query.error
+  };
 };

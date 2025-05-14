@@ -40,7 +40,7 @@ export const StudentInvoicesTab: React.FC<StudentInvoicesTabProps> = ({ studentI
         </CardTitle>
       </CardHeader>
       <CardContent>
-        {invoices.length > 0 ? (
+        {invoices && invoices.length > 0 ? (
           <div className="rounded-md border">
             <Table>
               <TableHeader>
@@ -57,7 +57,7 @@ export const StudentInvoicesTab: React.FC<StudentInvoicesTabProps> = ({ studentI
                 {invoices.map((invoice) => (
                   <TableRow key={invoice.id}>
                     <TableCell className="font-medium">{invoice.id.substring(0, 8)}</TableCell>
-                    <TableCell>{format(new Date(invoice.createdAt), "MMM d, yyyy")}</TableCell>
+                    <TableCell>{invoice.createdAt && format(new Date(invoice.createdAt), "MMM d, yyyy")}</TableCell>
                     <TableCell>₹{invoice.amount.toLocaleString()}</TableCell>
                     <TableCell>
                       <Badge
@@ -74,7 +74,7 @@ export const StudentInvoicesTab: React.FC<StudentInvoicesTabProps> = ({ studentI
                         {invoice.status}
                       </Badge>
                     </TableCell>
-                    <TableCell>{format(new Date(invoice.dueDate), "MMM d, yyyy")}</TableCell>
+                    <TableCell>{invoice.dueDate && format(new Date(invoice.dueDate), "MMM d, yyyy")}</TableCell>
                     <TableCell>
                       {invoice.packId
                         ? "Session Pack"

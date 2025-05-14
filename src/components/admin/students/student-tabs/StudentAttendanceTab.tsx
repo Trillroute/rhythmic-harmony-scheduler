@@ -1,34 +1,24 @@
 
 import React, { useState } from "react";
-import { useSessionsByStudent } from "@/hooks/use-sessions-by-student"; 
-import { format } from "date-fns";
+import { useSessionsByStudent } from "@/hooks/use-sessions-by-student";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { SessionStatusBadge } from "@/components/ui/session-status-badge";
+import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { AlertTriangleIcon, CalendarIcon } from "lucide-react";
-import { DateRangePicker } from "@/components/ui/date-range-picker";
-import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { format } from "date-fns";
+import { AttendanceStatus } from "@/lib/types";
 
 interface StudentAttendanceTabProps {
   studentId: string;
 }
 
 export const StudentAttendanceTab: React.FC<StudentAttendanceTabProps> = ({ studentId }) => {
-  const [dateRange, setDateRange] = useState<{
-    from: Date | undefined;
-    to: Date | undefined;
-  }>({
-    from: undefined,
-    to: undefined,
-  });
-  
-  const [statusFilter, setStatusFilter] = useState<string | undefined>(undefined);
+  const [statusFilter, setStatusFilter] = useState<AttendanceStatus | undefined>();
   
   const { sessions, isLoading, error } = useSessionsByStudent(studentId, {
-    startDate: dateRange.from,
-    endDate: dateRange.to,
-    status: statusFilter ? [statusFilter as any] : undefined,
+    status: statusFilter
   });
 
   if (isLoading) {
@@ -49,65 +39,62 @@ export const StudentAttendanceTab: React.FC<StudentAttendanceTabProps> = ({ stud
 
   return (
     <Card>
-      <CardHeader className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
+      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
         <CardTitle className="flex items-center gap-2">
           <CalendarIcon className="h-5 w-5" />
-          Attendance History
+          Session Attendance
         </CardTitle>
-        
-        <div className="flex flex-col sm:flex-row gap-2 items-end sm:items-center w-full sm:w-auto">
-          <DateRangePicker date={dateRange} setDate={setDateRange} />
-          
-          <Select
-            value={statusFilter}
-            onValueChange={setStatusFilter}
-          >
-            <SelectTrigger className="w-[160px]">
-              <SelectValue placeholder="All Statuses" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectGroup>
-                <SelectItem value="">All Statuses</SelectItem>
-                <SelectItem value="Present">Present</SelectItem>
-                <SelectItem value="Absent">Absent</SelectItem>
-                <SelectItem value="Scheduled">Scheduled</SelectItem>
-                <SelectItem value="Cancelled by Student">Cancelled by Student</SelectItem>
-                <SelectItem value="Cancelled by Teacher">Cancelled by Teacher</SelectItem>
-                <SelectItem value="Cancelled by School">Cancelled by School</SelectItem>
-                <SelectItem value="No Show">No Show</SelectItem>
-              </SelectGroup>
-            </SelectContent>
-          </Select>
-        </div>
+        <Select value={statusFilter} onValueChange={(value: AttendanceStatus) => setStatusFilter(value || undefined)}>
+          <SelectTrigger className="w-[180px]">
+            <SelectValue placeholder="Filter by status" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="">All sessions</SelectItem>
+            <SelectItem value="Present">Present</SelectItem>
+            <SelectItem value="Absent">Absent</SelectItem>
+            <SelectItem value="Scheduled">Scheduled</SelectItem>
+            <SelectItem value="Cancelled by Student">Cancelled by Student</SelectItem>
+            <SelectItem value="Cancelled by Teacher">Cancelled by Teacher</SelectItem>
+            <SelectItem value="Cancelled by School">Cancelled by School</SelectItem>
+            <SelectItem value="No Show">No Show</SelectItem>
+          </SelectContent>
+        </Select>
       </CardHeader>
-      
       <CardContent>
-        {sessions.length > 0 ? (
+        {sessions && sessions.length > 0 ? (
           <div className="rounded-md border">
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Date</TableHead>
+                  <TableHead>Date & Time</TableHead>
                   <TableHead>Subject</TableHead>
                   <TableHead>Teacher</TableHead>
                   <TableHead>Status</TableHead>
-                  <TableHead className="hidden md:table-cell">Type</TableHead>
-                  <TableHead className="hidden md:table-cell">Location</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {sessions.map((session) => (
                   <TableRow key={session.id}>
                     <TableCell>
-                      {format(new Date(session.dateTime), "MMM d, yyyy - h:mm a")}
+                      {session.dateTime ? format(new Date(session.dateTime), "PPp") : "Unknown"}
                     </TableCell>
                     <TableCell>{session.subject}</TableCell>
                     <TableCell>{session.teacherName || "Unknown"}</TableCell>
                     <TableCell>
-                      <SessionStatusBadge status={session.status} />
+                      <Badge
+                        variant={
+                          session.status === "Present"
+                            ? "default"
+                            : session.status === "Scheduled"
+                            ? "outline"
+                            : session.status === "Absent" || session.status === "No Show"
+                            ? "destructive"
+                            : "secondary"
+                        }
+                      >
+                        {session.status}
+                      </Badge>
                     </TableCell>
-                    <TableCell className="hidden md:table-cell">{session.sessionType}</TableCell>
-                    <TableCell className="hidden md:table-cell">{session.location}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>

@@ -3,34 +3,29 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 
-type Enrollment = {
+export interface Enrollment {
   id: string;
   courseName: string;
-  startDate: string;
-  endDate?: string;
   status: string;
+  startDate: string | Date;
   completionPercentage: number;
-};
+}
 
 export const useStudentEnrollments = (studentId: string | undefined) => {
-  return useQuery({
-    queryKey: ['enrollments', studentId],
-    queryFn: async () => {
+  const query = useQuery({
+    queryKey: ['student-enrollments', studentId],
+    queryFn: async (): Promise<Enrollment[]> => {
       if (!studentId) return [];
 
       const { data, error } = await supabase
         .from('enrollments')
         .select(`
-          id,
-          status,
+          id, 
+          status, 
           start_date,
-          end_date,
           completion_percentage,
-          courses (
-            id,
-            name,
-            instrument,
-            description
+          courses:course_id (
+            name
           )
         `)
         .eq('student_id', studentId);
@@ -44,16 +39,20 @@ export const useStudentEnrollments = (studentId: string | undefined) => {
         throw error;
       }
 
-      return data.map((item: any) => ({
+      return (data || []).map(item => ({
         id: item.id,
         courseName: item.courses?.name || 'Unknown Course',
-        courseInstrument: item.courses?.instrument,
+        status: item.status || 'unknown',
         startDate: item.start_date,
-        endDate: item.end_date,
-        status: item.status,
-        completionPercentage: item.completion_percentage || 0,
-      })) as Enrollment[];
+        completionPercentage: item.completion_percentage || 0
+      }));
     },
-    enabled: !!studentId,
+    enabled: !!studentId
   });
+
+  return {
+    enrollments: query.data || [],
+    isLoading: query.isLoading,
+    error: query.error
+  };
 };

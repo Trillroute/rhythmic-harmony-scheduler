@@ -20,6 +20,7 @@ import { StudentAttendanceTab } from "./student-tabs/StudentAttendanceTab";
 import { StudentCoursesTab } from "./student-tabs/StudentCoursesTab";
 import { StudentInvoicesTab } from "./student-tabs/StudentInvoicesTab";
 import { StudentFeedbackTab } from "./student-tabs/StudentFeedbackTab";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 
 export const StudentProfile = () => {
   const { studentId } = useParams<{ studentId: string }>();
@@ -47,62 +48,80 @@ export const StudentProfile = () => {
     );
   }
 
+  // Provide default values for potentially missing properties
+  const enhancedStudent = {
+    ...student,
+    isActive: student.isActive !== undefined ? student.isActive : true
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">{student.name}</h1>
-          <p className="text-muted-foreground">{student.email}</p>
+          <h1 className="text-3xl font-bold tracking-tight">{enhancedStudent.name}</h1>
+          <p className="text-muted-foreground">{enhancedStudent.email}</p>
         </div>
-        <Badge variant={student.isActive ? "default" : "destructive"}>
-          {student.isActive ? "Active" : "Inactive"}
+        <Badge variant={enhancedStudent.isActive ? "default" : "destructive"}>
+          {enhancedStudent.isActive ? "Active" : "Inactive"}
         </Badge>
       </div>
 
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-        <TabsList className="grid grid-cols-5 w-full md:w-auto">
-          <TabsTrigger value="overview" className="flex items-center gap-2">
-            <UserIcon className="h-4 w-4" />
-            <span className="hidden sm:inline">Overview</span>
-          </TabsTrigger>
-          <TabsTrigger value="attendance" className="flex items-center gap-2">
-            <CalendarIcon className="h-4 w-4" />
-            <span className="hidden sm:inline">Attendance</span>
-          </TabsTrigger>
-          <TabsTrigger value="courses" className="flex items-center gap-2">
-            <BookOpenIcon className="h-4 w-4" />
-            <span className="hidden sm:inline">Courses</span>
-          </TabsTrigger>
-          <TabsTrigger value="invoices" className="flex items-center gap-2">
-            <CreditCardIcon className="h-4 w-4" />
-            <span className="hidden sm:inline">Invoices</span>
-          </TabsTrigger>
-          <TabsTrigger value="feedback" className="flex items-center gap-2">
-            <MessageSquareIcon className="h-4 w-4" />
-            <span className="hidden sm:inline">Feedback</span>
-          </TabsTrigger>
-        </TabsList>
+      <ErrorBoundary>
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
+          <TabsList className="grid grid-cols-5 w-full md:w-auto">
+            <TabsTrigger value="overview" className="flex items-center gap-2">
+              <UserIcon className="h-4 w-4" />
+              <span className="hidden sm:inline">Overview</span>
+            </TabsTrigger>
+            <TabsTrigger value="attendance" className="flex items-center gap-2">
+              <CalendarIcon className="h-4 w-4" />
+              <span className="hidden sm:inline">Attendance</span>
+            </TabsTrigger>
+            <TabsTrigger value="courses" className="flex items-center gap-2">
+              <BookOpenIcon className="h-4 w-4" />
+              <span className="hidden sm:inline">Courses</span>
+            </TabsTrigger>
+            <TabsTrigger value="invoices" className="flex items-center gap-2">
+              <CreditCardIcon className="h-4 w-4" />
+              <span className="hidden sm:inline">Invoices</span>
+            </TabsTrigger>
+            <TabsTrigger value="feedback" className="flex items-center gap-2">
+              <MessageSquareIcon className="h-4 w-4" />
+              <span className="hidden sm:inline">Feedback</span>
+            </TabsTrigger>
+          </TabsList>
 
-        <TabsContent value="overview" className="space-y-4">
-          <StudentOverviewTab student={student} />
-        </TabsContent>
+          <TabsContent value="overview" className="space-y-4">
+            <ErrorBoundary>
+              <StudentOverviewTab student={enhancedStudent} />
+            </ErrorBoundary>
+          </TabsContent>
 
-        <TabsContent value="attendance" className="space-y-4">
-          <StudentAttendanceTab studentId={student.id} />
-        </TabsContent>
+          <TabsContent value="attendance" className="space-y-4">
+            <ErrorBoundary>
+              <StudentAttendanceTab studentId={student.id} />
+            </ErrorBoundary>
+          </TabsContent>
 
-        <TabsContent value="courses" className="space-y-4">
-          <StudentCoursesTab studentId={student.id} />
-        </TabsContent>
+          <TabsContent value="courses" className="space-y-4">
+            <ErrorBoundary>
+              <StudentCoursesTab studentId={student.id} />
+            </ErrorBoundary>
+          </TabsContent>
 
-        <TabsContent value="invoices" className="space-y-4">
-          <StudentInvoicesTab studentId={student.id} />
-        </TabsContent>
+          <TabsContent value="invoices" className="space-y-4">
+            <ErrorBoundary>
+              <StudentInvoicesTab studentId={student.id} />
+            </ErrorBoundary>
+          </TabsContent>
 
-        <TabsContent value="feedback" className="space-y-4">
-          <StudentFeedbackTab studentId={student.id} />
-        </TabsContent>
-      </Tabs>
+          <TabsContent value="feedback" className="space-y-4">
+            <ErrorBoundary>
+              <StudentFeedbackTab studentId={student.id} />
+            </ErrorBoundary>
+          </TabsContent>
+        </Tabs>
+      </ErrorBoundary>
     </div>
   );
 };

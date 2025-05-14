@@ -22,6 +22,16 @@ import InvoiceManagement from "./components/admin/InvoiceManagement";
 import CourseMaterials from "./components/admin/CourseMaterials";
 import DataExport from "./components/admin/DataExport";
 import SystemSettings from "./components/admin/SystemSettings";
+import { ErrorBoundary } from "./components/ErrorBoundary";
+
+// Create a wrapper component that applies ErrorBoundary
+const withErrorBoundary = (Component: React.ComponentType<any>) => {
+  return (props: any) => (
+    <ErrorBoundary>
+      <Component {...props} />
+    </ErrorBoundary>
+  );
+};
 
 export const router = createBrowserRouter([
   {
@@ -32,35 +42,35 @@ export const router = createBrowserRouter([
       { index: true, element: <Index /> },
       {
         path: "dashboard",
-        element: <ProtectedRoute><Dashboard /></ProtectedRoute>,
+        element: <ProtectedRoute>{withErrorBoundary(Dashboard)({})}</ProtectedRoute>,
       },
       {
         path: "scheduler",
-        element: <ProtectedRoute><SessionScheduler /></ProtectedRoute>,
+        element: <ProtectedRoute>{withErrorBoundary(SessionScheduler)({})}</ProtectedRoute>,
       },
       {
         path: "attendance",
-        element: <ProtectedRoute><AttendanceTracker /></ProtectedRoute>,
+        element: <ProtectedRoute>{withErrorBoundary(AttendanceTracker)({})}</ProtectedRoute>,
       },
       {
         path: "packs",
-        element: <ProtectedRoute><StudentPacks /></ProtectedRoute>,
+        element: <ProtectedRoute>{withErrorBoundary(StudentPacks)({})}</ProtectedRoute>,
       },
       {
         path: "admin",
-        element: <ProtectedRoute adminOnly><AdminDashboard /></ProtectedRoute>,
+        element: <ProtectedRoute adminOnly>{withErrorBoundary(AdminDashboard)({})}</ProtectedRoute>,
         children: [
-          { index: true, element: <ReportingDashboard /> },
-          { path: "users", element: <UserManagement /> },
-          { path: "students", element: <StudentManagement /> },
-          { path: "students/:studentId", element: <StudentProfile /> },
-          { path: "courses", element: <CourseManagement /> },
-          { path: "plans", element: <SessionPlans /> },
-          { path: "scheduler", element: <AdvancedScheduler /> },
-          { path: "invoices", element: <InvoiceManagement /> },
-          { path: "materials", element: <CourseMaterials /> },
-          { path: "export", element: <DataExport /> },
-          { path: "settings", element: <SystemSettings /> },
+          { index: true, element: withErrorBoundary(ReportingDashboard)({}) },
+          { path: "users", element: withErrorBoundary(UserManagement)({}) },
+          { path: "students", element: withErrorBoundary(StudentManagement)({}) },
+          { path: "students/:studentId", element: withErrorBoundary(StudentProfile)({}) },
+          { path: "courses", element: withErrorBoundary(CourseManagement)({}) },
+          { path: "plans", element: withErrorBoundary(SessionPlans)({}) },
+          { path: "scheduler", element: withErrorBoundary(AdvancedScheduler)({}) },
+          { path: "invoices", element: withErrorBoundary(InvoiceManagement)({}) },
+          { path: "materials", element: withErrorBoundary(CourseMaterials)({}) },
+          { path: "export", element: withErrorBoundary(DataExport)({}) },
+          { path: "settings", element: withErrorBoundary(SystemSettings)({}) },
         ]
       }
     ],

@@ -3,7 +3,7 @@ import React from "react";
 import { useStudentFeedback } from "@/hooks/use-student-feedback";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { AlertTriangleIcon, MessageSquareIcon, Star, StarIcon } from "lucide-react";
+import { AlertTriangleIcon, MessageSquareIcon, StarIcon } from "lucide-react";
 import { format } from "date-fns";
 
 interface StudentFeedbackTabProps {
@@ -38,7 +38,7 @@ export const StudentFeedbackTab: React.FC<StudentFeedbackTabProps> = ({ studentI
         </CardTitle>
       </CardHeader>
       <CardContent>
-        {feedback.length > 0 ? (
+        {feedback && feedback.length > 0 ? (
           <div className="space-y-4">
             {feedback.map((item) => (
               <Card key={item.id} className="overflow-hidden">
@@ -48,7 +48,7 @@ export const StudentFeedbackTab: React.FC<StudentFeedbackTabProps> = ({ studentI
                       {item.teacherName} - {item.sessionSubject || "General feedback"}
                     </div>
                     <div className="text-sm text-muted-foreground">
-                      {format(new Date(item.createdAt), "MMM d, yyyy")}
+                      {item.createdAt && format(new Date(item.createdAt), "MMM d, yyyy")}
                     </div>
                   </div>
                   {item.rating && (

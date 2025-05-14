@@ -3,38 +3,34 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 
-type StudentFeedback = {
+export interface StudentFeedback {
   id: string;
-  teacherId: string;
-  teacherName: string;
-  sessionId?: string;
+  teacherName?: string;
   sessionSubject?: string;
-  feedbackText: string;
   rating?: number;
-  createdAt: string;
-};
+  feedbackText: string;
+  createdAt: string | Date;
+}
 
 export const useStudentFeedback = (studentId: string | undefined) => {
-  return useQuery({
-    queryKey: ['feedback', studentId],
-    queryFn: async () => {
+  const query = useQuery({
+    queryKey: ['student-feedback', studentId],
+    queryFn: async (): Promise<StudentFeedback[]> => {
       if (!studentId) return [];
 
       const { data, error } = await supabase
         .from('student_feedback')
         .select(`
-          id,
-          feedback_text,
-          rating,
+          id, 
+          feedback_text, 
+          rating, 
           created_at,
-          session_id,
-          teacher_id,
-          teachers:teachers (
-            profiles:profiles (
+          teachers:teacher_id (
+            profiles:id (
               name
             )
           ),
-          sessions:sessions (
+          sessions:session_id (
             subject
           )
         `)
@@ -50,17 +46,21 @@ export const useStudentFeedback = (studentId: string | undefined) => {
         throw error;
       }
 
-      return data.map((item: any) => ({
+      return (data || []).map(item => ({
         id: item.id,
-        teacherId: item.teacher_id,
         teacherName: item.teachers?.profiles?.name || 'Unknown Teacher',
-        sessionId: item.session_id,
         sessionSubject: item.sessions?.subject,
-        feedbackText: item.feedback_text,
         rating: item.rating,
-        createdAt: item.created_at,
-      })) as StudentFeedback[];
+        feedbackText: item.feedback_text,
+        createdAt: item.created_at
+      }));
     },
-    enabled: !!studentId,
+    enabled: !!studentId
   });
+
+  return {
+    feedback: query.data || [],
+    isLoading: query.isLoading,
+    error: query.error
+  };
 };

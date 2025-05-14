@@ -3,26 +3,33 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 
-type Invoice = {
+export interface Invoice {
   id: string;
   amount: number;
   status: string;
-  dueDate: string;
-  createdAt: string;
+  createdAt: string | Date;
+  dueDate: string | Date;
   packId?: string;
   planId?: string;
-  notes?: string;
-};
+}
 
 export const useStudentInvoices = (studentId: string | undefined) => {
-  return useQuery({
-    queryKey: ['invoices', studentId],
-    queryFn: async () => {
+  const query = useQuery({
+    queryKey: ['student-invoices', studentId],
+    queryFn: async (): Promise<Invoice[]> => {
       if (!studentId) return [];
 
       const { data, error } = await supabase
         .from('invoices')
-        .select('*')
+        .select(`
+          id, 
+          amount, 
+          status, 
+          created_at,
+          due_date,
+          pack_id,
+          plan_id
+        `)
         .eq('student_id', studentId)
         .order('created_at', { ascending: false });
 
@@ -35,17 +42,22 @@ export const useStudentInvoices = (studentId: string | undefined) => {
         throw error;
       }
 
-      return data.map((item: any) => ({
+      return (data || []).map(item => ({
         id: item.id,
         amount: item.amount,
         status: item.status,
-        dueDate: item.due_date,
         createdAt: item.created_at,
+        dueDate: item.due_date,
         packId: item.pack_id,
-        planId: item.plan_id,
-        notes: item.notes,
-      })) as Invoice[];
+        planId: item.plan_id
+      }));
     },
-    enabled: !!studentId,
+    enabled: !!studentId
   });
+
+  return {
+    invoices: query.data || [],
+    isLoading: query.isLoading,
+    error: query.error
+  };
 };
