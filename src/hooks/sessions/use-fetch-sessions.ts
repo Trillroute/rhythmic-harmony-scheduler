@@ -63,8 +63,9 @@ export function useFetchSessions(props?: SessionsProps) {
       }
 
       if (props?.status && props.status.length > 0) {
-        const safeStatus = assertAttendanceStatusArray(props.status);
-        query = query.in('status', safeStatus);
+        // Convert to string array for the query
+        const statusValues = props.status.map(status => status as string);
+        query = query.in('status', statusValues);
       }
 
       // Execute query and get data

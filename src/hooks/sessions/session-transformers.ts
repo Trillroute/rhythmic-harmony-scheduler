@@ -57,3 +57,36 @@ export function transformSession(dbSession: DbSession): Session {
     updatedAt: dbSession.updated_at
   };
 }
+
+// Add the missing transformSessionUpdate function
+export function transformSessionUpdate(updates: {
+  status?: AttendanceStatus;
+  notes?: string;
+  dateTime?: Date;
+  teacherId?: string;
+  duration?: number;
+}) {
+  const apiUpdates: Record<string, any> = {};
+  
+  if (updates.status) {
+    apiUpdates.status = updates.status;
+  }
+  
+  if (updates.notes !== undefined) {
+    apiUpdates.notes = updates.notes;
+  }
+  
+  if (updates.dateTime) {
+    apiUpdates.date_time = updates.dateTime.toISOString();
+  }
+  
+  if (updates.teacherId) {
+    apiUpdates.teacher_id = updates.teacherId;
+  }
+  
+  if (updates.duration) {
+    apiUpdates.duration = updates.duration;
+  }
+  
+  return apiUpdates;
+}

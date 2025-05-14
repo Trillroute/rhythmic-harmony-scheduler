@@ -2,7 +2,7 @@
 import React, { useEffect, useState } from "react";
 import { SessionForm } from "./session-scheduler/SessionForm";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
-import { toast } from "sonner";
+import { useToast } from "@/hooks/use-toast";
 import { useSessions } from "@/hooks/use-sessions";
 import { useTeachers } from "@/hooks/use-teachers";
 import { useStudents } from "@/hooks/use-students";
@@ -15,12 +15,16 @@ interface SessionSchedulerProps {
 
 const SessionScheduler: React.FC<SessionSchedulerProps> = ({ onSuccess }) => {
   const [isLoading, setIsLoading] = useState(false);
+  const { toast } = useToast();
   const { sessions } = useSessions();
   const { teachers, isLoading: teachersLoading } = useTeachers();
   const { students, isLoading: studentsLoading } = useStudents();
 
   const handleSuccess = (data: any) => {
-    toast.success("Session scheduled successfully");
+    toast({
+      title: "Success",
+      description: "Session scheduled successfully"
+    });
     if (onSuccess) {
       onSuccess(data);
     }
