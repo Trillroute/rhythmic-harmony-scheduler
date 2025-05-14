@@ -22,7 +22,7 @@ export const useSubjectDistributionReport = (filters?: ReportPeriod) => {
     
     // Apply status filter if provided
     if (filters?.status && filters.status.length > 0) {
-      // Cast array values to string for database query
+      // Use properly typed array for Supabase query
       const statusStrings = filters.status.map(s => s.toString());
       query = query.in('status', statusStrings);
     }

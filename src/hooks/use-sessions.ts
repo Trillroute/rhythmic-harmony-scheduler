@@ -6,7 +6,7 @@ import { useUpdateSession } from "./sessions/use-update-session";
 import { SessionsProps, SessionWithStudents } from "./sessions/types";
 
 // Re-export types for backward compatibility
-export { SessionWithStudents } from "./sessions/types";
+export type { SessionWithStudents } from "./sessions/types";
 
 // Main hook that composes all session functionality
 export const useSessions = (props: SessionsProps = {}) => {

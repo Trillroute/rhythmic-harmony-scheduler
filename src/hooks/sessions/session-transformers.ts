@@ -37,9 +37,19 @@ export const transformSessionData = (data: any[]): SessionWithStudents[] => {
 // Transform sessions for compatibility with Session type
 export const transformSessionsFromDB = (data: any[]): Session[] => {
   return transformSessionData(data).map(session => ({
-    ...session,
-    rescheduleCount: session.rescheduleCount || 0, // Ensure required property is present
+    id: session.id,
+    teacherId: session.teacherId,
+    packId: session.packId,
+    subject: session.subject,
+    sessionType: session.sessionType,
+    location: session.location,
+    dateTime: session.dateTime,
+    duration: session.duration,
+    notes: session.notes,
+    status: session.status,
+    rescheduleCount: session.rescheduleCount, // This is now explicitly set
     createdAt: session.createdAt,
-    updatedAt: session.updatedAt
+    updatedAt: session.updatedAt,
+    studentIds: session.studentIds
   }));
 };

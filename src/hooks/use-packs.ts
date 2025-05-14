@@ -116,28 +116,37 @@ export const useCreateSessionPack = () => {
       // Handle single or multiple packs
       const packsArray = Array.isArray(packs) ? packs : [packs];
       
-      // Format data for insert with proper type casting
-      const formattedPacks = packsArray.map(pack => ({
-        student_id: pack.studentId,
-        size: pack.size?.toString(),
-        subject: pack.subject?.toString(),
-        session_type: pack.sessionType?.toString(),
-        location: pack.location?.toString(),
-        remaining_sessions: pack.remainingSessions,
-        is_active: pack.isActive,
-        weekly_frequency: pack.weeklyFrequency?.toString(),
-        purchased_date: pack.purchasedDate?.toString(),
-        expiry_date: pack.expiryDate?.toString(),
-      }));
+      const createdPacks = [];
       
-      const { data, error } = await supabase
-        .from("session_packs")
-        .insert(formattedPacks)
-        .select();
+      // Process each pack individually to ensure proper type handling
+      for (const pack of packsArray) {
+        // Format data for insert with proper type casting
+        const formattedPack = {
+          student_id: pack.studentId,
+          size: pack.size?.toString(),
+          subject: pack.subject?.toString(),
+          session_type: pack.sessionType?.toString(),
+          location: pack.location?.toString(),
+          remaining_sessions: pack.remainingSessions,
+          is_active: pack.isActive,
+          weekly_frequency: pack.weeklyFrequency?.toString(),
+          purchased_date: pack.purchasedDate?.toString(),
+          expiry_date: pack.expiryDate?.toString(),
+        };
+        
+        const { data, error } = await supabase
+          .from("session_packs")
+          .insert(formattedPack)
+          .select();
+        
+        if (error) throw error;
+        
+        if (data && data.length > 0) {
+          createdPacks.push(transformPackFromDB(data[0]));
+        }
+      }
       
-      if (error) throw error;
-      
-      return data ? data.map(transformPackFromDB) : [];
+      return createdPacks;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["sessionPacks"] });

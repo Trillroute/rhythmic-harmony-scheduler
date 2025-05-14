@@ -81,7 +81,7 @@ export const useFetchSessions = (
     if (!data) return [];
 
     // Transform to Session type
-    return transformSessionsFromDB(data) as Session[];
+    return transformSessionsFromDB(data);
   };
 
   return useQuery({
