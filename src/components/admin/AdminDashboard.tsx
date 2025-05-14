@@ -1,7 +1,7 @@
 
 import React from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { UsersIcon, SettingsIcon, PieChartIcon, FileTextIcon } from "lucide-react";
+import { UsersIcon, SettingsIcon, PieChartIcon, FileTextIcon, UploadIcon } from "lucide-react";
 import { Link } from "react-router-dom";
 
 const AdminDashboard = () => {
@@ -9,7 +9,7 @@ const AdminDashboard = () => {
     <div className="p-4 md:p-8">
       <h1 className="text-2xl font-bold mb-6">Admin Dashboard</h1>
       
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         <Link to="/admin/users">
           <Card className="hover:shadow-md transition-shadow cursor-pointer">
             <CardHeader>
@@ -73,6 +73,23 @@ const AdminDashboard = () => {
             <CardContent>
               <p className="text-sm text-muted-foreground">
                 Export attendance, sessions, and pack data for backup or analysis.
+              </p>
+            </CardContent>
+          </Card>
+        </Link>
+        
+        <Link to="/admin/bulk-upload">
+          <Card className="hover:shadow-md transition-shadow cursor-pointer">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <UploadIcon className="h-5 w-5" />
+                Bulk Upload
+              </CardTitle>
+              <CardDescription>Import data in bulk</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm text-muted-foreground">
+                Upload CSV files to create students, session packs, and schedule sessions in bulk.
               </p>
             </CardContent>
           </Card>

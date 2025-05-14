@@ -3,3 +3,7 @@ project_id = "kahnxnzjftqijavjqias"
 
 [functions.payment-reminders]
 verify_jwt = true
+
+[functions.process-bulk-upload]
+verify_jwt = true
+

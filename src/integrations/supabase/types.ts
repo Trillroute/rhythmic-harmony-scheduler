@@ -80,6 +80,59 @@ export type Database = {
           },
         ]
       }
+      bulk_uploads: {
+        Row: {
+          admin_id: string
+          created_at: string
+          failed_rows: number | null
+          file_name: string
+          file_path: string
+          id: string
+          result_summary: Json | null
+          status: string
+          successful_rows: number | null
+          total_rows: number | null
+          updated_at: string
+          upload_type: string
+        }
+        Insert: {
+          admin_id: string
+          created_at?: string
+          failed_rows?: number | null
+          file_name: string
+          file_path: string
+          id?: string
+          result_summary?: Json | null
+          status?: string
+          successful_rows?: number | null
+          total_rows?: number | null
+          updated_at?: string
+          upload_type: string
+        }
+        Update: {
+          admin_id?: string
+          created_at?: string
+          failed_rows?: number | null
+          file_name?: string
+          file_path?: string
+          id?: string
+          result_summary?: Json | null
+          status?: string
+          successful_rows?: number | null
+          total_rows?: number | null
+          updated_at?: string
+          upload_type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bulk_uploads_admin_id_fkey"
+            columns: ["admin_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       course_materials: {
         Row: {
           course_id: string

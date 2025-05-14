@@ -22,6 +22,7 @@ import InvoiceManagement from "./components/admin/InvoiceManagement";
 import CourseMaterials from "./components/admin/CourseMaterials";
 import DataExport from "./components/admin/DataExport";
 import SystemSettings from "./components/admin/SystemSettings";
+import BulkUploadPage from "./components/admin/BulkUploadPage";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 
 // Create a wrapper component that applies ErrorBoundary
@@ -71,6 +72,7 @@ export const router = createBrowserRouter([
           { path: "materials", element: withErrorBoundary(CourseMaterials)({}) },
           { path: "export", element: withErrorBoundary(DataExport)({}) },
           { path: "settings", element: withErrorBoundary(SystemSettings)({}) },
+          { path: "bulk-upload", element: withErrorBoundary(BulkUploadPage)({}) }
         ]
       }
     ],

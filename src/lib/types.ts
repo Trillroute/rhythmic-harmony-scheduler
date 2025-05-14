@@ -1,4 +1,3 @@
-
 export type UserRole = 'admin' | 'teacher' | 'student';
 
 export type AttendanceStatus = 'Present' | 'Absent' | 'Scheduled' | 'Cancelled by Student' | 
@@ -158,4 +157,23 @@ export interface SessionWithStudents {
   recurrenceRule?: string;
   originalSessionId?: string;
   rescheduledFrom?: string;
+}
+
+export interface BulkUpload {
+  id: string;
+  admin_id: string;
+  upload_type: 'students' | 'session_packs' | 'sessions';
+  file_name: string;
+  file_path: string;
+  status: 'processing' | 'completed' | 'failed';
+  total_rows: number | null;
+  successful_rows: number;
+  failed_rows: number;
+  result_summary: {
+    errors?: { row: number; message: string }[];
+    warnings?: { row: number; message: string }[];
+    success?: { row: number; id: string }[];
+  } | null;
+  created_at: string | Date;
+  updated_at: string | Date;
 }
