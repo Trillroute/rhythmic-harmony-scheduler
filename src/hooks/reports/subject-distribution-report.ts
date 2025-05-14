@@ -20,18 +20,18 @@ export function useSubjectDistributionReport() {
       // Get subject distribution
       const { data: subjectData, error: subjectError } = await supabase
         .from("sessions")
-        .select("subject, count")
+        .select("subject, count(*)")
         .gte('date_time', startDate.toISOString())
         .lte('date_time', endDate.toISOString())
         .not('status', 'in', assertStringArray(["Cancelled by Student", "Cancelled by Teacher", "Cancelled by School"]))
-        .group('subject');
+        .groupBy('subject');
       
       if (subjectError) throw new Error(subjectError.message);
       
       // Build distribution data for chart
       const distribution = subjectData.map(item => ({
         name: String(item.subject),
-        value: item.count as number
+        value: parseInt(item.count as unknown as string, 10)
       }));
       
       setData(distribution);

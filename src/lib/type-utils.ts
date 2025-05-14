@@ -76,7 +76,7 @@ export function assertLocationTypeArray(values?: string[]): LocationType[] {
 
 export function assertAttendanceStatusArray(values?: string[] | readonly string[]): AttendanceStatus[] {
   if (!values || !Array.isArray(values)) return [];
-  return values.map(v => assertAttendanceStatus(v));
+  return values.map(v => assertAttendanceStatus(v)).filter(Boolean) as AttendanceStatus[];
 }
 
 export function assertWeeklyFrequencyArray(values?: string[]): WeeklyFrequency[] {
@@ -88,4 +88,9 @@ export function assertWeeklyFrequencyArray(values?: string[]): WeeklyFrequency[]
 export function assertStringArray(values?: any[] | readonly any[]): string[] {
   if (!values || !Array.isArray(values)) return [];
   return values.map(v => String(v));
+}
+
+// Type assertion for JSON serialization of complex objects
+export function prepareForSupabase<T>(data: T): any {
+  return JSON.parse(JSON.stringify(data));
 }

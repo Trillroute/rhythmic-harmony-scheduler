@@ -5,7 +5,7 @@ import { AttendanceStatus, SessionWithStudents } from '@/lib/types';
 import { useAuth } from '@/contexts/AuthContext';
 import { transformSessionWithStudents } from './session-transformers';
 import { SessionsProps } from './types';
-import { assertAttendanceStatusArray } from '@/lib/type-utils';
+import { assertAttendanceStatusArray, assertStringArray } from '@/lib/type-utils';
 
 /**
  * Hook to fetch sessions with optional filters
@@ -62,8 +62,8 @@ export const useFetchSessions = ({
         const hasAllOption = status.some(s => s === 'all' || s === '');
         
         if (!hasAllOption) {
-          // Convert all strings to valid AttendanceStatus values
-          const validStatuses = assertAttendanceStatusArray(status);
+          // Convert status strings to valid database values
+          const validStatuses = assertStringArray(status);
           
           if (validStatuses.length > 0) {
             query = query.in('status', validStatuses);

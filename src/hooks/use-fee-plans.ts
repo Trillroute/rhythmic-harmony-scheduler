@@ -2,6 +2,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
+import { prepareForSupabase } from '@/lib/type-utils';
 
 export interface DueDate {
   date: string;
@@ -71,9 +72,18 @@ export const useFeePlans = (studentId?: string) => {
 
   const createFeePlan = useMutation({
     mutationFn: async (newPlan: NewFeePlan) => {
+      // Convert JavaScript objects to JSON strings for Supabase
+      const supabaseData = {
+        student_id: newPlan.student_id,
+        plan_title: newPlan.plan_title,
+        total_amount: newPlan.total_amount,
+        due_dates: prepareForSupabase(newPlan.due_dates),
+        late_fee_policy: newPlan.late_fee_policy ? prepareForSupabase(newPlan.late_fee_policy) : null
+      };
+      
       const { data, error } = await supabase
         .from('fee_plans')
-        .insert([newPlan])
+        .insert([supabaseData])
         .select()
         .single();
 
@@ -99,9 +109,18 @@ export const useFeePlans = (studentId?: string) => {
 
   const updateFeePlan = useMutation({
     mutationFn: async ({ id, ...updateData }: Partial<FeePlan> & { id: string }) => {
+      // Convert JavaScript objects to JSON strings for Supabase
+      const supabaseData: any = {};
+      
+      if (updateData.student_id) supabaseData.student_id = updateData.student_id;
+      if (updateData.plan_title) supabaseData.plan_title = updateData.plan_title;
+      if (updateData.total_amount) supabaseData.total_amount = updateData.total_amount;
+      if (updateData.due_dates) supabaseData.due_dates = prepareForSupabase(updateData.due_dates);
+      if (updateData.late_fee_policy) supabaseData.late_fee_policy = prepareForSupabase(updateData.late_fee_policy);
+      
       const { data, error } = await supabase
         .from('fee_plans')
-        .update(updateData)
+        .update(supabaseData)
         .eq('id', id)
         .select()
         .single();

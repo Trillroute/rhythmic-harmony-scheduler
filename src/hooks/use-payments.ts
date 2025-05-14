@@ -52,7 +52,19 @@ export const usePayments = (studentId?: string, feePlanId?: string) => {
       throw error;
     }
 
-    return data;
+    // Convert string payment_mode to PaymentMode enum
+    return data.map(payment => {
+      // Ensure payment_mode is a valid PaymentMode
+      let paymentMode: PaymentMode = 'other';
+      if (['cash', 'upi', 'card', 'bank_transfer'].includes(payment.payment_mode)) {
+        paymentMode = payment.payment_mode as PaymentMode;
+      }
+      
+      return {
+        ...payment,
+        payment_mode: paymentMode,
+      };
+    });
   };
 
   const { data, isLoading, error, refetch } = useQuery({

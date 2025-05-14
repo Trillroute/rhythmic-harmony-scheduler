@@ -74,7 +74,7 @@ export const useCreateSessionPack = () => {
         .from('session_packs')
         .insert({
           student_id: packData.studentId,
-          size: packData.size,
+          size: String(packData.size) as unknown as number, // Convert to string for the database
           subject: packData.subject,
           session_type: packData.sessionType,
           location: packData.location,

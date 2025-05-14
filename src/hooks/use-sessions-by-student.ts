@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { Session, FilterOptions } from '@/lib/types';
+import { assertStringArray } from '@/lib/type-utils';
 
 export const useSessionsByStudent = (
   studentId: string | undefined, 
@@ -63,9 +64,14 @@ export const useSessionsByStudent = (
 
       // Apply status filter if provided
       if (filters?.status) {
-        // Convert string or array of strings to array safely
-        const statusArray = Array.isArray(filters.status) ? filters.status : [filters.status];
-        query = query.in('status', statusArray);
+        // Convert string or array of strings to array safely using assertStringArray
+        const statusArray = Array.isArray(filters.status) ? 
+          assertStringArray(filters.status) : 
+          assertStringArray([filters.status]);
+        
+        if (statusArray.length > 0) {
+          query = query.in('status', statusArray);
+        }
       }
 
       const { data, error } = await query;

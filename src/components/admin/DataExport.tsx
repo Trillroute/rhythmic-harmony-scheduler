@@ -9,7 +9,7 @@ import {
   SelectTrigger, 
   SelectValue 
 } from '@/components/ui/select';
-import { DatePickerWithRange } from '@/components/ui/date-range-picker';
+import { DateRangePicker } from '@/components/ui/date-range-picker';
 import { 
   Download, 
   Calendar,
@@ -119,9 +119,9 @@ const DataExport = () => {
               <div className="space-y-6">
                 <div>
                   <h3 className="text-sm font-medium mb-2">Date Range</h3>
-                  <DatePickerWithRange 
-                    date={dateRange} 
-                    setDate={(newDate) => setDateRange(newDate)}
+                  <DateRangePicker 
+                    dateRange={dateRange} 
+                    onChange={setDateRange}
                   />
                 </div>
                 
@@ -198,9 +198,9 @@ const DataExport = () => {
               <div className="space-y-6">
                 <div>
                   <h3 className="text-sm font-medium mb-2">Date Range</h3>
-                  <DatePickerWithRange 
-                    date={dateRange} 
-                    setDate={(newDate) => setDateRange(newDate)}
+                  <DateRangePicker 
+                    dateRange={dateRange} 
+                    onChange={setDateRange}
                   />
                 </div>
                 
@@ -431,9 +431,9 @@ const DataExport = () => {
               <div className="space-y-6">
                 <div>
                   <h3 className="text-sm font-medium mb-2">Date Range</h3>
-                  <DatePickerWithRange 
-                    date={dateRange} 
-                    setDate={(newDate) => setDateRange(newDate)}
+                  <DateRangePicker 
+                    dateRange={dateRange} 
+                    onChange={setDateRange}
                   />
                 </div>
                 

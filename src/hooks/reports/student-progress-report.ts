@@ -23,8 +23,8 @@ export function useStudentProgressReport() {
             id,
             student_id, 
             course_id,
-            profiles (name),
-            courses (name, instrument)
+            profiles:profiles (name),
+            courses:courses (name, instrument)
           )
         `)
         .order('completion_percentage', { ascending: false })
