@@ -20,7 +20,7 @@ import {
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { useFetchSessions } from '@/hooks/sessions/use-fetch-sessions';
-import useUpdateSessionStatus from '@/hooks/sessions/use-update-session-status';
+import { useUpdateSessionStatus } from '@/hooks/sessions/use-update-session-status';
 import { AttendanceStatus, Session } from '@/lib/types';
 import { toast } from 'sonner';
 import { DateRangePicker } from '@/components/ui/date-range-picker';
@@ -37,18 +37,18 @@ const AttendanceTracker = () => {
   const [statusFilter, setStatusFilter] = useState<AttendanceStatus | undefined>();
   
   const { data, isLoading, error, refetch } = useFetchSessions({
-    fromDate: dateRange.from,
-    toDate: dateRange.to,
+    startDate: dateRange.from,
+    endDate: dateRange.to,
     status: statusFilter ? [statusFilter] : undefined
   });
   
-  const { mutate: updateSessionStatus, isPending } = useUpdateSessionStatus(['sessions']);
+  const { updateSessionStatus, isPending } = useUpdateSessionStatus(['sessions']);
   
   const handleMarkAttendance = async (session: Session, status: AttendanceStatus) => {
     try {
       await updateSessionStatus({
         sessionId: session.id,
-        status: status
+        newStatus: status
       });
       
       toast.success(`Session marked as ${status}`);
@@ -78,7 +78,7 @@ const AttendanceTracker = () => {
     );
   }
   
-  const sessions = data?.sessions || [];
+  const sessions = data || [];
 
   return (
     <ErrorBoundary>

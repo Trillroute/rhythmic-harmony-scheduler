@@ -3,7 +3,6 @@ import React from "react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { DateRangePicker } from "@/components/ui/date-range-picker";
 import { ReportPeriod } from "@/hooks/reports/types";
-import { Button } from "@/components/ui/button";
 import { CalendarIcon } from "lucide-react";
 import { format } from "date-fns";
 
@@ -13,8 +12,8 @@ interface DateRange {
 }
 
 export interface DashboardFiltersProps {
-  period: ReportPeriod; // Changed from value to period
-  onPeriodChange: (newPeriod: ReportPeriod) => void; // Changed from onValueChange to onPeriodChange
+  period: ReportPeriod; 
+  onPeriodChange: (newPeriod: ReportPeriod) => void; 
   dateRange?: DateRange;
   onDateRangeChange?: (range: DateRange) => void;
 }
@@ -53,7 +52,7 @@ export function DashboardFilters({
       
       {showDatePicker ? (
         <DateRangePicker
-          value={dateRange}
+          dateRange={dateRange}
           onChange={handleDateRangeChange}
         />
       ) : (

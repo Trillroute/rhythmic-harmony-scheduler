@@ -1,53 +1,65 @@
 
-// Define the report period enum
-export type ReportPeriod = 'today' | 'this_week' | 'this_month' | 'last_month' | 'custom';
+// Report period options for filtering
+export type ReportPeriod = 
+  | 'today' 
+  | 'this_week' 
+  | 'this_month' 
+  | 'last_month' 
+  | 'custom';
 
-// Define attendance data structure
+// Attendance report data structure
 export interface AttendanceData {
-  // Totals
   total: number;
   present: number;
   absent: number;
   cancelled: number;
   noShow: number;
-  
-  // For charts
-  distribution: { status: string; count: number }[];
-  chartData: { date: string; present: number; total: number }[];
-  
-  // For backward compatibility
-  categories?: string[];
-  data?: number[];
+  categories: string[];
+  data: number[];
 }
 
-// Define subject distribution data structure
-export type SubjectDistributionData = {
+// Subject distribution data structure
+export interface SubjectDistributionItem {
   subject: string;
   count: number;
-}[];
+}
 
-// Define session type data structure
-export type SessionTypeData = {
+export type SubjectDistributionData = SubjectDistributionItem[];
+
+// Session type data structure
+export interface SessionTypeSubject {
+  subject: string;
+  count: number;
+}
+
+export interface SessionTypeItem {
   sessionType: string;
   count: number;
-  subjects?: { subject: string; count: number }[];
-}[];
+  subjects?: SessionTypeSubject[];
+}
 
-// Define sessions report data structure
-export type SessionsReportData = {
+export type SessionTypeData = SessionTypeItem[];
+
+// Sessions over time data structure
+export interface SessionsTimeItem {
   date: string;
   count: number;
-}[];
+}
 
-// Define student progress data structure
+export type SessionsReportData = SessionsTimeItem[];
+
+// Student progress data structure
 export interface StudentProgressItem {
-  student: string;
-  progress: number;
-  id?: string;
-  studentName?: string;
-  courseName?: string;
-  instrument?: string;
-  completionPercentage?: number;
+  student: {
+    id: string;
+    name: string;
+  };
+  progress: {
+    id: string;
+    courseName: string;
+    instrument: string;
+    completionPercentage: number;
+  };
 }
 
 export type StudentProgressData = StudentProgressItem[];

@@ -9,11 +9,11 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useReports } from '@/hooks/reports/use-reports';
 import { ReportPeriod } from '@/hooks/reports/types';
-import DashboardFilters from '@/components/admin/reporting/DashboardFilters';
+import { DashboardFilters } from '@/components/admin/reporting/DashboardFilters';
 import { LoaderIcon } from 'lucide-react';
 
 const ReportingDashboard = () => {
-  const [period, setPeriod] = useState<ReportPeriod>('last30days');
+  const [period, setPeriod] = useState<ReportPeriod>('this_month');
   const [loading, setLoading] = useState(true);
   const reportsAPI = useReports();
   
@@ -64,7 +64,7 @@ const ReportingDashboard = () => {
     <div className="space-y-4 p-2 md:p-6">
       <div className="flex flex-col md:flex-row justify-between md:items-center gap-4">
         <h1 className="text-2xl font-bold">Reporting Dashboard</h1>
-        <DashboardFilters period={period} onChange={handlePeriodChange} />
+        <DashboardFilters period={period} onPeriodChange={handlePeriodChange} />
       </div>
       
       {loading ? (

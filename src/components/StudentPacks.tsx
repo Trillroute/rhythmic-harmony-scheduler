@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -28,13 +29,13 @@ interface StudentPacksProps {
 
 const StudentPacks = ({ studentId, onNewPack }: StudentPacksProps) => {
   const { toast } = useToast();
-  const packsResult = useSessionPacks(studentId);
-  const sessionPacks = packsResult.data || [];
-  const isLoading = packsResult.isLoading;
-  const error = packsResult.error;
-  const isError = packsResult.isError;
+  const { packs } = useSessionPacks(studentId);
+  const sessionPacks = packs.data || [];
+  const isLoading = packs.isLoading;
+  const error = packs.error;
+  const isError = packs.isError;
   
-  const createPackMutation = useCreateSessionPack();
+  const { createPack } = useCreateSessionPack();
   
   // Form state for new pack
   const [newPackSubject, setNewPackSubject] = useState<SubjectType | ''>('');
@@ -99,7 +100,7 @@ const StudentPacks = ({ studentId, onNewPack }: StudentPacksProps) => {
     }
     
     // Create new pack using the mutation
-    createPackMutation.mutate({
+    createPack({
       studentId: studentId,
       size: parseInt(newPackSize) as PackSize,
       subject: newPackSubject,
@@ -397,14 +398,14 @@ const StudentPacks = ({ studentId, onNewPack }: StudentPacksProps) => {
             <Button 
               className="w-full mt-2" 
               onClick={handleCreatePack}
-              disabled={!newPackSubject || !newPackType || !newPackLocation || !newPackSize || !isLocationValid() || createPackMutation.isPending}
+              disabled={!newPackSubject || !newPackType || !newPackLocation || !newPackSize || !isLocationValid()}
             >
-              {createPackMutation.isPending ? 'Creating...' : 'Create Pack'}
+              {packs.isLoading ? 'Creating...' : 'Create Pack'}
             </Button>
             
-            {createPackMutation.isError && (
+            {packs.isError && (
               <p className="text-destructive text-sm mt-2">
-                Error: {(createPackMutation.error as Error)?.message || 'Failed to create pack'}
+                Error: {(packs.error as Error)?.message || 'Failed to create pack'}
               </p>
             )}
           </CardContent>

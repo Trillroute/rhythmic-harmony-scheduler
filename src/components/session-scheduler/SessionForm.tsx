@@ -95,10 +95,14 @@ export const SessionForm: React.FC<SessionFormProps> = ({ onSuccess }) => {
             onSelectTeacher={setSelectedTeacher} 
           />
           
-          <SessionPackSelector 
-            selectedPack={selectedPack} 
-            onSelectPack={setSelectedPack} 
-          />
+          {selectedSubject && (
+            <SessionPackSelector 
+              studentId={selectedStudents[0] || ""}
+              subject={selectedSubject}
+              onPackSelect={setSelectedPack}
+              value={selectedPack}
+            />
+          )}
         </div>
         
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
