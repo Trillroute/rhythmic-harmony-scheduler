@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Button } from "@/components/ui/button";
-import { DatePickerWithRange } from "@/components/ui/date-range-picker";
+import { DateRangePicker } from "@/components/ui/date-range-picker";
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { format, subDays, startOfMonth, endOfMonth } from "date-fns";
 import { DateRange } from "react-day-picker";
@@ -83,9 +83,9 @@ const DashboardFilters = ({
       <div className="mb-6 flex flex-col md:flex-row gap-4 items-start md:items-end">
         <div className="w-full md:w-auto">
           <p className="text-sm font-medium mb-2">Date Range</p>
-          <DatePickerWithRange
-            date={dateRange}
-            setDate={(newDate) => setDateRange(newDate)}
+          <DateRangePicker
+            dateRange={dateRange}
+            onChange={setDateRange}
           />
         </div>
         

@@ -16,6 +16,16 @@ export const useUpdateSessionStatus = (queryKeysToInvalidate: string[] = []) => 
     mutationFn: async ({ sessionId, status }: UpdateSessionStatusParams) => {
       if (!sessionId) throw new Error('Session ID is required');
       
+      // Ensure status is a valid attendance status
+      const validStatuses: AttendanceStatus[] = [
+        'Present', 'Absent', 'Scheduled', 'Cancelled by Student', 
+        'Cancelled by Teacher', 'Cancelled by School', 'No Show'
+      ];
+      
+      if (!validStatuses.includes(status)) {
+        throw new Error(`Invalid status: ${status}`);
+      }
+      
       // Update the session status
       const { error } = await supabase
         .from('sessions')

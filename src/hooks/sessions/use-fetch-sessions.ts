@@ -5,6 +5,7 @@ import { AttendanceStatus, SessionWithStudents } from '@/lib/types';
 import { useAuth } from '@/contexts/AuthContext';
 import { transformSessionWithStudents } from './session-transformers';
 import { SessionsProps } from './types';
+import { assertAttendanceStatusArray } from '@/lib/type-utils';
 
 /**
  * Hook to fetch sessions with optional filters
@@ -26,7 +27,7 @@ export const useFetchSessions = ({
   // Reset error when filter props change
   useEffect(() => {
     setError(null);
-  }, [teacherId, studentId, fromDate, toDate, status]);
+  }, [teacherId, studentId, fromDate, toDate, status?.join(',')]);
   
   // Fetch sessions based on filters
   const fetchSessions = async () => {
@@ -61,12 +62,8 @@ export const useFetchSessions = ({
         const hasAllOption = status.some(s => s === 'all' || s === '');
         
         if (!hasAllOption) {
-          // Filter out any invalid status values
-          const validStatuses = status.filter(s => 
-            s !== 'all' && 
-            s !== '' && 
-            ['Present', 'Scheduled', 'Absent', 'No Show', 'Cancelled by Student', 'Cancelled by Teacher', 'Cancelled by School'].includes(s)
-          );
+          // Convert all strings to valid AttendanceStatus values
+          const validStatuses = assertAttendanceStatusArray(status);
           
           if (validStatuses.length > 0) {
             query = query.in('status', validStatuses);

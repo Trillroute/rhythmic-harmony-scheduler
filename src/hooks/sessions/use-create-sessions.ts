@@ -72,9 +72,23 @@ export const useCreateSessions = (queryKey: unknown[]) => {
       
       // If it's a recurring session, create recurring instances via RPC
       if (sessionDataArray[0].recurrenceRule && createdSession) {
-        await supabase.rpc('create_recurring_sessions', {
-          parent_session_id: createdSession.id
-        });
+        try {
+          await supabase.rpc('create_recurring_sessions', {
+            teacher_id_param: createdSession.teacher_id,
+            pack_id_param: createdSession.pack_id,
+            subject_param: createdSession.subject,
+            session_type_param: createdSession.session_type,
+            location_param: createdSession.location,
+            start_date_time: createdSession.date_time,
+            duration_param: createdSession.duration,
+            notes_param: createdSession.notes || "",
+            recurrence_rule_param: createdSession.recurrence_rule || "",
+            student_ids_param: sessionDataArray[0].studentIds || []
+          });
+        } catch (err) {
+          console.error("Error creating recurring sessions:", err);
+          // Continue anyway, the primary session was created
+        }
       }
       
       return createdSession;

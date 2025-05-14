@@ -13,7 +13,6 @@ const SessionScheduler: React.FC<SessionSchedulerProps> = ({ onSuccess }) => {
   const [isLoading, setIsLoading] = useState(false);
 
   const handleSuccess = (data: any) => {
-    // Ensure we're passing a string to toast, not an object
     toast.success("Session scheduled successfully");
     if (onSuccess) {
       onSuccess(data);

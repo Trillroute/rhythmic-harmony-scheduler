@@ -90,7 +90,7 @@ const AttendanceTracker = () => {
           <CardContent>
             <div className="flex flex-col sm:flex-row gap-4 mb-6">
               <DateRangePicker
-                value={dateRange}
+                dateRange={dateRange}
                 onChange={handleDateRangeChange}
               />
               

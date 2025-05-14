@@ -21,3 +21,5 @@ export function Toaster() {
     />
   );
 }
+
+export { toast } from "sonner";

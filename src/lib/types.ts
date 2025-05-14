@@ -180,3 +180,12 @@ export interface BulkUpload {
   created_at: string | Date;
   updated_at: string | Date;
 }
+
+// Add missing interface for session rescheduling
+export interface SessionRescheduleProps {
+  sessionId: string;
+  newDateTime: Date;
+  newDuration?: number;
+  newTeacherId?: string;
+  newNotes?: string;
+}

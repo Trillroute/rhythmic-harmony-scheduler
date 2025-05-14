@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -164,8 +163,10 @@ const UserManagement = () => {
     // Only set the role filter if it's a valid role or unset it if empty
     if (value === 'all') {
       setRoleFilter(undefined);
+    } else if (value === 'admin' || value === 'teacher' || value === 'student') {
+      setRoleFilter(value as UserRole);
     } else {
-      setRoleFilter(value as UserRole | undefined);
+      setRoleFilter(undefined);
     }
   };
 
@@ -279,7 +280,6 @@ const UserManagement = () => {
                 <SelectValue placeholder="Filter by role" />
               </SelectTrigger>
               <SelectContent>
-                {/* Fixed: Use "all" instead of empty string */}
                 <SelectItem value="all">All roles</SelectItem>
                 <SelectItem value="admin">Admins</SelectItem>
                 <SelectItem value="teacher">Teachers</SelectItem>
