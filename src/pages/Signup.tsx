@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
@@ -10,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { UserRole } from '@/lib/types';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertCircle, Loader2 } from "lucide-react";
-import { toast } from '@/hooks/use-toast';
+import { toast } from '@/components/ui/sonner';
 
 const Signup = () => {
   const [email, setEmail] = useState('');
@@ -54,10 +53,15 @@ const Signup = () => {
     }
     
     try {
+      // Verify signup is a function before calling it
+      if (typeof signup !== 'function') {
+        console.error('signup is not a function:', signup);
+        setErrorMessage('Authentication system unavailable. Please try again later.');
+        return;
+      }
+      
       await signup(email, password, name, role);
-      // Show success message
-      toast.success('Account created successfully! Please log in.');
-      // The redirect is handled in the signup function
+      // Show success message - handled in the signup function
     } catch (error) {
       console.error('Signup error:', error);
       if (error instanceof Error) {

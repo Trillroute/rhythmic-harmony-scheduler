@@ -14,8 +14,8 @@ interface AuthContextProps {
   login: (email: string, password: string) => Promise<void>;
   signup: (email: string, password: string, name: string, role: UserRole) => Promise<void>;
   logout: () => Promise<void>;
-  signIn?: (email: string, password: string) => Promise<void>; // Alias for backward compatibility
-  signOut?: () => Promise<void>; // Alias for logout
+  signIn: (email: string, password: string) => Promise<void>; // Alias for backward compatibility
+  signOut: () => Promise<void>; // Alias for logout
 }
 
 export const AuthContext = createContext<AuthContextProps>({
@@ -29,6 +29,7 @@ export const AuthContext = createContext<AuthContextProps>({
   signup: async () => {},
   logout: async () => {},
   signIn: async () => {},
+  signOut: async () => {},
 });
 
 export const useAuth = () => useContext(AuthContext);
@@ -161,8 +162,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         console.log('Global sign out failed, continuing with login');
       }
       
-      // IMPORTANT: Fixed signInWithPassword call - ensure it's properly executed as a function
-      // with the correct object structure
+      // FIXED: Ensure signInWithPassword is called as a function with proper parameters
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
@@ -185,7 +185,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         
         setUserRole(profileData.role as UserRole);
         
-        // Show success toast
+        // Show success toast - FIXED: Use toast as a function, not object
         toast("Logged in successfully");
         
         // Navigate based on role
@@ -201,7 +201,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       console.error('Login error:', err);
       setError(err instanceof Error ? err : new Error('Failed to login'));
       
-      // Show error toast with specific message
+      // Show error toast with specific message - FIXED: Use toast.error as a function
       toast.error(err instanceof Error ? err.message : "An unexpected error occurred");
       
       throw err;
@@ -236,24 +236,16 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       if (error) throw error;
       
       if (data.user) {
-        // Show success message
-        toast({
-          title: "Success",
-          description: "Account created successfully! You can now log in.",
-          variant: "default"
-        });
+        // Show success message - FIXED: Use toast directly, not object
+        toast.success("Account created successfully! You can now log in.");
         navigate('/login');
       }
     } catch (err) {
       console.error('Signup error:', err);
       setError(err instanceof Error ? err : new Error('Failed to sign up'));
       
-      // Show error toast
-      toast({
-        title: "Signup failed",
-        description: err instanceof Error ? err.message : "An unexpected error occurred",
-        variant: "destructive"
-      });
+      // Show error toast - FIXED: Use toast.error directly
+      toast.error(err instanceof Error ? err.message : "An unexpected error occurred");
       
       throw err;
     } finally {
@@ -278,12 +270,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       setUserRole(null);
       setSession(null);
       
-      // Show success toast
-      toast({
-        title: "Success",
-        description: "Logged out successfully",
-        variant: "default"
-      });
+      // Show success toast - FIXED: Use toast directly
+      toast.success("Logged out successfully");
       
       // Force page reload for a clean state
       navigate('/login');
@@ -291,12 +279,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       console.error('Logout error:', err);
       setError(err instanceof Error ? err : new Error('Failed to logout'));
       
-      // Show error toast
-      toast({
-        title: "Logout failed",
-        description: err instanceof Error ? err.message : "An unexpected error occurred",
-        variant: "destructive"
-      });
+      // Show error toast - FIXED: Use toast.error directly
+      toast.error(err instanceof Error ? err.message : "An unexpected error occurred");
     } finally {
       setLoading(false);
     }
