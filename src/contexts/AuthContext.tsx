@@ -2,7 +2,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Session, User } from '@supabase/supabase-js';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { toast } from '@/hooks/use-toast';
 import { UserRole } from '@/lib/types';
 
@@ -40,16 +40,25 @@ const getRoleBasedRedirectPath = (role: UserRole | null): string => {
   }
 };
 
-export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+interface AuthProviderProps {
+  children: React.ReactNode;
+}
+
+export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
-  const [isLoading, setIsLoading] = useState(true); // Start with loading true
+  const [isLoading, setIsLoading] = useState(true);
   const [initialLoadComplete, setInitialLoadComplete] = useState(false);
   const [userRole, setUserRole] = useState<UserRole | null>(null);
-  const navigate = useNavigate();
-
+  
+  // Only use router hooks if we're in a browser environment and not in SSR
+  const navigate = typeof window !== 'undefined' ? useNavigate() : null;
+  const location = typeof window !== 'undefined' ? useLocation() : null;
+  
   // Initialize auth state on component mount
   useEffect(() => {
+    if (typeof window === 'undefined') return; // Skip on SSR
+    
     const initializeAuth = async () => {
       try {
         console.log('Starting auth initialization');
@@ -113,7 +122,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
     
     initializeAuth();
-  }, [navigate]);
+  }, []);
   
   // Fetch user role from profiles table
   const fetchUserRole = async (userId: string) => {
@@ -182,7 +191,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         console.log('User metadata:', data.user.user_metadata);
         console.log('Redirect URL:', `${appUrl}/verify`);
         
-        navigate('/');
+        if (navigate) navigate('/');
       }
     } catch (error) {
       console.error('Error in signUp:', error);
@@ -236,11 +245,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           
           // Redirect based on user role
           const redirectPath = getRoleBasedRedirectPath(role);
-          navigate(redirectPath);
+          if (navigate) navigate(redirectPath);
         } catch (roleError) {
           console.error('Error fetching user role for redirect:', roleError);
           // Default redirect if role fetch fails
-          navigate('/');
+          if (navigate) navigate('/');
         }
       }
     } catch (error) {
@@ -280,7 +289,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         description: 'You have been signed out successfully.',
       });
       
-      navigate('/login');
+      if (navigate) navigate('/login');
     } catch (error) {
       console.error('Error in signOut:', error);
       toast({

@@ -34,7 +34,8 @@ const withErrorBoundary = (Component: React.ComponentType<any>, componentName: s
   );
 };
 
-export const router = createBrowserRouter([
+// Define routes
+const routes = [
   {
     path: "/",
     element: <Layout />,
@@ -85,8 +86,12 @@ export const router = createBrowserRouter([
     path: "/signup",
     element: <Signup />,
   },
-]);
+];
 
+// Create the router
+export const router = createBrowserRouter(routes);
+
+// Export the RouterProvider component
 export default function Routes() {
   return <RouterProvider router={router} />;
 }
