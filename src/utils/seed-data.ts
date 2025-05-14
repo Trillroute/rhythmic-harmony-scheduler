@@ -1,6 +1,6 @@
 
 import { supabase } from '@/integrations/supabase/client';
-import { SubjectType, SessionType, LocationType, UserRole, PackSize, WeeklyFrequency, AttendanceStatus } from '@/lib/types';
+import { SubjectType, SessionType, LocationType, UserRole, AttendanceStatus } from '@/lib/types';
 import { addDays, addHours, addWeeks, format, subDays } from 'date-fns';
 
 /**
@@ -24,17 +24,17 @@ const formatDate = (date: Date): string => {
 
 // Generate random subject from available options
 const getRandomSubject = (): SubjectType => {
-  return getRandomItem(['Guitar', 'Piano', 'Drums', 'Ukulele', 'Vocal']) as SubjectType;
+  return getRandomItem(['Guitar', 'Piano', 'Drums', 'Ukulele', 'Vocal']);
 };
 
 // Generate random session type
 const getRandomSessionType = (): SessionType => {
-  return getRandomItem(['Solo', 'Duo', 'Focus']) as SessionType;
+  return getRandomItem(['Solo', 'Duo', 'Focus']);
 };
 
 // Generate random location type
 const getRandomLocation = (): LocationType => {
-  return getRandomItem(['Online', 'Offline']) as LocationType;
+  return getRandomItem(['Online', 'Offline']);
 };
 
 export interface SeededData {
@@ -203,7 +203,7 @@ export async function runDatabaseSeeding(): Promise<SeededData> {
       }
       
       const courseId = courseData?.[0]?.id;
-      results.courses.push(courseData?.[0]);
+      if (courseData?.[0]) results.courses.push(courseData[0]);
       
       // Assign 1-2 teachers to the course
       const assignedTeacherIds = [getRandomItem(teachers).id];
@@ -247,8 +247,8 @@ export async function runDatabaseSeeding(): Promise<SeededData> {
         
       if (planError) {
         console.error(`Error creating session plan: ${planError.message}`);
-      } else {
-        results.sessionPlans.push(planData?.[0]);
+      } else if (planData?.[0]) {
+        results.sessionPlans.push(planData[0]);
       }
     }
     
@@ -258,9 +258,9 @@ export async function runDatabaseSeeding(): Promise<SeededData> {
       const subject = getRandomItem(results.students.find(s => s.id === student.id)?.preferred_subjects || ['Guitar']) as SubjectType;
       const sessionType = getRandomItem(['Solo', 'Duo']) as SessionType;
       const location = getRandomItem(['Online', 'Offline']) as LocationType;
-      const size = getRandomItem(['10', '20']) as PackSize;
+      const size = getRandomItem(['10', '20']);
       const remainingSessions = Math.floor(Math.random() * parseInt(size));
-      const weeklyFrequency = getRandomItem(['once', 'twice']) as WeeklyFrequency;
+      const weeklyFrequency = getRandomItem(['once', 'twice']);
       
       const purchasedDate = subDays(new Date(), Math.floor(Math.random() * 60)); // 0-60 days ago
       const expiryDate = addDays(purchasedDate, 90); // 90 days validity
@@ -287,7 +287,7 @@ export async function runDatabaseSeeding(): Promise<SeededData> {
       }
       
       const packId = packData?.[0]?.id;
-      results.packs.push(packData?.[0]);
+      if (packData?.[0]) results.packs.push(packData[0]);
       
       // Create sessions for this pack
       const sessionCount = Math.min(3, remainingSessions); // Create up to 3 sessions
@@ -329,7 +329,7 @@ export async function runDatabaseSeeding(): Promise<SeededData> {
         }
         
         const sessionId = sessionData?.[0]?.id;
-        results.sessions.push(sessionData?.[0]);
+        if (sessionData?.[0]) results.sessions.push(sessionData[0]);
         
         // Link student to session
         const { error: linkError } = await supabase
@@ -376,8 +376,8 @@ export async function runDatabaseSeeding(): Promise<SeededData> {
               
             if (attendanceError) {
               console.error(`Error creating attendance event: ${attendanceError.message}`);
-            } else {
-              results.attendance.push(attendanceData?.[0]);
+            } else if (attendanceData?.[0]) {
+              results.attendance.push(attendanceData[0]);
             }
             
             // Add student feedback for completed sessions
@@ -396,8 +396,8 @@ export async function runDatabaseSeeding(): Promise<SeededData> {
                 
               if (feedbackError) {
                 console.error(`Error creating feedback: ${feedbackError.message}`);
-              } else {
-                results.feedback.push(feedbackData?.[0]);
+              } else if (feedbackData?.[0]) {
+                results.feedback.push(feedbackData[0]);
               }
             }
           }
@@ -432,7 +432,7 @@ export async function runDatabaseSeeding(): Promise<SeededData> {
           continue;
         }
         
-        results.enrollments.push(enrollmentData?.[0]);
+        if (enrollmentData?.[0]) results.enrollments.push(enrollmentData[0]);
         
         // Add progress records
         const enrollmentId = enrollmentData?.[0]?.id;
@@ -455,9 +455,9 @@ export async function runDatabaseSeeding(): Promise<SeededData> {
             
           if (progressError) {
             console.error(`Error creating progress record: ${progressError.message}`);
-          } else {
+          } else if (progressData?.[0]) {
             results.progress = results.progress || [];
-            results.progress.push(progressData?.[0]);
+            results.progress.push(progressData[0]);
           }
         }
       }
@@ -502,7 +502,7 @@ export async function runDatabaseSeeding(): Promise<SeededData> {
       }
       
       const feePlanId = feePlanData?.[0]?.id;
-      results.feePlans.push(feePlanData?.[0]);
+      if (feePlanData?.[0]) results.feePlans.push(feePlanData[0]);
       
       // Create invoices for each due date
       for (let i = 0; i < dueDates.length; i++) {
@@ -526,7 +526,7 @@ export async function runDatabaseSeeding(): Promise<SeededData> {
           continue;
         }
         
-        results.invoices.push(invoiceData?.[0]);
+        if (invoiceData?.[0]) results.invoices.push(invoiceData[0]);
         
         // Add payment for past due invoices
         if (dueDate < new Date()) {
@@ -546,8 +546,8 @@ export async function runDatabaseSeeding(): Promise<SeededData> {
             
           if (paymentError) {
             console.error(`Error creating payment: ${paymentError.message}`);
-          } else {
-            results.payments.push(paymentData?.[0]);
+          } else if (paymentData?.[0]) {
+            results.payments.push(paymentData[0]);
           }
         }
       }
@@ -576,8 +576,8 @@ export async function runDatabaseSeeding(): Promise<SeededData> {
           
         if (slotError) {
           console.error(`Error creating time slot: ${slotError.message}`);
-        } else {
-          results.timeSlots.push(slotData?.[0]);
+        } else if (slotData?.[0]) {
+          results.timeSlots.push(slotData[0]);
         }
       }
     }
@@ -592,9 +592,7 @@ export async function runDatabaseSeeding(): Promise<SeededData> {
         message: 'Reminder: You have a music lesson scheduled tomorrow',
         status: 'pending',
         related_id: results.sessions.find(s => 
-          results.sessions.find(ss => ss.id === s.id)?.students?.some(
-            st => st.student_id === student.id
-          )
+          s.teacher_id && s.id
         )?.id
       };
       
@@ -615,8 +613,8 @@ export async function runDatabaseSeeding(): Promise<SeededData> {
         
       if (reminderError) {
         console.error(`Error creating reminders: ${reminderError.message}`);
-      } else {
-        results.reminders.push(...(reminderData || []));
+      } else if (reminderData) {
+        results.reminders.push(...reminderData);
       }
     }
     
@@ -647,8 +645,8 @@ export async function runDatabaseSeeding(): Promise<SeededData> {
         
       if (settingError) {
         console.error(`Error creating system setting: ${settingError.message}`);
-      } else {
-        results.settings.push(settingData?.[0]);
+      } else if (settingData?.[0]) {
+        results.settings.push(settingData[0]);
       }
     }
     

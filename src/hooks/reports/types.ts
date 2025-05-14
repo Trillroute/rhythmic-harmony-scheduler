@@ -1,7 +1,17 @@
 
-export interface ReportPeriod {
-  startDate: Date;
-  endDate: Date;
+import { AttendanceStatus, SubjectType, SessionType } from '@/lib/types';
+
+export type ReportPeriod = 'today' | 'week' | 'month' | 'year';
+
+export interface AttendanceDataItem {
+  status: string;
+  count: number;
+}
+
+export interface AttendanceChartDataItem {
+  date: string;
+  present: number;
+  total: number;
 }
 
 export interface AttendanceData {
@@ -10,34 +20,35 @@ export interface AttendanceData {
   absent: number;
   cancelled: number;
   noShow: number;
+  distribution: AttendanceDataItem[];
+  chartData: AttendanceChartDataItem[];
   categories: string[];
   data: number[];
-  distribution: { status: string; count: number }[];
-  chartData: { date: string; present: number; total: number }[];
 }
 
 export interface SubjectDistributionItem {
   subject: string;
   count: number;
-  name: string; // For backward compatibility
-  value: number; // For backward compatibility
+  name?: string; // For compatibility with chart library
+  value?: number; // For compatibility with chart library
 }
 
 export type SubjectDistributionData = SubjectDistributionItem[];
 
 export interface SessionTypeItem {
-  sessionType: string;
-  type: string; // For backward compatibility
+  type: SessionType;
+  subjects: Record<SubjectType, number>;
   count: number;
-  subjects: { subject: string; count: number }[];
 }
 
 export type SessionTypeData = SessionTypeItem[];
 
-export interface SessionsReportData {
-  months: string[];
-  counts: number[];
+export interface SessionsDataItem {
+  date: string;
+  count: number;
 }
+
+export type SessionsReportData = SessionsDataItem[];
 
 export interface StudentProgressItem {
   student: {
@@ -50,12 +61,17 @@ export interface StudentProgressItem {
     instrument: string;
     completionPercentage: number;
   };
-  // For backward compatibility
-  id: string;
-  studentName: string;
-  courseName: string;
-  instrument: string;
-  completionPercentage: number;
+  id?: string; // For compatibility
+  studentName?: string; // For compatibility
+  courseName?: string; // For compatibility
+  instrument?: string; // For compatibility
+  completionPercentage?: number; // For compatibility
 }
 
 export type StudentProgressData = StudentProgressItem[];
+
+export interface ReportingDashboardProps {
+  period: ReportPeriod;
+  setPeriod: (period: ReportPeriod) => void;
+}
+
