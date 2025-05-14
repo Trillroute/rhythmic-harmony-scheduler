@@ -22,7 +22,7 @@ export const useSessionsReport = (filters?: ReportPeriod) => {
     // Apply status filter if provided
     if (filters?.status && filters.status.length > 0) {
       // Cast to string array for the query
-      query = query.in('status', filters.status.map(s => s as string) as string[]);
+      query = query.in('status', filters.status.map(s => s.toString()));
     }
       
     const { data, error } = await query;

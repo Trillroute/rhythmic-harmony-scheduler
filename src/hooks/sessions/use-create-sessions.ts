@@ -9,7 +9,7 @@ export const useCreateSession = () => {
 
   return useMutation({
     mutationFn: async (sessionData: Partial<Session>) => {
-      // Insert the session
+      // Insert the session with correct field mappings
       const { data: session, error: sessionError } = await supabase
         .from("sessions")
         .insert({

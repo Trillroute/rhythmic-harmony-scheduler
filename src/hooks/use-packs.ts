@@ -2,7 +2,26 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { SessionPack } from "@/lib/types";
+import { SessionPack, SubjectType, SessionType, LocationType, WeeklyFrequency, PackSize } from "@/lib/types";
+
+// Transform database pack to frontend pack
+const transformPackFromDB = (dbPack: any): SessionPack => {
+  return {
+    id: dbPack.id,
+    studentId: dbPack.student_id,
+    size: dbPack.size as PackSize,
+    subject: dbPack.subject as SubjectType,
+    sessionType: dbPack.session_type as SessionType,
+    location: dbPack.location as LocationType,
+    purchasedDate: dbPack.purchased_date,
+    expiryDate: dbPack.expiry_date,
+    remainingSessions: dbPack.remaining_sessions,
+    isActive: dbPack.is_active,
+    weeklyFrequency: dbPack.weekly_frequency as WeeklyFrequency,
+    createdAt: dbPack.created_at,
+    updatedAt: dbPack.updated_at
+  };
+};
 
 // Get session packs for a student
 export const useSessionPacks = (studentId?: string) => {
@@ -19,7 +38,7 @@ export const useSessionPacks = (studentId?: string) => {
       
       if (error) throw error;
       
-      return data as SessionPack[];
+      return data ? data.map(transformPackFromDB) : [];
     },
     enabled: !!studentId,
   });
@@ -38,7 +57,7 @@ export const useSessionPack = (packId?: string) => {
       
       if (error) throw error;
       
-      return data as SessionPack;
+      return transformPackFromDB(data);
     },
     enabled: !!packId,
   });
@@ -52,22 +71,29 @@ export const useUpdateSessionPack = () => {
     mutationFn: async (pack: Partial<SessionPack> & { id: string }) => {
       const { id, ...packData } = pack;
       
+      // Transform frontend data to database format
+      const dbData: any = {
+        ...(packData.studentId && { student_id: packData.studentId }),
+        ...(packData.size && { size: packData.size.toString() }),
+        ...(packData.subject && { subject: packData.subject.toString() }),
+        ...(packData.sessionType && { session_type: packData.sessionType.toString() }),
+        ...(packData.location && { location: packData.location.toString() }),
+        ...(packData.purchasedDate && { purchased_date: packData.purchasedDate.toString() }),
+        ...(packData.expiryDate && { expiry_date: packData.expiryDate.toString() }),
+        ...(packData.remainingSessions !== undefined && { remaining_sessions: packData.remainingSessions }),
+        ...(packData.isActive !== undefined && { is_active: packData.isActive }),
+        ...(packData.weeklyFrequency && { weekly_frequency: packData.weeklyFrequency.toString() }),
+      };
+      
       const { data, error } = await supabase
         .from("session_packs")
-        .update({
-          ...packData,
-          // Add type casting for enum fields
-          subject: packData.subject?.toString(),
-          session_type: packData.sessionType?.toString(),
-          location: packData.location?.toString(),
-          weekly_frequency: packData.weeklyFrequency?.toString(),
-        })
+        .update(dbData)
         .eq("id", id)
         .select();
       
       if (error) throw error;
       
-      return data;
+      return data && data.length > 0 ? transformPackFromDB(data[0]) : null;
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ["sessionPacks"] });
@@ -92,7 +118,7 @@ export const useCreateSessionPack = () => {
       // Format data for insert with proper type casting
       const formattedPacks = packsArray.map(pack => ({
         student_id: pack.studentId,
-        size: pack.size,
+        size: pack.size?.toString(),
         subject: pack.subject?.toString(),
         session_type: pack.sessionType?.toString(),
         location: pack.location?.toString(),
@@ -110,7 +136,7 @@ export const useCreateSessionPack = () => {
       
       if (error) throw error;
       
-      return data;
+      return data ? data.map(transformPackFromDB) : [];
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["sessionPacks"] });

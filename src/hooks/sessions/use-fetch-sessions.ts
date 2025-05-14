@@ -28,31 +28,32 @@ export const useFetchSessions = (
     }
 
     if (filters.subject) {
-      query = query.eq("subject", filters.subject);
+      query = query.eq("subject", filters.subject.toString());
     }
 
     if (filters.subjects && filters.subjects.length > 0) {
-      query = query.in("subject", filters.subjects.map(s => s.toString()) as string[]);
+      // Cast to string array for the Supabase query
+      query = query.in("subject", filters.subjects.map(s => s.toString()));
     }
 
     if (filters.sessionType) {
-      query = query.eq("session_type", filters.sessionType);
+      query = query.eq("session_type", filters.sessionType.toString());
     }
 
     if (filters.sessionTypes && filters.sessionTypes.length > 0) {
-      query = query.in("session_type", filters.sessionTypes);
+      query = query.in("session_type", filters.sessionTypes.map(s => s.toString()));
     }
 
     if (filters.location) {
-      query = query.eq("location", filters.location);
+      query = query.eq("location", filters.location.toString());
     }
 
     if (filters.status) {
       if (Array.isArray(filters.status)) {
         // Cast status array to string[] for Supabase query
-        query = query.in("status", filters.status.map(s => s.toString()) as string[]);
+        query = query.in("status", filters.status.map(s => s.toString()));
       } else {
-        query = query.eq("status", filters.status);
+        query = query.eq("status", filters.status.toString());
       }
     }
 

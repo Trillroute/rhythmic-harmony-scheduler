@@ -37,13 +37,13 @@ export const useAttendanceReport = (period: 'week' | 'month' | 'quarter' = 'mont
     // Apply subject filter if provided  
     if (filters?.subjects && filters.subjects.length > 0) {
       // Cast to string array for the query
-      query = query.in('subject', filters.subjects.map(s => s as string) as string[]);
+      query = query.in('subject', filters.subjects.map(s => s.toString()));
     }
     
     // Apply status filter if provided
     if (filters?.status && filters.status.length > 0) {
       // Cast to string array for the query
-      query = query.in('status', filters.status.map(s => s as string) as string[]);
+      query = query.in('status', filters.status.map(s => s.toString()));
     }
       
     const { data, error } = await query;

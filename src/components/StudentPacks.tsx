@@ -10,16 +10,16 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
-import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import {
   SubjectType, 
   SessionType, 
   LocationType,
   PackSize,
-  WeeklyFrequency
+  WeeklyFrequency,
+  SessionPack
 } from '@/lib/types';
-import { useSessionPacks, useCreateSessionPack, PackWithRelations } from '@/hooks/use-packs';
+import { useSessionPacks, useCreateSessionPack } from '@/hooks/use-packs';
 import { Filter } from 'lucide-react';
 
 interface StudentPacksProps {
@@ -96,20 +96,20 @@ const StudentPacks = ({ studentId, onNewPack }: StudentPacksProps) => {
     
     // Create new pack using the mutation
     createPackMutation.mutate({
-      student_id: studentId,
+      studentId: studentId,
       size: parseInt(newPackSize) as PackSize,
-      subject: newPackSubject as SubjectType,
-      session_type: newPackType as SessionType,
-      location: newPackLocation as LocationType,
-      purchased_date: new Date(),
-      remaining_sessions: parseInt(newPackSize),
-      is_active: true,
-      weekly_frequency: newPackFrequency,
+      subject: newPackSubject,
+      sessionType: newPackType,
+      location: newPackLocation,
+      purchasedDate: new Date(),
+      remainingSessions: parseInt(newPackSize),
+      isActive: true,
+      weeklyFrequency: newPackFrequency,
     }, {
       onSuccess: (data) => {
         // Call the callback if provided with the pack ID
-        if (onNewPack && data.id) {
-          onNewPack(data.id);
+        if (onNewPack && data && data.length > 0) {
+          onNewPack(data[0].id);
         }
         
         // Reset form
