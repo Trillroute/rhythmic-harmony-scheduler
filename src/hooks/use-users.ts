@@ -104,7 +104,7 @@ export const useUsers = (filters?: { role?: UserRole; email?: string }) => {
     mutationFn: async (userData: Partial<UserWithRole> & { id: string }) => {
       const { id, role, name, email, teacherData, studentData, adminData, ...rest } = userData;
       
-      // Update profile
+      // Update profile - using snake_case for Supabase
       const { error: profileError } = await supabase
         .from('profiles')
         .update({ 
@@ -119,7 +119,7 @@ export const useUsers = (filters?: { role?: UserRole; email?: string }) => {
         throw new Error(profileError.message);
       }
       
-      // Update role-specific data
+      // Update role-specific data - convert camelCase to snake_case
       if (role === 'teacher' && teacherData) {
         const { error: teacherError } = await supabase
           .from('teachers')

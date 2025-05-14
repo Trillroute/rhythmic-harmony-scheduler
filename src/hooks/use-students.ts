@@ -35,7 +35,7 @@ export const useStudents = () => {
         throw error;
       }
 
-      // Transform data to match Student type
+      // Transform data to match Student type - convert snake_case to camelCase
       return data.map((item: any) => ({
         id: item.id,
         name: item.profiles.name,
@@ -87,6 +87,7 @@ export const useStudent = (studentId: string | undefined) => {
         throw error;
       }
 
+      // Convert snake_case to camelCase for frontend
       return {
         id: data.id,
         name: data.profiles.name,

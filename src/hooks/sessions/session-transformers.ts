@@ -1,3 +1,4 @@
+
 import { SessionWithStudents } from '@/lib/types';
 
 /**
@@ -56,6 +57,7 @@ export function transformSessionUpdate(updates: {
 }) {
   const apiUpdates: Record<string, any> = {};
   
+  // Convert camelCase keys to snake_case for Supabase compatibility
   if (updates.status !== undefined) {
     apiUpdates.status = updates.status;
   }

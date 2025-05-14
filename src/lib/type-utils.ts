@@ -40,8 +40,11 @@ export function assertLocationType(value: string): LocationType {
 
 export function assertAttendanceStatus(value: string): AttendanceStatus {
   if (!value) return "Scheduled"; // Default safe value
-  const validStatuses = ["Present", "Absent", "Scheduled", "Cancelled by Student", 
-                         "Cancelled by Teacher", "Cancelled by School", "No Show"];
+  // Ensure exact string match with what Supabase expects
+  const validStatuses = [
+    "Present", "Absent", "Scheduled", "Cancelled by Student", 
+    "Cancelled by Teacher", "Cancelled by School", "No Show"
+  ];
   if (validStatuses.includes(value)) {
     return value as AttendanceStatus;
   }

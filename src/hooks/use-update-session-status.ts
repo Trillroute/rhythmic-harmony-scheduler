@@ -27,10 +27,10 @@ export const useUpdateSessionStatus = (queryKeysToInvalidate: string[] = []) => 
         throw new Error(`Invalid status: ${status}`);
       }
       
-      // Update the session status - we use 'as any' to handle type mismatches between frontend types and DB schemas
+      // Use status directly as it's already in the correct format for Supabase
       const { error } = await supabase
         .from('sessions')
-        .update({ status: status as any })
+        .update({ status })
         .eq('id', sessionId);
 
       if (error) throw error;

@@ -20,7 +20,7 @@ export function useUpdateSession() {
     mutationFn: async (updateData: SessionUpdateProps) => {
       const { id, ...updates } = updateData;
       
-      // Transform frontend model to API format
+      // Transform frontend model to API format (camelCase to snake_case)
       const apiUpdates = transformSessionUpdate(updates);
       
       const { data, error } = await supabase

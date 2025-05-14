@@ -157,7 +157,7 @@ export const useStudentsManagement = (filters?: {
         }
       }
       
-      // Update student-specific data
+      // Update student-specific data - convert camelCase to snake_case for Supabase
       const updateData: any = {};
       if (preferredSubjects !== undefined) updateData.preferred_subjects = preferredSubjects;
       if (preferredTeachers !== undefined) updateData.preferred_teachers = preferredTeachers;

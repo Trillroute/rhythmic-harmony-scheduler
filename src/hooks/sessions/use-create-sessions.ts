@@ -22,7 +22,7 @@ export const useCreateSessions = (queryKey: unknown[]) => {
           throw new Error("Missing required fields in session data");
         }
         
-        // Format session data for the API
+        // Format session data for the API - convert to snake_case for Supabase
         const formattedSession = {
           teacher_id: sessionData.teacherId,
           pack_id: sessionData.packId,
@@ -34,7 +34,7 @@ export const useCreateSessions = (queryKey: unknown[]) => {
             : sessionData.dateTime,
           duration: sessionData.duration || 60,
           notes: sessionData.notes || "",
-          status: "Scheduled", // Default status
+          status: "Scheduled", // Use exact string value expected by Supabase
           recurrence_rule: sessionData.recurrenceRule
         };
         

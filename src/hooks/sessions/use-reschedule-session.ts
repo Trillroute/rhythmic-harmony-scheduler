@@ -11,6 +11,7 @@ export function useRescheduleSession() {
     mutationFn: async (rescheduleData: SessionRescheduleProps) => {
       try {
         // Use the database function to reschedule the session
+        // Convert camelCase to snake_case for database compatibility
         const { data: newSessionId, error } = await supabase.rpc(
           'reschedule_session',
           {

@@ -1,6 +1,7 @@
 
 export type UserRole = 'admin' | 'teacher' | 'student';
 
+// Ensure these match exactly with the database enum values
 export type AttendanceStatus = 'Present' | 'Absent' | 'Scheduled' | 'Cancelled by Student' | 
                         'Cancelled by Teacher' | 'Cancelled by School' | 'No Show';
 
