@@ -13,14 +13,20 @@ export interface ToastProps {
 const safeToast = (options: ToastProps) => {
   // Convert any non-string values to strings
   const safeOptions = {
-    title: typeof options.title === 'string' ? options.title : String(options.title || ''),
-    description: typeof options.description === 'string' ? options.description : String(options.description || ''),
+    title: options.title ? String(options.title) : '',
+    description: options.description ? String(options.description) : '',
     variant: options.variant
   };
   
+  // When using sonner, if using destructive variant, set color to be red
+  if (safeOptions.variant === 'destructive') {
+    return sonnerToast.error(safeOptions.title, {
+      description: safeOptions.description
+    });
+  }
+  
   return sonnerToast(safeOptions.title, {
-    description: safeOptions.description,
-    className: safeOptions.variant === 'destructive' ? 'destructive' : undefined
+    description: safeOptions.description
   });
 };
 

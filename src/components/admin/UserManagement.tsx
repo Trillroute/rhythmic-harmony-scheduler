@@ -157,6 +157,12 @@ const UserManagement = () => {
     );
   }
   
+  // Handle the role filter safely
+  const handleRoleFilterChange = (value: string | undefined) => {
+    // Only set the role filter if it's a valid role or unset it if empty
+    setRoleFilter(value as UserRole | undefined);
+  };
+
   return (
     <div className="container py-6">
       <div className="flex justify-between items-center mb-6">
@@ -260,13 +266,14 @@ const UserManagement = () => {
         <div className="sm:w-1/3">
           <Select
             value={roleFilter}
-            onValueChange={(value) => setRoleFilter(value as UserRole)}
+            onValueChange={handleRoleFilterChange}
           >
             <SelectTrigger>
               <SelectValue placeholder="Filter by role" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">All roles</SelectItem>
+              {/* Fixed this line - using "all" instead of empty string */}
+              <SelectItem value="all">All roles</SelectItem>
               <SelectItem value="admin">Admins</SelectItem>
               <SelectItem value="teacher">Teachers</SelectItem>
               <SelectItem value="student">Students</SelectItem>
@@ -283,7 +290,7 @@ const UserManagement = () => {
         <CardContent>
           {isLoading ? (
             <p className="text-center py-4">Loading users...</p>
-          ) : users?.length === 0 ? (
+          ) : !users || users.length === 0 ? (
             <p className="text-center py-4">No users found</p>
           ) : (
             <div className="overflow-x-auto">
@@ -300,8 +307,8 @@ const UserManagement = () => {
                 <TableBody>
                   {users?.map((user) => (
                     <TableRow key={user.id}>
-                      <TableCell className="font-medium">{user.name}</TableCell>
-                      <TableCell>{user.email}</TableCell>
+                      <TableCell className="font-medium">{user.name || "Unnamed User"}</TableCell>
+                      <TableCell>{user.email || "No Email"}</TableCell>
                       <TableCell>
                         <Badge
                           variant={
@@ -315,7 +322,9 @@ const UserManagement = () => {
                       <TableCell>
                         {typeof user.createdAt === 'string' 
                           ? format(new Date(user.createdAt), "MMM d, yyyy")
-                          : format(user.createdAt, "MMM d, yyyy")}
+                          : user.createdAt instanceof Date
+                          ? format(user.createdAt, "MMM d, yyyy")
+                          : "Unknown Date"}
                       </TableCell>
                       <TableCell className="space-x-2">
                         <Button variant="outline" size="sm" onClick={() => handleEditUser(user)}>Edit</Button>

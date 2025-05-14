@@ -21,22 +21,20 @@ import {
 import { format } from 'date-fns';
 import { useFetchSessions } from '@/hooks/sessions/use-fetch-sessions';
 import { useUpdateSessionStatus } from '@/hooks/sessions/use-update-session-status';
-import { SessionWithStudents } from '@/lib/types';
-import { toast } from '@/hooks/use-toast';
+import { AttendanceStatus, SessionWithStudents } from '@/lib/types';
+import { toast } from 'sonner';
 import { DateRangePicker } from '@/components/ui/date-range-picker';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
+import { DateRange } from 'react-day-picker';
 
 const AttendanceTracker = () => {
-  const [dateRange, setDateRange] = useState<{
-    from: Date;
-    to: Date;
-  }>({
+  const [dateRange, setDateRange] = useState<DateRange>({
     from: new Date(new Date().setDate(new Date().getDate() - 7)),
     to: new Date()
   });
   
-  const [statusFilter, setStatusFilter] = useState<string | undefined>();
+  const [statusFilter, setStatusFilter] = useState<AttendanceStatus | undefined>();
   
   const { sessions, loading, error, refreshSessions } = useFetchSessions({
     fromDate: dateRange.from,
@@ -46,33 +44,34 @@ const AttendanceTracker = () => {
   
   const { updateSessionStatus, isPending } = useUpdateSessionStatus(['sessions']);
   
-  const handleMarkAttendance = async (session: SessionWithStudents, status: string) => {
+  const handleMarkAttendance = async (session: SessionWithStudents, status: AttendanceStatus) => {
     try {
       await updateSessionStatus({
         sessionId: session.id,
         status: status
       });
       
-      toast({
-        title: "Attendance updated",
-        description: `Session marked as ${status}`,
-      });
-      
+      toast.success(`Session marked as ${status}`);
       refreshSessions();
     } catch (err) {
-      toast({
-        title: "Failed to update attendance",
-        description: err instanceof Error ? err.message : "An unknown error occurred",
-        variant: "destructive",
-      });
+      const errorMessage = err instanceof Error ? err.message : "An unknown error occurred";
+      toast.error(`Failed to update attendance: ${errorMessage}`);
     }
   };
   
+  const handleDateRangeChange = (range: DateRange) => {
+    // Ensure that we always have a to date (use from date if to is not provided)
+    if (range.from && !range.to) {
+      range.to = range.from;
+    }
+    setDateRange(range);
+  };
+
   if (error) {
     return (
       <div className="p-6 rounded-md bg-destructive/10">
         <h2 className="text-lg font-semibold mb-2">Error</h2>
-        <p>{error instanceof Error ? error.message : "An error occurred while loading data"}</p>
+        <p>{typeof error === 'string' ? error : (error instanceof Error ? error.message : "An error occurred while loading data")}</p>
       </div>
     );
   }
@@ -92,15 +91,18 @@ const AttendanceTracker = () => {
             <div className="flex flex-col sm:flex-row gap-4 mb-6">
               <DateRangePicker
                 value={dateRange}
-                onChange={setDateRange}
+                onChange={handleDateRangeChange}
               />
               
-              <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <Select 
+                value={statusFilter} 
+                onValueChange={(value) => setStatusFilter(value as AttendanceStatus || undefined)}
+              >
                 <SelectTrigger className="w-[180px]">
                   <SelectValue placeholder="Filter by status" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All statuses</SelectItem>
+                  <SelectItem value="all">All statuses</SelectItem>
                   <SelectItem value="Scheduled">Scheduled</SelectItem>
                   <SelectItem value="Present">Present</SelectItem>
                   <SelectItem value="Absent">Absent</SelectItem>
@@ -145,13 +147,19 @@ const AttendanceTracker = () => {
                         <TableCell>
                           {session.studentIds && session.studentIds.length > 0 ? (
                             <div className="space-y-1">
-                              {session.studentIds.map((studentId, index) => (
-                                <div key={studentId} className="text-sm">
-                                  {session.studentNames ? 
-                                    session.studentNames[index] : 
-                                    `Student ${index + 1}`}
-                                </div>
-                              ))}
+                              {session.studentIds.map((studentId, index) => {
+                                // Safely display student names if available
+                                const studentName = session.studentNames && 
+                                                   Array.isArray(session.studentNames) && 
+                                                   session.studentNames[index] 
+                                                   ? session.studentNames[index] 
+                                                   : `Student ${index + 1}`;
+                                return (
+                                  <div key={studentId} className="text-sm">
+                                    {studentName}
+                                  </div>
+                                );
+                              })}
                             </div>
                           ) : (
                             <span className="text-muted-foreground text-sm">No students</span>

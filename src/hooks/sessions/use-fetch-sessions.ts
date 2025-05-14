@@ -1,106 +1,117 @@
 
-import { useState, useEffect, useCallback } from "react";
-import { supabase } from "@/integrations/supabase/client";
-import { SessionsProps } from "./types";
-import { transformSession } from "./session-transformers";
-import { 
-  assertSubjectType, 
-  assertSubjectTypeArray, 
-  assertSessionType, 
-  assertSessionTypeArray, 
-  assertLocationType,
-  assertAttendanceStatus,
-  assertAttendanceStatusArray
-} from "@/lib/type-utils";
-import { SessionWithStudents } from "@/lib/types";
+import { useState, useEffect } from 'react';
+import { supabase } from '@/integrations/supabase/client';
+import { AttendanceStatus, SessionWithStudents } from '@/lib/types';
+import { useAuth } from '@/contexts/AuthContext';
+import { transformSessionWithStudents } from './session-transformers';
+import { SessionsProps } from './types';
 
-export function useFetchSessions(props?: SessionsProps) {
+/**
+ * Hook to fetch sessions with optional filters
+ */
+export const useFetchSessions = ({ 
+  teacherId, 
+  studentId,
+  fromDate,
+  toDate,
+  status 
+}: SessionsProps = {}) => {
   const [sessions, setSessions] = useState<SessionWithStudents[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  const fetchSessions = useCallback(async () => {
-    setLoading(true);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<Error | null>(null);
+  const { userId, userRole } = useAuth();
+  
+  // Reset error when filter props change
+  useEffect(() => {
     setError(null);
-
+  }, [teacherId, studentId, fromDate, toDate, status]);
+  
+  // Fetch sessions based on filters
+  const fetchSessions = async () => {
     try {
-      // Start with a base query
+      setLoading(true);
+      setError(null);
+      
       let query = supabase
-        .from("sessions")
+        .from('sessions')
         .select(`
-          id, 
-          subject, 
-          session_type, 
-          location,
-          date_time, 
-          duration, 
-          status, 
-          notes,
-          reschedule_count,
-          teacher_id,
-          pack_id,
-          recurrence_rule,
-          original_session_id,
-          rescheduled_from,
-          created_at,
-          updated_at,
-          profiles(name),
-          session_students(student_id, profiles(name))
+          *,
+          profiles:teacher_id (name),
+          session_students (student_id, profiles:student_id (name))
         `);
-
-      // Apply filters if provided
-      if (props?.teacherId) {
-        query = query.eq('teacher_id', props.teacherId);
+      
+      // Apply filters
+      if (teacherId) {
+        query = query.eq('teacher_id', teacherId);
       }
-
-      if (props?.studentId) {
-        query = query.eq('session_students.student_id', props.studentId);
+      
+      if (fromDate) {
+        query = query.gte('date_time', fromDate.toISOString());
       }
-
-      if (props?.fromDate) {
-        query = query.gte('date_time', props.fromDate.toISOString());
+      
+      if (toDate) {
+        query = query.lte('date_time', toDate.toISOString());
       }
-
-      if (props?.toDate) {
-        query = query.lte('date_time', props.toDate.toISOString());
+      
+      // Filter by status if provided
+      if (status && status.length > 0) {
+        // Handle "all" filter which means don't filter by status
+        if (!(status.length === 1 && (status[0] === 'all' || status[0] === ''))) {
+          // Convert AttendanceStatus[] to string[] for the IN operation
+          const statusValues = status.filter(s => s !== 'all' && s !== '') as string[];
+          if (statusValues.length > 0) {
+            query = query.in('status', statusValues);
+          }
+        }
       }
-
-      if (props?.status && props.status.length > 0) {
-        const safeStatus = assertAttendanceStatusArray(props.status);
-        query = query.in('status', safeStatus);
+      
+      // Apply role-based filters
+      if (userRole === 'teacher' && !teacherId) {
+        query = query.eq('teacher_id', userId);
+      } else if (userRole === 'student' && !studentId) {
+        query = query.eq('session_students.student_id', userId);
       }
-
-      // Execute query and get data
+      
+      // Order by date/time
+      query = query.order('date_time', { ascending: true });
+      
       const { data, error: fetchError } = await query;
-
+      
       if (fetchError) {
-        throw new Error(fetchError.message);
+        throw new Error(`Error fetching sessions: ${fetchError.message}`);
       }
-
+      
       if (!data) {
         setSessions([]);
         return;
       }
-
-      // Transform data to match frontend types
-      const transformedSessions = data.map(session => transformSession(session));
-      setSessions(transformedSessions);
-    } catch (err: any) {
-      console.error("Error fetching sessions:", err);
-      setError(err.message || "An error occurred while fetching sessions");
+      
+      // Transform the data to include student information
+      const transformedSessions = data.map(transformSessionWithStudents);
+      
+      // Further filter by student if needed
+      const filteredSessions = studentId 
+        ? transformedSessions.filter(session => 
+            session.studentIds.includes(studentId))
+        : transformedSessions;
+      
+      setSessions(filteredSessions);
+    } catch (err) {
+      console.error('Error fetching sessions:', err);
+      setError(err instanceof Error ? err : new Error('Failed to fetch sessions'));
     } finally {
       setLoading(false);
     }
-  }, [props]);
-
+  };
+  
   useEffect(() => {
     fetchSessions();
-  }, [fetchSessions]);
-
+  }, [teacherId, studentId, fromDate, toDate, status?.join(','), userId, userRole]);
+  
   return {
     sessions,
     loading,
     error,
-    refreshSessions: fetchSessions,
+    refreshSessions: fetchSessions
   };
-}
+};

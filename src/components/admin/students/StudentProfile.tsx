@@ -49,22 +49,19 @@ export const StudentProfile = () => {
     );
   }
 
-  // Provide default values for potentially missing properties
-  const enhancedStudent = {
-    ...student,
-    isActive: student.status !== 'inactive' // Map status to isActive boolean
-  };
+  // Determine if the student is active (assume active if no status is present)
+  const isActive = student.status !== 'inactive';
 
   return (
     <ErrorBoundary>
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold tracking-tight">{enhancedStudent.name}</h1>
-            <p className="text-muted-foreground">{enhancedStudent.email}</p>
+            <h1 className="text-3xl font-bold tracking-tight">{student.name}</h1>
+            <p className="text-muted-foreground">{student.email}</p>
           </div>
-          <Badge variant={enhancedStudent.isActive ? "default" : "destructive"}>
-            {enhancedStudent.isActive ? "Active" : "Inactive"}
+          <Badge variant={isActive ? "default" : "destructive"}>
+            {isActive ? "Active" : "Inactive"}
           </Badge>
         </div>
 
@@ -94,7 +91,7 @@ export const StudentProfile = () => {
 
           <TabsContent value="overview" className="space-y-4">
             <ErrorBoundary>
-              <StudentOverviewTab student={enhancedStudent} />
+              <StudentOverviewTab student={student} />
             </ErrorBoundary>
           </TabsContent>
 

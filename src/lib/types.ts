@@ -1,3 +1,4 @@
+
 export type UserRole = 'admin' | 'teacher' | 'student';
 
 export type AttendanceStatus = 'Present' | 'Absent' | 'Scheduled' | 'Cancelled by Student' | 
@@ -28,6 +29,7 @@ export interface Student {
   preferredSubjects?: SubjectType[];
   preferredTeachers?: string[];
   notes?: string;
+  status?: 'active' | 'inactive'; // Adding status field
 }
 
 export interface Session {
@@ -44,7 +46,7 @@ export interface Session {
   notes?: string;
   rescheduleCount: number;
   studentIds: string[];
-  studentNames?: string[];
+  studentNames?: string[]; // Adding studentNames field
   createdAt: string | Date;
   updatedAt: string | Date;
   recurrenceRule?: string;
@@ -148,9 +150,10 @@ export interface SessionWithStudents {
   location: string;
   dateTime: string;
   duration: number;
-  status: string;
+  status: AttendanceStatus;
   notes: string;
   studentIds: string[];
+  studentNames?: string[]; // Optional student names array
   rescheduleCount: number;
   createdAt: string;
   updatedAt: string;
