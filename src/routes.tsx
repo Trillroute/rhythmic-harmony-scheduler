@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
-import Layout from '@/components/Layout'; // Changed from named import to default import
+import Layout from '@/components/Layout';
 import Index from '@/pages/Index';
 import Login from '@/pages/Login';
 import Signup from '@/pages/Signup';
@@ -18,17 +18,23 @@ import CourseMaterials from '@/components/admin/CourseMaterials';
 import InvoiceManagement from '@/components/admin/InvoiceManagement';
 import BulkUploadPage from '@/components/admin/BulkUploadPage';
 import AdvancedScheduler from '@/components/admin/AdvancedScheduler';
+import SessionPlans from '@/pages/admin/SessionPlans';
+import DataExport from '@/pages/admin/DataExport';
 import { Dashboard } from '@/pages/Dashboard';
 import TeacherDashboard from '@/pages/teacher/TeacherDashboard';
 import TeacherStudents from '@/pages/teacher/TeacherStudents';
 import TeacherMaterials from '@/pages/teacher/TeacherMaterials';
+import TeacherProfile from '@/pages/teacher/TeacherProfile';
 import StudentDashboard from '@/pages/student/StudentDashboard';
 import StudentPacks from '@/components/StudentPacks';
 import StudentCourses from '@/pages/student/StudentCourses';
 import StudentResources from '@/pages/student/StudentResources';
 import StudentPayments from '@/pages/student/StudentPayments';
+import StudentProfile from '@/pages/student/StudentProfile';
+import BookSession from '@/pages/student/BookSession';
 import SessionScheduler from '@/components/SessionScheduler';
 import AttendanceTracker from '@/components/AttendanceTracker';
+import Notifications from '@/pages/Notifications';
 
 export const AppRoutes = () => {
   return (
@@ -49,6 +55,9 @@ export const AppRoutes = () => {
         
         {/* General dashboard (redirects based on role) */}
         <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+        
+        {/* Shared routes */}
+        <Route path="/notifications" element={<ProtectedRoute><Notifications /></ProtectedRoute>} />
         
         {/* Admin routes */}
         <Route path="/admin" element={
@@ -94,6 +103,16 @@ export const AppRoutes = () => {
         <Route path="/admin/invoices" element={
           <ProtectedRoute requiredRole="admin">
             <InvoiceManagement />
+          </ProtectedRoute>
+        } />
+        <Route path="/admin/session-plans" element={
+          <ProtectedRoute requiredRole="admin">
+            <SessionPlans />
+          </ProtectedRoute>
+        } />
+        <Route path="/admin/export" element={
+          <ProtectedRoute requiredRole="admin">
+            <DataExport />
           </ProtectedRoute>
         } />
         <Route path="/admin/bulk-upload" element={
@@ -143,6 +162,11 @@ export const AppRoutes = () => {
             <TeacherMaterials />
           </ProtectedRoute>
         } />
+        <Route path="/teacher/profile" element={
+          <ProtectedRoute requiredRole="teacher">
+            <TeacherProfile />
+          </ProtectedRoute>
+        } />
 
         {/* Student routes */}
         <Route path="/student" element={
@@ -173,6 +197,16 @@ export const AppRoutes = () => {
         <Route path="/student/payments" element={
           <ProtectedRoute requiredRole="student">
             <StudentPayments />
+          </ProtectedRoute>
+        } />
+        <Route path="/student/profile" element={
+          <ProtectedRoute requiredRole="student">
+            <StudentProfile />
+          </ProtectedRoute>
+        } />
+        <Route path="/student/book" element={
+          <ProtectedRoute requiredRole="student">
+            <BookSession />
           </ProtectedRoute>
         } />
       </Route>

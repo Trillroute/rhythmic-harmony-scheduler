@@ -10,7 +10,10 @@ import {
   Upload,
   Calendar,
   Users,
-  Database
+  Database,
+  PackageIcon,
+  BellIcon,
+  FileDown
 } from 'lucide-react';
 
 const AdminLinks = () => {
@@ -47,6 +50,11 @@ const AdminLinks = () => {
       label: 'Course Materials'
     },
     {
+      to: '/admin/session-plans',
+      icon: <PackageIcon className="h-5 w-5" />,
+      label: 'Session Plans'
+    },
+    {
       to: '/admin/invoices',
       icon: <FileSpreadsheet className="h-5 w-5" />,
       label: 'Invoice Management'
@@ -55,6 +63,11 @@ const AdminLinks = () => {
       to: '/admin/reports',
       icon: <BarChart3 className="h-5 w-5" />,
       label: 'Reporting'
+    },
+    {
+      to: '/admin/export',
+      icon: <FileDown className="h-5 w-5" />,
+      label: 'Data Export'
     },
     {
       to: '/admin/settings',
@@ -75,6 +88,11 @@ const AdminLinks = () => {
       to: '/admin/seed-database',
       icon: <Database className="h-5 w-5" />,
       label: 'Seed Database'
+    },
+    {
+      to: '/notifications',
+      icon: <BellIcon className="h-5 w-5" />,
+      label: 'Notifications'
     }
   ];
 

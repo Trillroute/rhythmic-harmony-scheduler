@@ -11,7 +11,8 @@ import {
   CreditCardIcon,
   GraduationCapIcon,
   UsersIcon,
-  Users
+  UserIcon,
+  BellIcon
 } from "lucide-react";
 import { UserRole } from "@/lib/types";
 import AdminLinks from "./admin/AdminLinks";
@@ -78,7 +79,7 @@ const SidebarLinks: React.FC<SidebarLinksProps> = ({ role }) => {
             }`
           }
         >
-          <Users className="mr-2 h-4 w-4" />
+          <UsersIcon className="mr-2 h-4 w-4" />
           My Students
         </NavLink>
         
@@ -92,6 +93,34 @@ const SidebarLinks: React.FC<SidebarLinksProps> = ({ role }) => {
         >
           <FileTextIcon className="mr-2 h-4 w-4" />
           Course Materials
+        </NavLink>
+
+        <div className="pt-4 pb-2">
+          <div className="px-3 text-xs font-semibold text-muted-foreground">Account</div>
+        </div>
+
+        <NavLink
+          to="/teacher/profile"
+          className={({ isActive }) =>
+            `flex items-center px-3 py-2 text-sm rounded-md ${
+              isActive ? "bg-primary text-primary-foreground" : "hover:bg-secondary"
+            }`
+          }
+        >
+          <UserIcon className="mr-2 h-4 w-4" />
+          My Profile
+        </NavLink>
+        
+        <NavLink
+          to="/notifications"
+          className={({ isActive }) =>
+            `flex items-center px-3 py-2 text-sm rounded-md ${
+              isActive ? "bg-primary text-primary-foreground" : "hover:bg-secondary"
+            }`
+          }
+        >
+          <BellIcon className="mr-2 h-4 w-4" />
+          Notifications
         </NavLink>
       </div>
     );
@@ -110,6 +139,18 @@ const SidebarLinks: React.FC<SidebarLinksProps> = ({ role }) => {
       >
         <HomeIcon className="mr-2 h-4 w-4" />
         Dashboard
+      </NavLink>
+      
+      <NavLink
+        to="/student/book"
+        className={({ isActive }) =>
+          `flex items-center px-3 py-2 text-sm rounded-md ${
+            isActive ? "bg-primary text-primary-foreground" : "hover:bg-secondary"
+          }`
+        }
+      >
+        <CalendarIcon className="mr-2 h-4 w-4" />
+        Book Session
       </NavLink>
       
       <NavLink
@@ -158,6 +199,34 @@ const SidebarLinks: React.FC<SidebarLinksProps> = ({ role }) => {
       >
         <CreditCardIcon className="mr-2 h-4 w-4" />
         Payments
+      </NavLink>
+
+      <div className="pt-4 pb-2">
+        <div className="px-3 text-xs font-semibold text-muted-foreground">Account</div>
+      </div>
+
+      <NavLink
+        to="/student/profile"
+        className={({ isActive }) =>
+          `flex items-center px-3 py-2 text-sm rounded-md ${
+            isActive ? "bg-primary text-primary-foreground" : "hover:bg-secondary"
+          }`
+        }
+      >
+        <UserIcon className="mr-2 h-4 w-4" />
+        My Profile
+      </NavLink>
+      
+      <NavLink
+        to="/notifications"
+        className={({ isActive }) =>
+          `flex items-center px-3 py-2 text-sm rounded-md ${
+            isActive ? "bg-primary text-primary-foreground" : "hover:bg-secondary"
+          }`
+        }
+      >
+        <BellIcon className="mr-2 h-4 w-4" />
+        Notifications
       </NavLink>
     </div>
   );
