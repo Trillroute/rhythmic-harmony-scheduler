@@ -1,71 +1,46 @@
 
 import { supabase } from '@/integrations/supabase/client';
-import { 
-  SubjectType, SessionType, LocationType, AttendanceStatus,
-  PackSize, WeeklyFrequency 
-} from '../lib/types';
-import { toast } from 'sonner';
+import { SubjectType, SessionType, LocationType, UserRole, PackSize, WeeklyFrequency, AttendanceStatus } from '@/lib/types';
+import { addDays, addHours, addWeeks, format, subDays } from 'date-fns';
 
 /**
- * Utility to seed the database with test data for existing users
+ * Complete database seeding functionality for the music school application
  */
 
-// Helper function to generate a random integer between min and max (inclusive)
-const getRandomInt = (min: number, max: number): number => {
-  return Math.floor(Math.random() * (max - min + 1)) + min;
+// Helper to get random item from array
+const getRandomItem = <T>(array: T[]): T => {
+  return array[Math.floor(Math.random() * array.length)];
 };
 
-// Helper function to pick random items from an array
-const getRandomItems = <T>(array: T[], count: number): T[] => {
-  const shuffled = [...array].sort(() => 0.5 - Math.random());
-  return shuffled.slice(0, count);
+// Generate a random date between two dates
+const getRandomDate = (start: Date, end: Date): Date => {
+  return new Date(start.getTime() + Math.random() * (end.getTime() - start.getTime()));
 };
 
-// Helper to format dates properly
+// Format a date for Supabase
 const formatDate = (date: Date): string => {
   return date.toISOString();
 };
 
-// Helper to get a random future date
-const getRandomFutureDate = (minDays: number, maxDays: number): Date => {
-  const date = new Date();
-  date.setDate(date.getDate() + getRandomInt(minDays, maxDays));
-  return date;
+// Generate random subject from available options
+const getRandomSubject = (): SubjectType => {
+  return getRandomItem(['Guitar', 'Piano', 'Drums', 'Ukulele', 'Vocal']) as SubjectType;
 };
 
-// Helper to get a random past date
-const getRandomPastDate = (minDays: number, maxDays: number): Date => {
-  const date = new Date();
-  date.setDate(date.getDate() - getRandomInt(minDays, maxDays));
-  return date;
+// Generate random session type
+const getRandomSessionType = (): SessionType => {
+  return getRandomItem(['Solo', 'Duo', 'Focus']) as SessionType;
 };
 
-// Set of available subjects
-const SUBJECTS: SubjectType[] = ['Guitar', 'Piano', 'Drums', 'Ukulele', 'Vocal'];
+// Generate random location type
+const getRandomLocation = (): LocationType => {
+  return getRandomItem(['Online', 'Offline']) as LocationType;
+};
 
-// Set of available session types
-const SESSION_TYPES: SessionType[] = ['Solo', 'Duo', 'Focus'];
-
-// Set of available locations
-const LOCATIONS: LocationType[] = ['Online', 'Offline'];
-
-// Set of available pack sizes
-const PACK_SIZES: PackSize[] = [4, 10, 20, 30];
-
-// Set of available weekly frequencies
-const WEEKLY_FREQUENCIES: WeeklyFrequency[] = ['once', 'twice'];
-
-export interface User {
-  id: string;
-  email: string;
-  role: 'admin' | 'teacher' | 'student';
-  name: string;
-}
-
-interface SeededData {
-  teachers: User[];
-  students: User[];
-  admins: User[];
+export interface SeededData {
+  teachers: any[];
+  students: any[];
+  admins: any[];
   courses: any[];
   sessionPlans: any[];
   packs: any[];
@@ -74,936 +49,614 @@ interface SeededData {
   feePlans: any[];
   invoices: any[];
   payments: any[];
+  attendance: any[];
+  feedback: any[];
+  timeSlots: any[];
+  reminders: any[];
+  settings: any[];
 }
 
-export const populateDatabase = async (): Promise<SeededData> => {
+export async function runDatabaseSeeding(): Promise<SeededData> {
+  // Initialize results object
+  const results: SeededData = {
+    teachers: [],
+    students: [],
+    admins: [],
+    courses: [],
+    sessionPlans: [],
+    packs: [],
+    sessions: [],
+    enrollments: [],
+    feePlans: [],
+    invoices: [],
+    payments: [],
+    attendance: [],
+    feedback: [],
+    timeSlots: [],
+    reminders: [],
+    settings: []
+  };
+  
   try {
-    // Step 0: Fetch existing users from auth.users via profiles table 
-    // (we cannot access auth.users directly with the client)
+    // Step 1: Get existing users from Supabase Auth
     const { data: existingProfiles, error: profilesError } = await supabase
       .from('profiles')
-      .select('id, email, name, role')
-      .order('created_at', { ascending: false });
-
+      .select('id, name, email, role');
+      
     if (profilesError) {
-      console.error('Error fetching existing profiles:', profilesError);
-      throw profilesError;
+      throw new Error(`Error fetching profiles: ${profilesError.message}`);
     }
-
+    
     if (!existingProfiles || existingProfiles.length === 0) {
       throw new Error('No existing user profiles found. Please create users first.');
     }
-
-    console.log(`Found ${existingProfiles.length} existing profiles`);
-
-    // Split users by role
-    const adminUsers = existingProfiles.filter(user => user.role === 'admin');
-    const teacherUsers = existingProfiles.filter(user => user.role === 'teacher');
-    const studentUsers = existingProfiles.filter(user => user.role === 'student');
-
-    console.log(`Found ${adminUsers.length} admins, ${teacherUsers.length} teachers, ${studentUsers.length} students`);
-
-    // Make sure we have users of each role
-    if (adminUsers.length === 0 || teacherUsers.length === 0 || studentUsers.length === 0) {
-      throw new Error('Please make sure you have at least one admin, teacher, and student user');
-    }
-
-    // Step 2: Add role-specific information
-    // Add teacher subjects (2-3 per teacher)
-    for (const teacher of teacherUsers) {
-      const randomSubjects = getRandomItems(SUBJECTS, getRandomInt(2, 3)) as SubjectType[];
-      const maxWeeklySessions = getRandomInt(15, 25);
-
-      const { error: teacherError } = await supabase
-        .from('teachers')
-        .upsert({
-          id: teacher.id,
-          subjects: randomSubjects,
-          max_weekly_sessions: maxWeeklySessions
-        });
-
-      if (teacherError) {
-        console.error(`Error adding teacher data for ${teacher.email}:`, teacherError);
-        throw teacherError;
-      }
-    }
-
-    // Add student preferences
-    for (const student of studentUsers) {
-      const preferredSubjects = getRandomItems(SUBJECTS, getRandomInt(1, 2)) as SubjectType[];
-      const preferredTeachers = getRandomInt(0, 1) === 1 
-        ? [teacherUsers[getRandomInt(0, teacherUsers.length - 1)].id] 
-        : [];
-      const notes = getRandomInt(0, 1) === 1 
-        ? `Student notes for ${student.name}` 
-        : null;
-
-      const { error: studentError } = await supabase
-        .from('students')
-        .upsert({
-          id: student.id,
-          preferred_subjects: preferredSubjects,
-          preferred_teachers: preferredTeachers,
-          notes: notes
-        });
-
-      if (studentError) {
-        console.error(`Error adding student data for ${student.email}:`, studentError);
-        throw studentError;
-      }
-    }
-
-    // Add admin permissions
-    for (const admin of adminUsers) {
-      const permissions = ['manage_users', 'manage_courses', 'manage_payments', 'view_reports'];
-
-      const { error: adminError } = await supabase
-        .from('admins')
-        .upsert({
-          id: admin.id,
-          permissions: permissions
-        });
-
-      if (adminError) {
-        console.error(`Error adding admin data for ${admin.email}:`, adminError);
-        throw adminError;
-      }
-    }
-
-    // Step 3: Create courses and session plans
-    const courses = [];
     
-    // Course 1: Beginner Guitar
-    const course1 = {
-      name: 'Beginner Guitar',
-      description: 'Introduction to guitar basics',
-      instrument: 'Guitar' as SubjectType,
-      session_type: 'Solo' as SessionType,
-      duration_type: 'weeks',
-      duration_value: 12,
-      session_duration: 60,
-      status: 'active'
-    };
-
-    // Course 2: Intermediate Piano
-    const course2 = {
-      name: 'Intermediate Piano',
-      description: 'For students who know the basics',
-      instrument: 'Piano' as SubjectType,
-      session_type: 'Solo' as SessionType,
-      duration_type: 'weeks',
-      duration_value: 16,
-      session_duration: 60,
-      status: 'active'
-    };
-
-    // Course 3: Drum Basics
-    const course3 = {
-      name: 'Drum Basics',
-      description: 'Learn the fundamentals of percussion',
-      instrument: 'Drums' as SubjectType,
-      session_type: 'Solo' as SessionType,
-      duration_type: 'weeks',
-      duration_value: 10,
-      session_duration: 60,
-      status: 'active'
-    };
-
-    // Course 4: Vocal Techniques
-    const course4 = {
-      name: 'Vocal Techniques',
-      description: 'Improve your singing abilities',
-      instrument: 'Vocal' as SubjectType,
-      session_type: 'Solo' as SessionType,
-      duration_type: 'weeks',
-      duration_value: 12,
-      session_duration: 60,
-      status: 'active'
-    };
-
-    // Course 5: Group Ukulele
-    const course5 = {
-      name: 'Group Ukulele',
-      description: 'Learn ukulele in a fun group setting',
-      instrument: 'Ukulele' as SubjectType,
-      session_type: 'Duo' as SessionType,
-      duration_type: 'weeks',
-      duration_value: 8,
-      session_duration: 60,
-      status: 'active'
-    };
-
-    // Insert courses
-    const { data: createdCourses, error: coursesError } = await supabase
-      .from('courses')
-      .insert([course1, course2, course3, course4, course5])
-      .select();
-
-    if (coursesError || !createdCourses) {
-      console.error('Error creating courses:', coursesError);
-      throw coursesError;
+    console.log(`Found ${existingProfiles.length} existing users`);
+    
+    // Group users by role
+    const teachers = existingProfiles.filter(p => p.role === 'teacher');
+    const students = existingProfiles.filter(p => p.role === 'student');
+    const admins = existingProfiles.filter(p => p.role === 'admin');
+    
+    if (teachers.length === 0) {
+      throw new Error('No teacher profiles found. Please create at least one teacher user.');
     }
-
-    courses.push(...createdCourses);
-    console.log(`Created ${createdCourses.length} courses`);
-
-    // Assign teachers to courses
-    const courseTeachers = [];
-    for (const course of createdCourses) {
-      // Get 1-2 teachers that can teach the course subject
-      const eligibleTeachers = teacherUsers.filter(teacher => {
-        return supabase.from('teachers').select('subjects').eq('id', teacher.id).then(({ data }) => {
-          return data && data[0] && data[0].subjects && data[0].subjects.includes(course.instrument);
-        });
-      });
-
-      const numTeachers = Math.min(getRandomInt(1, 2), eligibleTeachers.length);
-      const selectedTeachers = getRandomItems(eligibleTeachers, numTeachers);
-
-      for (const teacher of selectedTeachers) {
-        courseTeachers.push({
-          course_id: course.id,
-          teacher_id: teacher.id
-        });
+    
+    if (students.length === 0) {
+      throw new Error('No student profiles found. Please create at least one student user.');
+    }
+    
+    // Step 2: Add role-specific data for teachers and students
+    // Add teacher subjects
+    for (const teacher of teachers) {
+      const subjects = [getRandomSubject()];
+      // Add 1-2 more random subjects
+      for (let i = 0; i < Math.floor(Math.random() * 2) + 1; i++) {
+        const subject = getRandomSubject();
+        if (!subjects.includes(subject)) {
+          subjects.push(subject);
+        }
       }
-    }
-
-    if (courseTeachers.length > 0) {
-      const { error: courseTeachersError } = await supabase
-        .from('course_teachers')
-        .insert(courseTeachers);
-
-      if (courseTeachersError) {
-        console.error('Error assigning teachers to courses:', courseTeachersError);
-        throw courseTeachersError;
-      }
-      console.log(`Assigned ${courseTeachers.length} teachers to courses`);
-    }
-
-    // Create session plans
-    const sessionPlans = [];
-    for (const course of createdCourses) {
-      // Create 1-2 plans per course
-      const numPlans = getRandomInt(1, 2);
       
-      for (let i = 0; i < numPlans; i++) {
-        const sessionCount = getRandomInt(8, 16);
-        const price = sessionCount * getRandomInt(50, 80);
-        const validityDays = sessionCount * 7;
-        
-        sessionPlans.push({
-          name: `${course.name} ${i === 0 ? 'Basic' : 'Premium'} Plan`,
-          description: `${i === 0 ? 'Standard' : 'Advanced'} plan for ${course.name}`,
-          course_id: course.id,
-          price: price,
-          sessions_count: sessionCount,
-          validity_days: validityDays,
-          status: 'active'
-        });
-      }
-    }
-
-    const { data: createdPlans, error: plansError } = await supabase
-      .from('session_plans')
-      .insert(sessionPlans)
-      .select();
-
-    if (plansError || !createdPlans) {
-      console.error('Error creating session plans:', plansError);
-      throw plansError;
-    }
-    console.log(`Created ${createdPlans.length} session plans`);
-
-    // Step 4: Create session packs for each student
-    const packs = [];
-    for (const student of studentUsers) {
-      // Get student preferences to align with pack subject
-      const { data: studentData } = await supabase
-        .from('students')
-        .select('preferred_subjects, preferred_teachers')
-        .eq('id', student.id)
-        .single();
-
-      let preferredSubject: SubjectType = 'Guitar';
-      let preferredTeacherId = null;
-      
-      if (studentData && studentData.preferred_subjects && studentData.preferred_subjects.length > 0) {
-        preferredSubject = studentData.preferred_subjects[0];
-      } else {
-        // Fallback to random subject
-        preferredSubject = SUBJECTS[getRandomInt(0, SUBJECTS.length - 1)];
-      }
-
-      if (studentData && studentData.preferred_teachers && studentData.preferred_teachers.length > 0) {
-        preferredTeacherId = studentData.preferred_teachers[0];
-      }
-
-      // Create a pack matching student's preference
-      const packSize = PACK_SIZES[getRandomInt(0, PACK_SIZES.length - 1)] as PackSize;
-      const sessionType = SESSION_TYPES[getRandomInt(0, SESSION_TYPES.length - 1)] as SessionType;
-      const location = LOCATIONS[getRandomInt(0, LOCATIONS.length - 1)] as LocationType;
-      const weeklyFrequency = WEEKLY_FREQUENCIES[getRandomInt(0, WEEKLY_FREQUENCIES.length - 1)] as WeeklyFrequency;
-      const purchasedDate = getRandomPastDate(30, 60);
-      const expiryDate = new Date(purchasedDate);
-      expiryDate.setDate(expiryDate.getDate() + (packSize * 7)); // Expiry date based on pack size
-      
-      packs.push({
-        student_id: student.id,
-        size: packSize.toString(),
-        subject: preferredSubject,
-        session_type: sessionType,
-        location: location,
-        purchased_date: formatDate(purchasedDate),
-        expiry_date: formatDate(expiryDate),
-        remaining_sessions: packSize,
-        is_active: true,
-        weekly_frequency: weeklyFrequency
-      });
-    }
-
-    const { data: createdPacks, error: packsError } = await supabase
-      .from('session_packs')
-      .insert(packs)
-      .select();
-
-    if (packsError || !createdPacks) {
-      console.error('Error creating session packs:', packsError);
-      throw packsError;
-    }
-    console.log(`Created ${createdPacks.length} session packs`);
-
-    // Create sessions for each pack
-    const sessions = [];
-    const sessionsStudents = [];
-
-    for (const pack of createdPacks) {
-      // Find teachers who can teach this subject
-      const { data: eligibleTeachers } = await supabase
+      const { data: teacherData, error: teacherError } = await supabase
         .from('teachers')
-        .select('id, profiles(name)')
-        .contains('subjects', [pack.subject]);
-
-      if (!eligibleTeachers || eligibleTeachers.length === 0) {
-        console.warn(`No eligible teachers found for subject ${pack.subject}, skipping sessions for pack ${pack.id}`);
+        .update({
+          subjects,
+          max_weekly_sessions: 15 + Math.floor(Math.random() * 10) // 15-25
+        })
+        .eq('id', teacher.id)
+        .select();
+        
+      if (teacherError) {
+        console.error(`Error updating teacher ${teacher.id}: ${teacherError.message}`);
         continue;
       }
-
-      // Create 2-3 future sessions per pack
-      const numSessions = getRandomInt(2, 3);
       
-      for (let i = 0; i < numSessions; i++) {
-        const teacherIndex = getRandomInt(0, eligibleTeachers.length - 1);
-        const sessionDate = getRandomFutureDate(i * 7 + 1, i * 7 + 7); // Spread sessions across weeks
-        
-        const session = {
-          teacher_id: eligibleTeachers[teacherIndex].id,
-          pack_id: pack.id,
-          subject: pack.subject,
-          session_type: pack.session_type,
-          location: pack.location,
-          date_time: formatDate(sessionDate),
-          duration: pack.session_type === 'Focus' ? 45 : 60, // Focus sessions are 45 minutes
-          status: 'Scheduled',
-          notes: `Session ${i + 1} for ${pack.subject}`,
-          reschedule_count: 0
-        };
-        
-        sessions.push(session);
-      }
-
-      // Create 1-2 past sessions per pack
-      const numPastSessions = getRandomInt(1, 2);
-      
-      for (let i = 0; i < numPastSessions; i++) {
-        const teacherIndex = getRandomInt(0, eligibleTeachers.length - 1);
-        const sessionDate = getRandomPastDate(i * 7 + 1, i * 7 + 7); // Spread past sessions
-        
-        const session = {
-          teacher_id: eligibleTeachers[teacherIndex].id,
-          pack_id: pack.id,
-          subject: pack.subject,
-          session_type: pack.session_type,
-          location: pack.location,
-          date_time: formatDate(sessionDate),
-          duration: pack.session_type === 'Focus' ? 45 : 60, // Focus sessions are 45 minutes
-          status: 'Present', // Past sessions are marked as attended
-          notes: `Completed session for ${pack.subject}`,
-          reschedule_count: 0
-        };
-        
-        sessions.push(session);
-      }
+      results.teachers.push(teacherData?.[0] || { id: teacher.id, subjects });
     }
-
-    const { data: createdSessions, error: sessionsError } = await supabase
-      .from('sessions')
-      .insert(sessions)
-      .select();
-
-    if (sessionsError || !createdSessions) {
-      console.error('Error creating sessions:', sessionsError);
-      throw sessionsError;
-    }
-    console.log(`Created ${createdSessions.length} sessions`);
-
-    // Link sessions to students
-    for (const session of createdSessions) {
-      // Get the student associated with this pack
-      const { data: packData } = await supabase
-        .from('session_packs')
-        .select('student_id')
-        .eq('id', session.pack_id)
-        .single();
-
-      if (packData) {
-        sessionsStudents.push({
-          session_id: session.id,
-          student_id: packData.student_id
-        });
-      }
-    }
-
-    if (sessionsStudents.length > 0) {
-      const { error: sessionsStudentsError } = await supabase
-        .from('session_students')
-        .insert(sessionsStudents);
-
-      if (sessionsStudentsError) {
-        console.error('Error linking sessions to students:', sessionsStudentsError);
-        throw sessionsStudentsError;
-      }
-      console.log(`Created ${sessionsStudents.length} session-student links`);
-    }
-
-    // Step 5: Create enrollments and progress records
-    const enrollments = [];
     
-    // For each student, enroll in 1-2 courses
-    for (const student of studentUsers) {
-      // Find the student's preferred subjects
-      const { data: studentData } = await supabase
+    // Add student preferences
+    for (const student of students) {
+      const preferredSubjects = [getRandomSubject()];
+      if (Math.random() > 0.5) {
+        const extraSubject = getRandomSubject();
+        if (!preferredSubjects.includes(extraSubject)) {
+          preferredSubjects.push(extraSubject);
+        }
+      }
+      
+      // Randomly assign a preferred teacher
+      const preferredTeachers = Math.random() > 0.5 
+        ? [getRandomItem(teachers).id] 
+        : [];
+        
+      const { data: studentData, error: studentError } = await supabase
         .from('students')
-        .select('preferred_subjects')
+        .update({
+          preferred_subjects: preferredSubjects,
+          preferred_teachers: preferredTeachers,
+          notes: Math.random() > 0.7 
+            ? `Student interested in ${preferredSubjects.join(' and ')}. Prefers lessons in the evening.` 
+            : null
+        })
         .eq('id', student.id)
-        .single();
-
-      let preferredSubjects: SubjectType[] = [];
-      
-      if (studentData && studentData.preferred_subjects) {
-        preferredSubjects = studentData.preferred_subjects;
-      }
-      
-      // Find courses that match the preferred subjects
-      let eligibleCourses = createdCourses;
-      if (preferredSubjects.length > 0) {
-        eligibleCourses = createdCourses.filter(course => 
-          preferredSubjects.includes(course.instrument)
-        );
-      }
-
-      if (eligibleCourses.length === 0) {
-        eligibleCourses = createdCourses; // Fallback to all courses
-      }
-
-      const numEnrollments = Math.min(getRandomInt(1, 2), eligibleCourses.length);
-      const selectedCourses = getRandomItems(eligibleCourses, numEnrollments);
-      
-      for (const course of selectedCourses) {
-        // Find session plans for this course
-        const { data: coursePlans } = await supabase
-          .from('session_plans')
-          .select('id')
-          .eq('course_id', course.id);
-
-        let planId = null;
-        if (coursePlans && coursePlans.length > 0) {
-          planId = coursePlans[getRandomInt(0, coursePlans.length - 1)].id;
-        }
-
-        const startDate = getRandomPastDate(10, 60);
-        const completionPercentage = getRandomInt(5, 80);
+        .select();
         
-        enrollments.push({
-          student_id: student.id,
-          course_id: course.id,
-          plan_id: planId,
-          start_date: formatDate(startDate),
-          status: 'active',
-          completion_percentage: completionPercentage,
-          notes: `${student.name}'s enrollment in ${course.name}`
-        });
+      if (studentError) {
+        console.error(`Error updating student ${student.id}: ${studentError.message}`);
+        continue;
       }
+      
+      results.students.push(studentData?.[0] || { id: student.id, preferred_subjects: preferredSubjects });
     }
-
-    const { data: createdEnrollments, error: enrollmentsError } = await supabase
-      .from('enrollments')
-      .insert(enrollments)
-      .select();
-
-    if (enrollmentsError || !createdEnrollments) {
-      console.error('Error creating enrollments:', enrollmentsError);
-      throw enrollmentsError;
-    }
-    console.log(`Created ${createdEnrollments.length} enrollments`);
-
-    // Create student progress records
-    const progressRecords = [];
-    for (const enrollment of createdEnrollments) {
-      // Find the course details for this enrollment
-      const { data: course } = await supabase
+    
+    // Step 3: Create courses and session plans
+    const instruments = ['Guitar', 'Piano', 'Drums', 'Ukulele', 'Vocal'];
+    const sessionTypes = ['Solo', 'Duo', 'Focus'];
+    const coursesToCreate = 5;
+    
+    for (let i = 0; i < coursesToCreate; i++) {
+      const instrument = instruments[i % instruments.length] as SubjectType;
+      const sessionType = sessionTypes[i % sessionTypes.length] as SessionType;
+      const durationWeeks = [8, 10, 12, 16][Math.floor(Math.random() * 4)];
+      const sessionDuration = sessionType === 'Focus' ? 45 : 60;
+      
+      // Create a course
+      const { data: courseData, error: courseError } = await supabase
         .from('courses')
-        .select('duration_value')
-        .eq('id', enrollment.course_id)
-        .single();
-
-      // Find a teacher for this course to update progress
-      const { data: courseTeachers } = await supabase
-        .from('course_teachers')
-        .select('teacher_id')
-        .eq('course_id', enrollment.course_id);
-
-      let teacherId;
-      if (courseTeachers && courseTeachers.length > 0) {
-        teacherId = courseTeachers[getRandomInt(0, courseTeachers.length - 1)].teacher_id;
+        .insert([{
+          name: `${instrument} ${sessionType} ${durationWeeks}-Week Course`,
+          description: `Complete ${instrument} course for ${sessionType} learning over ${durationWeeks} weeks`,
+          instrument,
+          session_type: sessionType,
+          duration_type: 'weeks',
+          duration_value: durationWeeks,
+          session_duration: sessionDuration,
+          status: 'active',
+          syllabus: `Weekly sessions covering fundamentals of ${instrument} technique and theory`
+        }])
+        .select();
+        
+      if (courseError) {
+        console.error(`Error creating course: ${courseError.message}`);
+        continue;
+      }
+      
+      const courseId = courseData?.[0]?.id;
+      results.courses.push(courseData?.[0]);
+      
+      // Assign 1-2 teachers to the course
+      const assignedTeacherIds = [getRandomItem(teachers).id];
+      if (teachers.length > 1 && Math.random() > 0.6) {
+        const secondTeacher = getRandomItem(teachers);
+        if (secondTeacher.id !== assignedTeacherIds[0]) {
+          assignedTeacherIds.push(secondTeacher.id);
+        }
+      }
+      
+      for (const teacherId of assignedTeacherIds) {
+        const { error: teacherError } = await supabase
+          .from('course_teachers')
+          .insert([{
+            course_id: courseId,
+            teacher_id: teacherId
+          }]);
+          
+        if (teacherError) {
+          console.error(`Error assigning teacher to course: ${teacherError.message}`);
+        }
+      }
+      
+      // Create a session plan for the course
+      const sessionsCount = durationWeeks;
+      const price = 500 + Math.floor(Math.random() * 500); // $500-$1000
+      const validityDays = durationWeeks * 7 + 14; // Course duration plus 2 weeks
+      
+      const { data: planData, error: planError } = await supabase
+        .from('session_plans')
+        .insert([{
+          name: `${instrument} ${sessionType} Standard Plan`,
+          description: `${sessionsCount} sessions of ${sessionDuration} minutes each`,
+          course_id: courseId,
+          price,
+          sessions_count: sessionsCount,
+          validity_days: validityDays,
+          status: 'active'
+        }])
+        .select();
+        
+      if (planError) {
+        console.error(`Error creating session plan: ${planError.message}`);
       } else {
-        // Fallback to any teacher
-        teacherId = teacherUsers[getRandomInt(0, teacherUsers.length - 1)].id;
+        results.sessionPlans.push(planData?.[0]);
       }
-
-      // Calculate current module and session based on completion percentage
-      const totalDuration = course ? course.duration_value : 12;
-      const currentModule = Math.max(1, Math.floor((enrollment.completion_percentage / 100) * totalDuration / 2));
-      const currentSession = Math.max(1, Math.floor((enrollment.completion_percentage / 100) * totalDuration));
-      
-      progressRecords.push({
-        enrollment_id: enrollment.id,
-        completion_percentage: enrollment.completion_percentage,
-        last_updated_by: teacherId,
-        module_number: currentModule,
-        session_number: currentSession,
-        teacher_notes: getRandomInt(0, 1) ? `Teacher notes for enrollment ${enrollment.id}` : null,
-        student_notes: getRandomInt(0, 1) ? `Student notes for enrollment ${enrollment.id}` : null
-      });
     }
-
-    if (progressRecords.length > 0) {
-      const { error: progressError } = await supabase
-        .from('student_progress')
-        .insert(progressRecords);
-
-      if (progressError) {
-        console.error('Error creating progress records:', progressError);
-        throw progressError;
-      }
-      console.log(`Created ${progressRecords.length} progress records`);
-    }
-
-    // Step 6: Create fee plans, invoices, and payments
-    const feePlans = [];
-    const invoices = [];
-    const payments = [];
     
-    for (const student of studentUsers) {
-      // Create fee plan for the student
-      const totalAmount = getRandomInt(500, 1500);
-      const numPayments = getRandomInt(1, 3); // 1-3 installments
-      const installmentAmount = Math.floor(totalAmount / numPayments);
-      const dueDates = [];
+    // Step 4: Create session packs and scheduled sessions
+    for (const student of students) {
+      // Create a session pack for each student
+      const subject = getRandomItem(results.students.find(s => s.id === student.id)?.preferred_subjects || ['Guitar']) as SubjectType;
+      const sessionType = getRandomItem(['Solo', 'Duo']) as SessionType;
+      const location = getRandomItem(['Online', 'Offline']) as LocationType;
+      const size = getRandomItem(['10', '20']) as PackSize;
+      const remainingSessions = Math.floor(Math.random() * parseInt(size));
+      const weeklyFrequency = getRandomItem(['once', 'twice']) as WeeklyFrequency;
       
-      // Create due dates for installments
-      for (let i = 0; i < numPayments; i++) {
-        let dueDate;
-        if (i === 0) {
-          dueDate = getRandomPastDate(0, 15); // First payment due recently or already
-        } else {
-          dueDate = getRandomFutureDate(i * 30, i * 30 + 15); // Future payments every ~30 days
-        }
-        
-        // Last payment might need adjustment to match the total
-        const amount = i === numPayments - 1 
-          ? totalAmount - (installmentAmount * (numPayments - 1)) 
-          : installmentAmount;
-
-        dueDates.push({
-          date: formatDate(dueDate),
-          amount: amount
-        });
-      }
+      const purchasedDate = subDays(new Date(), Math.floor(Math.random() * 60)); // 0-60 days ago
+      const expiryDate = addDays(purchasedDate, 90); // 90 days validity
       
-      // Create fee plan
-      feePlans.push({
-        student_id: student.id,
-        plan_title: `${student.name}'s Payment Plan`,
-        total_amount: totalAmount,
-        due_dates: dueDates,
-        late_fee_policy: {
-          rate_per_day: 5,
-          maximum: 50
-        }
-      });
-    }
-
-    const { data: createdFeePlans, error: feePlansError } = await supabase
-      .from('fee_plans')
-      .insert(feePlans)
-      .select();
-
-    if (feePlansError || !createdFeePlans) {
-      console.error('Error creating fee plans:', feePlansError);
-      throw feePlansError;
-    }
-    console.log(`Created ${createdFeePlans.length} fee plans`);
-    
-    // Create invoices for each fee plan
-    for (const feePlan of createdFeePlans) {
-      // Create 1 invoice per fee plan
-      const { data: packData } = await supabase
+      const { data: packData, error: packError } = await supabase
         .from('session_packs')
-        .select('id')
-        .eq('student_id', feePlan.student_id)
-        .limit(1)
-        .single();
-
-      const packId = packData ? packData.id : null;
-      
-      // Get first due date from fee plan
-      const firstDueDate = feePlan.due_dates[0];
-      
-      invoices.push({
-        student_id: feePlan.student_id,
-        pack_id: packId,
-        amount: feePlan.total_amount,
-        status: getRandomInt(0, 1) ? 'paid' : 'pending',
-        due_date: firstDueDate.date,
-        notes: `Invoice for ${feePlan.plan_title}`
-      });
-    }
-
-    const { data: createdInvoices, error: invoicesError } = await supabase
-      .from('invoices')
-      .insert(invoices)
-      .select();
-
-    if (invoicesError || !createdInvoices) {
-      console.error('Error creating invoices:', invoicesError);
-      throw invoicesError;
-    }
-    console.log(`Created ${createdInvoices.length} invoices`);
-
-    // Create payment records for paid invoices
-    for (const invoice of createdInvoices) {
-      if (invoice.status === 'paid') {
-        // Choose a random admin to record the payment
-        const adminId = adminUsers[getRandomInt(0, adminUsers.length - 1)].id;
-        const paymentMethods = ['cash', 'card', 'bank_transfer', 'upi'];
-        const paymentMethod = paymentMethods[getRandomInt(0, paymentMethods.length - 1)];
-        const paymentDate = getRandomPastDate(1, 10); // Payment made 1-10 days ago
+        .insert([{
+          student_id: student.id,
+          size,
+          subject,
+          session_type: sessionType,
+          location,
+          remaining_sessions: remainingSessions,
+          is_active: true,
+          weekly_frequency: weeklyFrequency,
+          purchased_date: formatDate(purchasedDate),
+          expiry_date: formatDate(expiryDate)
+        }])
+        .select();
         
-        payments.push({
-          invoice_id: invoice.id,
-          amount: invoice.amount,
-          payment_date: formatDate(paymentDate),
-          payment_method: paymentMethod,
-          reference_number: `REF-${Math.floor(Math.random() * 10000)}`,
-          recorded_by_user_id: adminId,
-          notes: `Payment for invoice ${invoice.id}`
-        });
+      if (packError) {
+        console.error(`Error creating session pack for student ${student.id}: ${packError.message}`);
+        continue;
       }
-    }
-
-    if (payments.length > 0) {
-      const { error: paymentsError } = await supabase
-        .from('payment_records')
-        .insert(payments);
-
-      if (paymentsError) {
-        console.error('Error creating payment records:', paymentsError);
-        throw paymentsError;
-      }
-      console.log(`Created ${payments.length} payment records`);
-    }
-
-    // Step 7: Create attendance events and student feedback
-    const attendanceEvents = [];
-    const feedback = [];
-    
-    // Create attendance records for past sessions
-    const pastSessions = createdSessions.filter(session => 
-      new Date(session.date_time) < new Date() && session.status === 'Present'
-    );
-    
-    for (const session of pastSessions) {
-      // Get the teacher for this session
-      const { data: sessionTeacher } = await supabase
-        .from('profiles')
-        .select('id')
-        .eq('id', session.teacher_id)
-        .single();
-
-      const teacherId = sessionTeacher ? sessionTeacher.id : adminUsers[0].id;
       
-      attendanceEvents.push({
-        session_id: session.id,
-        status: 'Present',
-        marked_by_user_id: teacherId,
-        marked_at: session.date_time,
-        notes: `Student attended the ${session.subject} session.`
-      });
-
-      // Create feedback for some sessions (50% chance)
-      if (getRandomInt(0, 1) === 1) {
-        // Get the student for this session
-        const { data: sessionStudent } = await supabase
+      const packId = packData?.[0]?.id;
+      results.packs.push(packData?.[0]);
+      
+      // Create sessions for this pack
+      const sessionCount = Math.min(3, remainingSessions); // Create up to 3 sessions
+      const assignedTeacher = getRandomItem(teachers.filter(t => {
+        const teacherSubjects = results.teachers.find(rt => rt.id === t.id)?.subjects || [];
+        return teacherSubjects.includes(subject);
+      }));
+      
+      if (!assignedTeacher) continue;
+      
+      for (let i = 0; i < sessionCount; i++) {
+        const sessionDate = addDays(new Date(), i * 7 + Math.floor(Math.random() * 3)); // Next few weeks
+        const sessionTime = new Date(
+          sessionDate.getFullYear(),
+          sessionDate.getMonth(),
+          sessionDate.getDate(),
+          13 + Math.floor(Math.random() * 6), // 1 PM - 6 PM
+          0
+        );
+        
+        const { data: sessionData, error: sessionError } = await supabase
+          .from('sessions')
+          .insert([{
+            teacher_id: assignedTeacher.id,
+            pack_id: packId,
+            subject,
+            session_type: sessionType,
+            location,
+            date_time: formatDate(sessionTime),
+            duration: sessionType === 'Focus' ? 45 : 60,
+            status: 'Scheduled',
+            notes: Math.random() > 0.7 ? `Regular session for ${subject}` : null
+          }])
+          .select();
+          
+        if (sessionError) {
+          console.error(`Error creating session: ${sessionError.message}`);
+          continue;
+        }
+        
+        const sessionId = sessionData?.[0]?.id;
+        results.sessions.push(sessionData?.[0]);
+        
+        // Link student to session
+        const { error: linkError } = await supabase
           .from('session_students')
-          .select('student_id')
-          .eq('session_id', session.id)
-          .single();
-
-        if (sessionStudent) {
-          feedback.push({
-            student_id: sessionStudent.student_id,
-            teacher_id: session.teacher_id,
-            session_id: session.id,
-            feedback_text: `Feedback for the ${session.subject} session. The teacher was very helpful.`,
-            rating: getRandomInt(3, 5) // 3-5 stars
-          });
+          .insert([{
+            session_id: sessionId,
+            student_id: student.id
+          }]);
+          
+        if (linkError) {
+          console.error(`Error linking student to session: ${linkError.message}`);
         }
-      }
-    }
-
-    if (attendanceEvents.length > 0) {
-      const { error: attendanceError } = await supabase
-        .from('attendance_events')
-        .insert(attendanceEvents);
-
-      if (attendanceError) {
-        console.error('Error creating attendance events:', attendanceError);
-        throw attendanceError;
-      }
-      console.log(`Created ${attendanceEvents.length} attendance events`);
-    }
-
-    if (feedback.length > 0) {
-      const { error: feedbackError } = await supabase
-        .from('student_feedback')
-        .insert(feedback);
-
-      if (feedbackError) {
-        console.error('Error creating student feedback:', feedbackError);
-        throw feedbackError;
-      }
-      console.log(`Created ${feedback.length} feedback entries`);
-    }
-
-    // Step 8: Create time slots, reminders, and system settings
-    const timeSlots = [];
-    
-    // Create 2-3 time slots per teacher
-    for (const teacher of teacherUsers) {
-      const daysOfWeek = [1, 2, 3, 4, 5, 6]; // Monday to Saturday
-      const numSlots = getRandomInt(2, 3);
-      const selectedDays = getRandomItems(daysOfWeek, numSlots);
-      
-      for (const day of selectedDays) {
-        // Morning or afternoon slot
-        const isMorning = getRandomInt(0, 1) === 0;
-        const startHour = isMorning ? getRandomInt(9, 12) : getRandomInt(13, 16);
-        const endHour = startHour + getRandomInt(2, 4);
         
-        timeSlots.push({
-          teacher_id: teacher.id,
-          day: day,
-          start_time: `${startHour}:00:00`,
-          end_time: `${endHour}:00:00`,
-          location: LOCATIONS[getRandomInt(0, 1)] as LocationType,
-          is_recurring: true
-        });
-      }
-    }
-
-    if (timeSlots.length > 0) {
-      const { error: timeSlotsError } = await supabase
-        .from('time_slots')
-        .insert(timeSlots);
-
-      if (timeSlotsError) {
-        console.error('Error creating time slots:', timeSlotsError);
-        throw timeSlotsError;
-      }
-      console.log(`Created ${timeSlots.length} time slots`);
-    }
-
-    // Create reminders
-    const reminders = [];
-    // Session reminders for future sessions
-    const futureSessions = createdSessions.filter(session => 
-      new Date(session.date_time) > new Date() && session.status === 'Scheduled'
-    ).slice(0, 5); // Just create reminders for a few sessions
-    
-    for (const session of futureSessions) {
-      // Get the student for this session
-      const { data: sessionStudent } = await supabase
-        .from('session_students')
-        .select('student_id')
-        .eq('session_id', session.id)
-        .single();
-
-      if (sessionStudent) {
-        // Reminder sent a day before the session
-        const sessionDate = new Date(session.date_time);
-        const reminderDate = new Date(sessionDate);
-        reminderDate.setDate(sessionDate.getDate() - 1);
-
-        reminders.push({
-          type: 'session',
-          recipient_id: sessionStudent.student_id,
-          related_id: session.id,
-          message: `Reminder: You have a ${session.subject} lesson tomorrow at ${new Date(session.date_time).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}`,
-          send_at: formatDate(reminderDate),
-          status: 'pending',
-          channel: 'email'
-        });
-      }
-    }
-
-    // Payment reminders
-    const pendingInvoices = createdInvoices.filter(invoice => invoice.status === 'pending');
-    
-    for (const invoice of pendingInvoices) {
-      // Reminder sent 3 days before due date
-      const dueDate = new Date(invoice.due_date);
-      const reminderDate = new Date(dueDate);
-      reminderDate.setDate(dueDate.getDate() - 3);
-
-      reminders.push({
-        type: 'payment',
-        recipient_id: invoice.student_id,
-        related_id: invoice.id,
-        message: `Payment reminder: Your payment of $${invoice.amount} is due on ${new Date(invoice.due_date).toLocaleDateString()}`,
-        send_at: formatDate(reminderDate),
-        status: 'pending',
-        channel: 'email'
-      });
-    }
-
-    if (reminders.length > 0) {
-      const { error: remindersError } = await supabase
-        .from('reminders')
-        .insert(reminders);
-
-      if (remindersError) {
-        console.error('Error creating reminders:', remindersError);
-        throw remindersError;
-      }
-      console.log(`Created ${reminders.length} reminders`);
-    }
-
-    // Create system settings if they don't exist
-    const { data: existingSettings } = await supabase
-      .from('system_settings')
-      .select('key')
-      .limit(1);
-
-    if (!existingSettings || existingSettings.length === 0) {
-      const systemSettings = [
-        {
-          key: 'session_durations',
-          category: 'sessions',
-          value: {
-            solo: 60,
-            duo: 60,
-            focus: 45
-          }
-        },
-        {
-          key: 'session_limits',
-          category: 'sessions', 
-          value: {
-            max_weekly_per_teacher: 25,
-            max_daily_per_teacher: 5,
-            advance_booking_days: 60
-          }
-        },
-        {
-          key: 'pack_sizes',
-          category: 'pricing',
-          value: {
-            "4": 250,
-            "10": 600,
-            "20": 1100,
-            "30": 1500
-          }
-        },
-        {
-          key: 'school_info',
-          category: 'general',
-          value: {
-            name: "Harmony Music School",
-            address: "123 Music Ave, Melodytown",
-            phone: "555-123-4567",
-            email: "contact@harmonymusic.com"
+        // Create attendance records for some past sessions
+        if (sessionTime < new Date()) {
+          const status = getRandomItem([
+            'Present', 'Present', 'Present', 'Present', 'Absent', 
+            'Cancelled by Student', 'Cancelled by Teacher'
+          ]) as AttendanceStatus;
+          
+          const { data: updatedSession, error: statusError } = await supabase
+            .from('sessions')
+            .update({ status })
+            .eq('id', sessionId)
+            .select();
+            
+          if (statusError) {
+            console.error(`Error updating session status: ${statusError.message}`);
+          } else {
+            // Log attendance event
+            const { data: attendanceData, error: attendanceError } = await supabase
+              .from('attendance_events')
+              .insert([{
+                session_id: sessionId,
+                status,
+                marked_by_user_id: getRandomItem(admins).id || assignedTeacher.id,
+                notes: status === 'Present' 
+                  ? 'Student attended on time' 
+                  : (status === 'Absent' 
+                    ? 'Student did not show up' 
+                    : `Session ${status.toLowerCase()}`)
+              }])
+              .select();
+              
+            if (attendanceError) {
+              console.error(`Error creating attendance event: ${attendanceError.message}`);
+            } else {
+              results.attendance.push(attendanceData?.[0]);
+            }
+            
+            // Add student feedback for completed sessions
+            if (status === 'Present' && Math.random() > 0.5) {
+              const rating = 3 + Math.floor(Math.random() * 3); // 3-5 stars
+              const { data: feedbackData, error: feedbackError } = await supabase
+                .from('student_feedback')
+                .insert([{
+                  student_id: student.id,
+                  teacher_id: assignedTeacher.id,
+                  session_id: sessionId,
+                  feedback_text: `Great ${subject} session! Learned a lot about technique.`,
+                  rating
+                }])
+                .select();
+                
+              if (feedbackError) {
+                console.error(`Error creating feedback: ${feedbackError.message}`);
+              } else {
+                results.feedback.push(feedbackData?.[0]);
+              }
+            }
           }
         }
-      ];
-
-      const { error: settingsError } = await supabase
-        .from('system_settings')
-        .insert(systemSettings);
-
-      if (settingsError) {
-        console.error('Error creating system settings:', settingsError);
-        throw settingsError;
       }
-      console.log(`Created ${systemSettings.length} system settings`);
     }
-
-    return {
-      teachers: teacherUsers,
-      students: studentUsers,
-      admins: adminUsers,
-      courses: createdCourses,
-      sessionPlans: createdPlans,
-      packs: createdPacks,
-      sessions: createdSessions,
-      enrollments: createdEnrollments,
-      feePlans: createdFeePlans,
-      invoices: createdInvoices,
-      payments
-    };
-
-  } catch (error) {
-    console.error('Error populating database:', error);
+    
+    // Step 5: Create enrollments and progress records
+    const availableCourses = results.courses;
+    for (const student of students) {
+      // Enroll each student in 1-2 courses
+      const enrollmentCount = Math.floor(Math.random() * 2) + 1;
+      
+      for (let i = 0; i < Math.min(enrollmentCount, availableCourses.length); i++) {
+        const course = availableCourses[i];
+        const startDate = subDays(new Date(), 30 + Math.floor(Math.random() * 60));
+        
+        const { data: enrollmentData, error: enrollmentError } = await supabase
+          .from('enrollments')
+          .insert([{
+            student_id: student.id,
+            course_id: course.id,
+            start_date: formatDate(startDate),
+            status: 'active',
+            completion_percentage: Math.floor(Math.random() * 101), // 0-100%
+            notes: Math.random() > 0.7 ? 'Student is progressing well' : null
+          }])
+          .select();
+          
+        if (enrollmentError) {
+          console.error(`Error creating enrollment: ${enrollmentError.message}`);
+          continue;
+        }
+        
+        results.enrollments.push(enrollmentData?.[0]);
+        
+        // Add progress records
+        const enrollmentId = enrollmentData?.[0]?.id;
+        const maxModules = 10;
+        const completedModules = Math.floor(Math.random() * maxModules);
+        
+        for (let module = 1; module <= completedModules; module++) {
+          const { data: progressData, error: progressError } = await supabase
+            .from('student_progress')
+            .insert([{
+              enrollment_id: enrollmentId,
+              module_number: module,
+              session_number: module,
+              completion_percentage: Math.round((module / maxModules) * 100),
+              last_updated_by: getRandomItem([...teachers, ...admins]).id,
+              teacher_notes: Math.random() > 0.6 ? `Completed module ${module} successfully` : null,
+              student_notes: Math.random() > 0.8 ? `I found this module challenging but rewarding` : null
+            }])
+            .select();
+            
+          if (progressError) {
+            console.error(`Error creating progress record: ${progressError.message}`);
+          } else {
+            results.progress = results.progress || [];
+            results.progress.push(progressData?.[0]);
+          }
+        }
+      }
+    }
+    
+    // Step 6: Create fee plans, invoices and payments
+    for (const student of students) {
+      // Create a fee plan with 3 payment installments
+      const totalAmount = 800 + Math.floor(Math.random() * 400); // $800-$1200
+      const installmentAmount = Math.round(totalAmount / 3);
+      const remainder = totalAmount - (installmentAmount * 2);
+      
+      const firstDueDate = subDays(new Date(), 60);
+      const secondDueDate = addDays(firstDueDate, 30);
+      const thirdDueDate = addDays(secondDueDate, 30);
+      
+      const dueDates = [
+        { date: formatDate(firstDueDate), amount: installmentAmount },
+        { date: formatDate(secondDueDate), amount: installmentAmount },
+        { date: formatDate(thirdDueDate), amount: remainder }
+      ];
+      
+      const lateFeePolicy = {
+        rate_per_day: 1,
+        maximum: 50
+      };
+      
+      const { data: feePlanData, error: feePlanError } = await supabase
+        .from('fee_plans')
+        .insert([{
+          student_id: student.id,
+          plan_title: `Music Lessons ${format(new Date(), 'yyyy')} - ${student.name}`,
+          total_amount: totalAmount,
+          due_dates: dueDates,
+          late_fee_policy: lateFeePolicy
+        }])
+        .select();
+        
+      if (feePlanError) {
+        console.error(`Error creating fee plan: ${feePlanError.message}`);
+        continue;
+      }
+      
+      const feePlanId = feePlanData?.[0]?.id;
+      results.feePlans.push(feePlanData?.[0]);
+      
+      // Create invoices for each due date
+      for (let i = 0; i < dueDates.length; i++) {
+        const dueDate = new Date(dueDates[i].date);
+        const amount = dueDates[i].amount;
+        
+        const { data: invoiceData, error: invoiceError } = await supabase
+          .from('invoices')
+          .insert([{
+            student_id: student.id,
+            plan_id: feePlanId,
+            amount,
+            due_date: formatDate(dueDate),
+            status: dueDate < new Date() ? 'paid' : 'pending',
+            notes: `Installment ${i + 1} of 3`
+          }])
+          .select();
+          
+        if (invoiceError) {
+          console.error(`Error creating invoice: ${invoiceError.message}`);
+          continue;
+        }
+        
+        results.invoices.push(invoiceData?.[0]);
+        
+        // Add payment for past due invoices
+        if (dueDate < new Date()) {
+          const paymentDate = addDays(dueDate, -1 * Math.floor(Math.random() * 5)); // Paid 0-5 days before due date
+          
+          const { data: paymentData, error: paymentError } = await supabase
+            .from('payments')
+            .insert([{
+              student_id: student.id,
+              fee_plan_id: feePlanId,
+              amount_paid: amount,
+              paid_at: formatDate(paymentDate),
+              payment_mode: getRandomItem(['Credit Card', 'Bank Transfer', 'Cash']),
+              notes: `Payment for installment ${i + 1}`
+            }])
+            .select();
+            
+          if (paymentError) {
+            console.error(`Error creating payment: ${paymentError.message}`);
+          } else {
+            results.payments.push(paymentData?.[0]);
+          }
+        }
+      }
+    }
+    
+    // Step 7: Create teacher time slots
+    for (const teacher of teachers) {
+      // Create 3-5 weekly time slots
+      const slotCount = Math.floor(Math.random() * 3) + 3;
+      
+      for (let i = 0; i < slotCount; i++) {
+        const day = i % 5; // Monday (0) to Friday (4)
+        const startHour = 13 + Math.floor(Math.random() * 6); // 1 PM - 6 PM
+        
+        const { data: slotData, error: slotError } = await supabase
+          .from('time_slots')
+          .insert([{
+            teacher_id: teacher.id,
+            day,
+            start_time: `${startHour}:00:00`,
+            end_time: `${startHour + 1}:00:00`,
+            location: getRandomLocation(),
+            is_recurring: true
+          }])
+          .select();
+          
+        if (slotError) {
+          console.error(`Error creating time slot: ${slotError.message}`);
+        } else {
+          results.timeSlots.push(slotData?.[0]);
+        }
+      }
+    }
+    
+    // Step 8: Create reminders
+    for (const student of students) {
+      const sessionReminder = {
+        recipient_id: student.id,
+        type: 'session',
+        channel: 'email',
+        send_at: formatDate(addDays(new Date(), 1)),
+        message: 'Reminder: You have a music lesson scheduled tomorrow',
+        status: 'pending',
+        related_id: results.sessions.find(s => 
+          results.sessions.find(ss => ss.id === s.id)?.students?.some(
+            st => st.student_id === student.id
+          )
+        )?.id
+      };
+      
+      const paymentReminder = {
+        recipient_id: student.id,
+        type: 'payment',
+        channel: 'email',
+        send_at: formatDate(addDays(new Date(), 3)),
+        message: 'Reminder: Your next payment is due in 3 days',
+        status: 'pending',
+        related_id: results.invoices.find(i => i.student_id === student.id && i.status === 'pending')?.id
+      };
+      
+      const { data: reminderData, error: reminderError } = await supabase
+        .from('reminders')
+        .insert([sessionReminder, paymentReminder])
+        .select();
+        
+      if (reminderError) {
+        console.error(`Error creating reminders: ${reminderError.message}`);
+      } else {
+        results.reminders.push(...(reminderData || []));
+      }
+    }
+    
+    // Step 9: Add system settings
+    const systemSettings = [
+      {
+        category: 'email',
+        key: 'reminder_template',
+        value: { subject: 'Reminder: Upcoming Lesson', body: 'Hello {{student_name}}, this is a reminder about your lesson.' }
+      },
+      {
+        category: 'fees',
+        key: 'default_late_fee',
+        value: { rate_per_day: 1, maximum: 50 }
+      },
+      {
+        category: 'dashboard',
+        key: 'default_view',
+        value: { role: 'admin', page: 'overview' }
+      }
+    ];
+    
+    for (const setting of systemSettings) {
+      const { data: settingData, error: settingError } = await supabase
+        .from('system_settings')
+        .insert([setting])
+        .select();
+        
+      if (settingError) {
+        console.error(`Error creating system setting: ${settingError.message}`);
+      } else {
+        results.settings.push(settingData?.[0]);
+      }
+    }
+    
+    console.log('Database seeding completed successfully');
+    return results;
+    
+  } catch (error: any) {
+    console.error('Database seeding failed:', error.message);
     throw error;
   }
-};
-
-// Export a function to be called from UI
-export const runDatabaseSeeding = async (): Promise<void> => {
-  try {
-    toast.info('Starting to populate database with test data...');
-    const data = await populateDatabase();
-    toast.success(`Successfully populated database with test data!`);
-    
-    // Log results
-    console.log(`
-      Data seeding completed successfully:
-      - Teachers: ${data.teachers.length}
-      - Students: ${data.students.length}
-      - Admins: ${data.admins.length}
-      - Courses: ${data.courses.length}
-      - Session Plans: ${data.sessionPlans.length}
-      - Session Packs: ${data.packs.length}
-      - Sessions: ${data.sessions.length}
-      - Enrollments: ${data.enrollments.length}
-      - Fee Plans: ${data.feePlans.length}
-      - Invoices: ${data.invoices.length}
-      - Payments: ${data.payments.length}
-    `);
-    
-    return data;
-  } catch (error) {
-    console.error('Error running database seeding:', error);
-    toast.error('Failed to populate database. Check the console for details.');
-    throw error;
-  }
-};
+}

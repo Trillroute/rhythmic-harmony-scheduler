@@ -1,8 +1,21 @@
 
+# This is the Supabase project configuration file
+
 project_id = "kahnxnzjftqijavjqias"
+
+[api]
+# Port that the API server runs on (matches PORT env var)
+port = 54321
+# JWT secret used for signing service role tokens
+# jwt_secret = ""
+# Max rows that can be returned in a single response
+max_rows = 1000
 
 [functions.payment-reminders]
 verify_jwt = true
 
 [functions.process-bulk-upload]
+verify_jwt = true
+
+[functions.seed-database]
 verify_jwt = true

@@ -1,33 +1,38 @@
 
 import React, { useState } from 'react';
-import { runDatabaseSeeding } from '@/utils/seed-data';
+import { runDatabaseSeeding, SeededData } from '@/utils/seed-data';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
-import { CheckCircle2, Loader2 } from 'lucide-react';
+import { CheckCircle2, Loader2, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 
 const SeedDatabase = () => {
   const [loading, setLoading] = useState(false);
   const [completed, setCompleted] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [stats, setStats] = useState<Record<string, number>>({});
 
   const handlePopulateDatabase = async () => {
     try {
       setLoading(true);
       setCompleted(false);
+      setError(null);
       
       // First check if we have existing users
       const { data: profiles, error } = await supabase.from('profiles').select('id, role').limit(1);
       
       if (error) {
         toast.error('Error checking profiles: ' + error.message);
+        setError('Error checking profiles: ' + error.message);
         return;
       }
       
       if (!profiles || profiles.length === 0) {
-        toast.error('No existing user profiles found. Please create users first before running the database seeder.');
+        const errorMsg = 'No existing user profiles found. Please create users first before running the database seeder.';
+        toast.error(errorMsg);
+        setError(errorMsg);
         return;
       }
       
@@ -43,16 +48,23 @@ const SeedDatabase = () => {
         sessionPlans: result.sessionPlans.length,
         packs: result.packs.length,
         sessions: result.sessions.length,
-        enrollments: result.enrollments.length,
+        enrollments: result.enrollments?.length || 0,
         feePlans: result.feePlans.length,
         invoices: result.invoices.length,
         payments: result.payments.length,
+        attendance: result.attendance?.length || 0,
+        feedback: result.feedback?.length || 0,
+        timeSlots: result.timeSlots?.length || 0,
+        reminders: result.reminders?.length || 0,
+        settings: result.settings?.length || 0
       });
       
       setCompleted(true);
       toast.success('Database populated successfully!');
     } catch (error: any) {
-      toast.error('Error populating database: ' + error.message);
+      const errorMsg = `Error populating database: ${error.message}`;
+      toast.error(errorMsg);
+      setError(errorMsg);
       console.error('Error:', error);
     } finally {
       setLoading(false);
@@ -82,6 +94,13 @@ const SeedDatabase = () => {
             <li>Time slots, reminders &amp; system settings</li>
           </ul>
         </div>
+        
+        {error && (
+          <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-md text-red-800 flex items-start">
+            <AlertCircle className="h-5 w-5 mr-2 mt-0.5 flex-shrink-0" />
+            <div>{error}</div>
+          </div>
+        )}
         
         <Button 
           onClick={handlePopulateDatabase} 

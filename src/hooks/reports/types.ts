@@ -5,31 +5,57 @@ export interface ReportPeriod {
 }
 
 export interface AttendanceData {
+  total: number;
+  present: number;
+  absent: number;
+  cancelled: number;
+  noShow: number;
   categories: string[];
   data: number[];
+  distribution: { status: string; count: number }[];
   chartData: { date: string; present: number; total: number }[];
 }
 
 export interface SubjectDistributionItem {
   subject: string;
   count: number;
+  name: string; // For backward compatibility
+  value: number; // For backward compatibility
 }
 
-export interface SubjectDistributionData extends Array<SubjectDistributionItem> {}
+export type SubjectDistributionData = SubjectDistributionItem[];
 
 export interface SessionTypeItem {
-  type: string;
-  subjects: { [key: string]: number };
+  sessionType: string;
+  type: string; // For backward compatibility
   count: number;
+  subjects: { subject: string; count: number }[];
 }
 
-export interface SessionTypeData extends Array<SessionTypeItem> {}
+export type SessionTypeData = SessionTypeItem[];
 
-export interface SessionsReportData extends Array<{ date: string; count: number }> {}
+export interface SessionsReportData {
+  months: string[];
+  counts: number[];
+}
 
 export interface StudentProgressItem {
-  student: string;
-  progress: number;
+  student: {
+    id: string;
+    name: string;
+  };
+  progress: {
+    id: string;
+    courseName: string;
+    instrument: string;
+    completionPercentage: number;
+  };
+  // For backward compatibility
+  id: string;
+  studentName: string;
+  courseName: string;
+  instrument: string;
+  completionPercentage: number;
 }
 
-export interface StudentProgressData extends Array<StudentProgressItem> {}
+export type StudentProgressData = StudentProgressItem[];
