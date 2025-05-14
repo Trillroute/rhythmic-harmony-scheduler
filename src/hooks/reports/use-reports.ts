@@ -1,53 +1,74 @@
 
-import { useQuery } from "@tanstack/react-query";
-import { useAttendanceReport } from "./attendance-report";
-import { useSubjectDistributionReport } from "./subject-distribution-report";
-import { useSessionTypeReport } from "./session-type-report";
-import { useSessionsReport } from "./sessions-report";
-import { useStudentProgressReport } from "./student-progress-report";
-import { ReportPeriod } from "./types";
+import { startOfWeek, startOfMonth, subMonths } from 'date-fns';
+import { useQuery } from '@tanstack/react-query';
 
-export function useReports() {
-  const attendance = useAttendanceReport();
-  const subjectDistribution = useSubjectDistributionReport();
-  const sessionType = useSessionTypeReport();
-  const sessions = useSessionsReport();
-  const studentProgress = useStudentProgressReport();
+import { useAttendanceReport } from './attendance-report';
+import { useSessionTypeReport } from './session-type-report';
+import { useSessionsReport } from './sessions-report';
+import { useSubjectDistributionReport } from './subject-distribution-report';
+import { useStudentProgressReport } from './student-progress-report';
+import type { ReportPeriod } from './types';
 
-  const fetchReports = async (period: ReportPeriod) => {
-    try {
-      // Use promise.all to fetch data in parallel
-      await Promise.all([
-        attendance.fetchAttendanceData(period),
-        // Use correct function names from the respective hooks
-        subjectDistribution.fetchSubjectData(period),
-        sessionType.fetchData(period),
-        sessions.fetchData(period),
-        studentProgress.fetchData()
-      ]);
-    } catch (error) {
-      console.error("Error fetching reports:", error);
+export const useReports = (period: ReportPeriod = 'week') => {
+  // Get start date based on period
+  const getStartDate = () => {
+    const now = new Date();
+    switch (period) {
+      case 'week':
+        return startOfWeek(now);
+      case 'month':
+        return startOfMonth(now);
+      case 'quarter':
+        return subMonths(now, 3);
+      case 'year':
+        return subMonths(now, 12);
+      default:
+        return startOfWeek(now);
     }
   };
 
+  // Attendance data
+  const attendance = useAttendanceReport(getStartDate());
+  
+  // Subject distribution data
+  const subjectDistribution = useSubjectDistributionReport();
+  
+  // Student progress data
+  const studentProgress = useStudentProgressReport();
+  
+  // Session type data
+  const sessionType = useSessionTypeReport(getStartDate());
+  
+  // Sessions over time data
+  const sessions = useSessionsReport(getStartDate(), period);
+
   return {
-    fetchReports,
     attendance,
     subjectDistribution,
+    studentProgress,
     sessionType,
     sessions,
-    studentProgress,
     isLoading: 
       attendance.isLoading || 
       subjectDistribution.isLoading || 
+      studentProgress.isLoading || 
       sessionType.isLoading || 
-      sessions.isLoading || 
-      studentProgress.isLoading,
-    error: 
-      attendance.error || 
-      subjectDistribution.error || 
-      sessionType.error || 
-      sessions.error || 
-      studentProgress.error
+      sessions.isLoading,
+    isError:
+      attendance.isError ||
+      subjectDistribution.isError ||
+      studentProgress.isError ||
+      sessionType.isError ||
+      sessions.isError,
+    refetch: () => {
+      attendance.refetch();
+      subjectDistribution.refetch();
+      studentProgress.refetch();
+      sessionType.refetch();
+      sessions.refetch();
+    }
   };
-}
+};
+
+// Re-export types for backward compatibility
+export type { ReportPeriod, AttendanceData, SubjectDistributionData, SessionTypeData, SessionsReportData, StudentProgressData } from "./types";

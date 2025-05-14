@@ -148,7 +148,7 @@ export const StudentEditDialog: React.FC<StudentEditDialogProps> = ({
                   <div className="space-y-2">
                     <Label htmlFor="assignedTeacher">Assigned Teacher</Label>
                     <Select 
-                      value={selectedTeacherId} 
+                      value={selectedTeacherId || "none"} 
                       onValueChange={setSelectedTeacherId}
                     >
                       <SelectTrigger>
@@ -157,7 +157,7 @@ export const StudentEditDialog: React.FC<StudentEditDialogProps> = ({
                       <SelectContent>
                         <SelectGroup>
                           <SelectLabel>Teachers</SelectLabel>
-                          <SelectItem value="">None</SelectItem>
+                          <SelectItem value="none">None</SelectItem>
                           {teachers.map((teacher: Teacher) => (
                             <SelectItem key={teacher.id} value={teacher.id}>
                               {teacher.name}

@@ -15,12 +15,13 @@ declare type PaymentStatus = "paid" | "pending" | "overdue" | "partial";
 
 // Add FeePlanSummary interface to match what's used in FeePlanDetails
 interface FeePlanSummary {
-  paidAmount: number;
-  dueAmount: number;
-  paymentPercentage: number;
-  nextDueDate: {
+  paid_amount: number;
+  due_amount: number;
+  payment_percentage: number;
+  next_due_date: {
     date: string | Date;
     amount: number;
   } | null;
   status: PaymentStatus;
 }
+

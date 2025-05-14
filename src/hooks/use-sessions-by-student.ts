@@ -1,110 +1,52 @@
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { Session } from "@/lib/types";
 
-import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
-import { toast } from '@/hooks/use-toast';
-import { Session, FilterOptions } from '@/lib/types';
-import { assertStringArray } from '@/lib/type-utils';
+interface Filters {
+  studentId?: string;
+  dateRange?: { from: string; to: string };
+  status?: string[];
+}
 
-export const useSessionsByStudent = (
-  studentId: string | undefined, 
-  filters?: Partial<FilterOptions>
-) => {
-  const query = useQuery({
-    queryKey: ['sessions', 'student', studentId, filters],
-    queryFn: async (): Promise<any[]> => {
-      if (!studentId) return [];
+export const useSessionsByStudent = (filters: Filters) => {
+  const fetchSessions = async () => {
+    let query = supabase
+      .from('sessions')
+      .select('*')
+      .eq('student_id', filters.studentId);
 
-      const { data: sessionIds, error: sessionIdsError } = await supabase
-        .from('session_students')
-        .select('session_id')
-        .eq('student_id', studentId);
+    query = buildQueryFilters(query, filters);
 
-      if (sessionIdsError) {
-        toast({
-          title: 'Error fetching sessions',
-          description: sessionIdsError.message,
-          variant: 'destructive',
-        });
-        throw sessionIdsError;
-      }
+    const { data: sessions, error } = await query;
 
-      if (!sessionIds || sessionIds.length === 0) {
-        return [];
-      }
+    if (error) {
+      console.error("Error fetching sessions:", error);
+      throw error;
+    }
 
-      let query = supabase
-        .from('sessions')
-        .select(`
-          id,
-          subject,
-          session_type,
-          location,
-          date_time,
-          duration,
-          status,
-          notes,
-          teacher_id,
-          teachers:teachers (
-            id,
-            profiles:profiles (
-              name
-            )
-          )
-        `)
-        .in('id', sessionIds.map(item => item.session_id))
-        .order('date_time', { ascending: false });
-
-      // Apply date filters if provided
-      if (filters?.startDate) {
-        query = query.gte('date_time', new Date(filters.startDate).toISOString());
-      }
-      if (filters?.endDate) {
-        query = query.lte('date_time', new Date(filters.endDate).toISOString());
-      }
-
-      // Apply status filter if provided
-      if (filters?.status) {
-        // Convert string or array of strings to array safely using assertStringArray
-        const statusArray = Array.isArray(filters.status) ? 
-          assertStringArray(filters.status) : 
-          assertStringArray([filters.status]);
-        
-        if (statusArray.length > 0) {
-          query = query.in('status', statusArray);
-        }
-      }
-
-      const { data, error } = await query;
-
-      if (error) {
-        toast({
-          title: 'Error fetching sessions',
-          description: error.message,
-          variant: 'destructive',
-        });
-        throw error;
-      }
-
-      // Transform data to match Session type with teacher name
-      return (data || []).map((item: any) => ({
-        id: item.id,
-        teacherId: item.teacher_id,
-        teacherName: item.teachers?.profiles?.name,
-        subject: item.subject,
-        sessionType: item.session_type,
-        location: item.location,
-        dateTime: item.date_time,
-        duration: item.duration,
-        status: item.status,
-        notes: item.notes,
-      }));
-    },
-    enabled: !!studentId,
-  });
-
-  return {
-    sessions: query.data || [],
-    isLoading: query.isLoading,
-    error: query.error
+    return sessions as Session[];
   };
+
+  return useQuery({
+    queryKey: ['sessions', 'student', filters],
+    queryFn: fetchSessions,
+    enabled: !!filters.studentId, // Only run query if studentId is provided
+  });
 };
+
+// Function to build query filters dynamically
+function buildQueryFilters(query: any, filters: Filters) {
+  if (filters.dateRange) {
+    query = query.gte('date', filters.dateRange.from);
+    query = query.lte('date', filters.dateRange.to);
+  }
+
+  // Modify the buildQueryFilters function to properly cast status values
+  if (filters.status && filters.status.length > 0) {
+    // Cast the status array to string[] to match what Supabase expects
+    const statusValues = filters.status as string[];
+    query = query.in('status', statusValues);
+  }
+
+  return query;
+}

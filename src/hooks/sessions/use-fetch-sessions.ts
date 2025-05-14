@@ -1,123 +1,120 @@
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { Session, SessionStatus } from "@/lib/types";
+import { format, parseISO } from "date-fns";
 
-import { useState, useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client';
-import { AttendanceStatus, SessionWithStudents } from '@/lib/types';
-import { useAuth } from '@/contexts/AuthContext';
-import { transformSessionWithStudents } from './session-transformers';
-import { SessionsProps } from './types';
-import { assertAttendanceStatusArray, assertStringArray } from '@/lib/type-utils';
+export type SessionFilters = {
+  teacherId?: string;
+  studentId?: string;
+  status?: SessionStatus[];
+  subject?: string;
+  dateFrom?: Date;
+  dateTo?: Date;
+  search?: string;
+  page?: number;
+  pageSize?: number;
+};
 
-/**
- * Hook to fetch sessions with optional filters
- */
-export const useFetchSessions = ({ 
-  teacherId, 
-  studentId,
-  fromDate,
-  toDate,
-  status 
-}: SessionsProps = {}) => {
-  const [sessions, setSessions] = useState<SessionWithStudents[]>([]);
-  const [loading, setLoading] = useState<boolean>(true);
-  const [error, setError] = useState<Error | null>(null);
-  const { user } = useAuth();
-  const userId = user?.id;
-  const userRole = user?.role;
-  
-  // Reset error when filter props change
-  useEffect(() => {
-    setError(null);
-  }, [teacherId, studentId, fromDate, toDate, status?.join(',')]);
-  
-  // Fetch sessions based on filters
-  const fetchSessions = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      
+export const useFetchSessions = (filters: SessionFilters = {}) => {
+  const pageSize = filters.pageSize || 10;
+  const page = filters.page || 1;
+
+  const buildQueryFilters = (query: any) => {
+    // Apply filters
+    if (filters.teacherId) {
+      query = query.eq('teacher_id', filters.teacherId);
+    }
+
+    if (filters.studentId) {
+      query = query.eq('student_id', filters.studentId);
+    }
+
+    if (filters.status && filters.status.length > 0) {
+      // Cast the status array to string[] to match what Supabase expects
+      const statusValues = filters.status as string[];
+      query = query.in('status', statusValues);
+    }
+
+    if (filters.subject) {
+      query = query.eq('subject', filters.subject);
+    }
+
+    if (filters.dateFrom) {
+      query = query.gte('scheduled_at', format(filters.dateFrom, "yyyy-MM-dd"));
+    }
+
+    if (filters.dateTo) {
+      query = query.lte('scheduled_at', format(filters.dateTo, "yyyy-MM-dd"));
+    }
+
+    if (filters.search) {
+      query = query.or(`notes.ilike.%${filters.search}%,location.ilike.%${filters.search}%`);
+    }
+
+    return query;
+  };
+
+  return useQuery({
+    queryKey: ['sessions', filters],
+    queryFn: async () => {
+      // Build the base query
       let query = supabase
         .from('sessions')
         .select(`
           *,
-          profiles:teacher_id (name),
-          session_students (student_id, profiles:student_id (name))
+          teachers:teacher_id(id, name),
+          students:student_id(id, name)
         `);
-      
+
       // Apply filters
-      if (teacherId) {
-        query = query.eq('teacher_id', teacherId);
-      }
+      query = buildQueryFilters(query);
+
+      // Apply pagination
+      const from = (page - 1) * pageSize;
+      const to = from + pageSize - 1;
       
-      if (fromDate) {
-        query = query.gte('date_time', fromDate.toISOString());
+      // Get count for pagination
+      const { count } = await buildQueryFilters(
+        supabase.from('sessions').select('*', { count: 'exact', head: true })
+      );
+
+      // Execute the query with pagination
+      const { data, error } = await query
+        .order('scheduled_at', { ascending: false })
+        .range(from, to);
+
+      if (error) {
+        console.error('Error fetching sessions:', error);
+        throw new Error(error.message);
       }
-      
-      if (toDate) {
-        query = query.lte('date_time', toDate.toISOString());
-      }
-      
-      // Filter by status if provided
-      if (status && Array.isArray(status) && status.length > 0) {
-        // Check if the 'all' option is included or no filter is applied
-        const hasAllOption = status.some(s => s === 'all' || s === '');
-        
-        if (!hasAllOption) {
-          // Convert status strings to valid database values
-          const validStatuses = assertStringArray(status);
-          
-          if (validStatuses.length > 0) {
-            query = query.in('status', validStatuses);
-          }
+
+      // Transform the data to match our Session type
+      const sessions: Session[] = data.map(item => ({
+        id: item.id,
+        teacherId: item.teacher_id,
+        teacherName: item.teachers?.name || 'Unknown',
+        studentId: item.student_id,
+        studentName: item.students?.name || 'Unknown',
+        subject: item.subject,
+        status: item.status as SessionStatus,
+        scheduledAt: parseISO(item.scheduled_at),
+        duration: item.duration,
+        location: item.location,
+        notes: item.notes,
+        createdAt: parseISO(item.created_at),
+        updatedAt: parseISO(item.updated_at),
+      }));
+
+      return {
+        sessions,
+        pagination: {
+          page,
+          pageSize,
+          totalCount: count || 0,
+          totalPages: Math.ceil((count || 0) / pageSize),
         }
-      }
-      
-      // Apply role-based filters
-      if (userRole === 'teacher' && !teacherId && userId) {
-        query = query.eq('teacher_id', userId);
-      } else if (userRole === 'student' && !studentId && userId) {
-        query = query.eq('session_students.student_id', userId);
-      }
-      
-      // Order by date/time
-      query = query.order('date_time', { ascending: true });
-      
-      const { data, error: fetchError } = await query;
-      
-      if (fetchError) {
-        throw new Error(`Error fetching sessions: ${fetchError.message}`);
-      }
-      
-      if (!data) {
-        setSessions([]);
-        return;
-      }
-      
-      // Transform the data to include student information
-      const transformedSessions = data.map(transformSessionWithStudents);
-      
-      // Further filter by student if needed
-      const filteredSessions = studentId 
-        ? transformedSessions.filter(session => 
-            session.studentIds.includes(studentId))
-        : transformedSessions;
-      
-      setSessions(filteredSessions);
-    } catch (err) {
-      console.error('Error fetching sessions:', err);
-      setError(err instanceof Error ? err : new Error('Failed to fetch sessions'));
-    } finally {
-      setLoading(false);
-    }
-  };
-  
-  useEffect(() => {
-    fetchSessions();
-  }, [teacherId, studentId, fromDate, toDate, status?.join(','), userId, userRole]);
-  
-  return {
-    sessions,
-    loading,
-    error,
-    refreshSessions: fetchSessions
-  };
+      };
+    },
+    enabled: true,
+  });
 };
