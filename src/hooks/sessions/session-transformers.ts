@@ -1,59 +1,60 @@
-
-import { Session, SessionWithStudents } from "@/lib/types";
+import { Session } from "@/lib/types";
 import { supabase } from "@/integrations/supabase/client";
 
-/**
- * Transforms a raw session from Supabase into a SessionWithStudents object
- * Handles fetching student names if needed
- */
-export const transformSessionWithStudents = async (rawSession: any): Promise<SessionWithStudents> => {
-  // Extract student IDs from session_students array
-  const studentIds = rawSession.session_students?.map((s: any) => s.student_id) || [];
-  
-  // Fetch student names if we have student IDs
-  let studentNames: string[] = [];
+export const transformSessionWithStudents = async (sessionData: any): Promise<Session> => {
+  // Fetch student profiles based on student IDs in session_students
+  const studentIds = sessionData.session_students.map((s: any) => s.student_id);
+
+  // Fetch profiles for all student IDs
+  let studentProfiles: Record<string, any> = {};
   if (studentIds.length > 0) {
-    try {
-      const { data: students } = await supabase
-        .from('profiles')
-        .select('id, name')
-        .in('id', studentIds);
-      
-      if (students && students.length > 0) {
-        // Map student IDs to their names, preserving order
-        studentNames = studentIds.map(id => {
-          const student = students.find(s => s.id === id);
-          return student ? student.name : 'Unknown Student';
-        });
-      }
-    } catch (error) {
-      console.error("Error fetching student names:", error);
+    const { data: profilesData, error: profilesError } = await supabase
+      .from('profiles')
+      .select('id, name, email')
+      .in('id', studentIds);
+
+    if (profilesError) {
+      console.error('Error fetching student profiles:', profilesError);
+    } else if (profilesData) {
+      // Index profiles by ID for quick lookup
+      studentProfiles = profilesData.reduce((acc, profile) => {
+        acc[profile.id] = profile;
+        return acc;
+      }, {} as Record<string, any>);
     }
   }
-  
-  // Get teacher name if available
-  const teacherName = rawSession.profiles?.name || 'Unknown Teacher';
-  
-  // Transform to our SessionWithStudents type
+
+  const students = sessionData.session_students.map((student: any) => {
+    const profile = studentProfiles[student.student_id];
+    return {
+      id: student.student_id,
+      name: profile?.name || 'Unknown Student',
+      email: profile?.email || 'unknown@example.com',
+    };
+  });
+
   return {
-    id: rawSession.id,
-    teacherId: rawSession.teacher_id,
-    teacherName,
-    packId: rawSession.pack_id,
-    subject: rawSession.subject,
-    sessionType: rawSession.session_type,
-    location: rawSession.location,
-    dateTime: rawSession.date_time,
-    duration: rawSession.duration,
-    status: rawSession.status,
-    notes: rawSession.notes || '',
-    studentIds,
-    studentNames,
-    rescheduleCount: rawSession.reschedule_count || 0,
-    createdAt: rawSession.created_at,
-    updatedAt: rawSession.updated_at,
-    recurrenceRule: rawSession.recurrence_rule || undefined,
-    originalSessionId: rawSession.original_session_id || undefined,
-    rescheduledFrom: rawSession.rescheduled_from || undefined
+    id: sessionData.id,
+    dateTime: sessionData.date_time,
+    duration: sessionData.duration,
+    location: sessionData.location,
+    notes: sessionData.notes,
+    teacherId: sessionData.teacher_id,
+    subject: sessionData.subject,
+    sessionType: sessionData.session_type,
+    status: sessionData.status,
+    packId: sessionData.pack_id,
+    students: students,
+    teacher: {
+      id: sessionData.profiles.id,
+      name: sessionData.profiles.name,
+      email: sessionData.profiles.email,
+    },
   };
+};
+
+// Add this function if it doesn't exist yet
+export const transformSessionUpdate = async (sessionData) => {
+  // Just return the raw session data for now, we can enhance this later if needed
+  return sessionData;
 };

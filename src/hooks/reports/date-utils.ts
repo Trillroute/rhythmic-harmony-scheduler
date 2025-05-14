@@ -1,8 +1,8 @@
 
 import { ReportPeriod } from "./types";
-import { startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfYear, endOfYear } from "date-fns";
+import { startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfYear, endOfYear, subDays } from "date-fns";
 
-export function getDateRangeFromPeriod(period: ReportPeriod) {
+export function getPeriodDateRange(period: ReportPeriod) {
   const now = new Date();
   
   switch (period) {
@@ -21,6 +21,11 @@ export function getDateRangeFromPeriod(period: ReportPeriod) {
         startDate: startOfYear(now),
         endDate: endOfYear(now)
       };
+    case 'last30days':
+      return {
+        startDate: subDays(now, 30),
+        endDate: now
+      };
     default:
       return {
         startDate: startOfMonth(now),
@@ -28,6 +33,3 @@ export function getDateRangeFromPeriod(period: ReportPeriod) {
       };
   }
 }
-
-// Add an alias for backward compatibility
-export const getDateRangeForPeriod = getDateRangeFromPeriod;

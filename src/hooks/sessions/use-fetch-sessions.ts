@@ -50,8 +50,8 @@ export const useFetchSessions = (props: SessionsProps) => {
       query = query.range(from, to).order('date_time', { ascending: false });
 
       if (status && status.length > 0) {
-        // Convert array of AttendanceStatus to string array for Supabase
-        const statusStrings = status.map(s => s.toString());
+        // Convert array of AttendanceStatus to string array 
+        const statusStrings = status.map(s => s as string);
         query = query.in('status', statusStrings);
       }
 
@@ -87,11 +87,38 @@ export const useFetchSessions = (props: SessionsProps) => {
         }
       }
 
-      // Add students to each session
-      const sessionsWithStudents = sessionsData.map(session => ({
-        ...session,
-        session_students: studentsBySession[session.id] || []
-      }));
+      // Fetch profiles for all student IDs
+      const studentIds = Object.values(studentsBySession).flat().map(s => s.student_id);
+      let studentProfiles: Record<string, any> = {};
+      
+      if (studentIds.length > 0) {
+        const { data: profilesData, error: profilesError } = await supabase
+          .from('profiles')
+          .select('id, name, email')
+          .in('id', studentIds);
+          
+        if (profilesError) {
+          console.error('Error fetching student profiles:', profilesError);
+        } else if (profilesData) {
+          // Index profiles by ID for quick lookup
+          studentProfiles = profilesData.reduce((acc, profile) => {
+            acc[profile.id] = profile;
+            return acc;
+          }, {} as Record<string, any>);
+        }
+      }
+
+      // Add students to each session with their profile data
+      const sessionsWithStudents = sessionsData.map(session => {
+        const sessionStudents = studentsBySession[session.id] || [];
+        return {
+          ...session,
+          session_students: sessionStudents.map(s => ({
+            ...s,
+            profile: studentProfiles[s.student_id] || null
+          }))
+        };
+      });
 
       // Filter by student if needed (after we have the session_students data)
       const filteredSessions = studentId 
@@ -100,9 +127,10 @@ export const useFetchSessions = (props: SessionsProps) => {
           ) 
         : sessionsWithStudents;
 
-      // Transform each session (now with all required data)
-      const transformPromises = filteredSessions.map(transformSessionWithStudents);
-      const transformedSessions = await Promise.all(transformPromises);
+      // Transform each session
+      const transformedSessions = await Promise.all(filteredSessions.map(async (session) => {
+        return transformSessionWithStudents(session);
+      }));
 
       // Calculate pagination info
       const totalPages = count ? Math.ceil(count / pageSize) : 0;

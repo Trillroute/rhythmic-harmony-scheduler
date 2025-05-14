@@ -1,19 +1,15 @@
-export type ReportPeriod = 'week' | 'month' | 'year';
+
+export type ReportPeriod = 'week' | 'month' | 'year' | 'last30days';
 
 export interface AttendanceData {
-  total: number;
-  present: number;
-  absent: number;
-  cancelled: number;
-  noShow: number;
-  distribution: { status: string; count: number }[];
-  chartData: { date: string; present: number; total: number }[];
+  categories: string[];
+  data: number[];
 }
 
 export type SessionsReportData = {
-  date: string;
-  count: number;
-}[];
+  counts: number[];
+  months: string[];
+};
 
 export type SessionTypeData = {
   type: string;
@@ -27,9 +23,6 @@ export type SubjectDistributionData = {
 }[];
 
 export type StudentProgressData = {
-  id: string;
-  studentName: string;
-  courseName: string;
-  instrument: string;
-  completionPercentage: number;
+  student: string;
+  progress: number;
 }[];

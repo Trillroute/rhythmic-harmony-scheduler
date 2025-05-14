@@ -6,4 +6,3 @@ verify_jwt = true
 
 [functions.process-bulk-upload]
 verify_jwt = true
-

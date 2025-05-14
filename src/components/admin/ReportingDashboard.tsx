@@ -1,15 +1,15 @@
 
 import React, { useState, useEffect } from 'react';
-import { AttendanceChart } from '@/components/reports/AttendanceChart';
-import { SessionTypeChart } from '@/components/reports/SessionTypeChart';
-import { SubjectDistributionChart } from '@/components/reports/SubjectDistributionChart';
-import { SessionsOverTimeChart } from '@/components/reports/SessionsOverTimeChart';
-import { StudentProgressTable } from '@/components/reports/StudentProgressTable';
+import AttendanceChart from '@/components/reports/AttendanceChart';
+import SessionTypeChart from '@/components/reports/SessionTypeChart';
+import SubjectDistributionChart from '@/components/reports/SubjectDistributionChart';
+import SessionsOverTimeChart from '@/components/reports/SessionsOverTimeChart';
+import StudentProgressTable from '@/components/reports/StudentProgressTable';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useReports } from '@/hooks/reports/use-reports';
 import { ReportPeriod } from '@/hooks/reports/types';
-import { DashboardFilters } from '@/components/admin/reporting/DashboardFilters';
+import DashboardFilters from '@/components/admin/reporting/DashboardFilters';
 import { LoaderIcon } from 'lucide-react';
 
 const ReportingDashboard = () => {
