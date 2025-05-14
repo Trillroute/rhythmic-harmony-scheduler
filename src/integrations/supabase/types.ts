@@ -285,6 +285,47 @@ export type Database = {
           },
         ]
       }
+      fee_plans: {
+        Row: {
+          created_at: string
+          due_dates: Json
+          id: string
+          late_fee_policy: Json | null
+          plan_title: string
+          student_id: string
+          total_amount: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          due_dates: Json
+          id?: string
+          late_fee_policy?: Json | null
+          plan_title: string
+          student_id: string
+          total_amount: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          due_dates?: Json
+          id?: string
+          late_fee_policy?: Json | null
+          plan_title?: string
+          student_id?: string
+          total_amount?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fee_plans_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "students"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       invoices: {
         Row: {
           amount: number
@@ -393,6 +434,57 @@ export type Database = {
             columns: ["recorded_by_user_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      payments: {
+        Row: {
+          amount_paid: number
+          created_at: string
+          fee_plan_id: string
+          id: string
+          notes: string | null
+          paid_at: string
+          payment_mode: string
+          student_id: string
+          updated_at: string
+        }
+        Insert: {
+          amount_paid: number
+          created_at?: string
+          fee_plan_id: string
+          id?: string
+          notes?: string | null
+          paid_at?: string
+          payment_mode: string
+          student_id: string
+          updated_at?: string
+        }
+        Update: {
+          amount_paid?: number
+          created_at?: string
+          fee_plan_id?: string
+          id?: string
+          notes?: string | null
+          paid_at?: string
+          payment_mode?: string
+          student_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payments_fee_plan_id_fkey"
+            columns: ["fee_plan_id"]
+            isOneToOne: false
+            referencedRelation: "fee_plans"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payments_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "students"
             referencedColumns: ["id"]
           },
         ]
@@ -984,6 +1076,27 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      calculate_late_fees: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          fee_plan_id: string
+          student_id: string
+          due_date: string
+          amount_due: number
+          late_fee: number
+          days_late: number
+        }[]
+      }
+      check_payment_reminders: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          student_id: string
+          fee_plan_id: string
+          due_date: string
+          amount_due: number
+          days_until_due: number
+        }[]
+      }
       check_teacher_session_conflict: {
         Args: {
           teacher_id_param: string
