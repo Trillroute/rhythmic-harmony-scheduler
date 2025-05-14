@@ -134,9 +134,10 @@ export const useCreateSessionPack = () => {
           expiry_date: pack.expiryDate?.toString(),
         };
         
+        // Insert each pack individually
         const { data, error } = await supabase
           .from("session_packs")
-          .insert([formattedPack])
+          .insert(formattedPack)
           .select();
         
         if (error) throw error;

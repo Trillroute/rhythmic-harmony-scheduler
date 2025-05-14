@@ -13,7 +13,6 @@ export const useCreateSession = () => {
       const { data: session, error: sessionError } = await supabase
         .from("sessions")
         .insert({
-          teacher_id: sessionData.teacherId,
           pack_id: sessionData.packId,
           subject: sessionData.subject?.toString(),
           session_type: sessionData.sessionType?.toString(),
@@ -22,6 +21,7 @@ export const useCreateSession = () => {
           duration: sessionData.duration,
           notes: sessionData.notes,
           status: sessionData.status?.toString(),
+          teacher_id: sessionData.teacherId,
         })
         .select()
         .single();
@@ -68,7 +68,6 @@ export const useCreateSessions = (queryKey: unknown[]) => {
         const { data: session, error: sessionError } = await supabase
           .from("sessions")
           .insert({
-            teacher_id: sessionData.teacherId,
             pack_id: sessionData.packId,
             subject: sessionData.subject?.toString(),
             session_type: sessionData.sessionType?.toString(),
@@ -77,6 +76,7 @@ export const useCreateSessions = (queryKey: unknown[]) => {
             duration: sessionData.duration,
             notes: sessionData.notes,
             status: sessionData.status?.toString(),
+            teacher_id: sessionData.teacherId,
           })
           .select()
           .single();

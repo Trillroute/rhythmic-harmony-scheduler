@@ -22,15 +22,19 @@ export const useSessionTypeReport = (filters?: ReportPeriod) => {
     
     // Apply subject filter if provided
     if (filters?.subjects && filters.subjects.length > 0) {
+      // Use assertion utility to ensure proper types
+      const subjectArray = assertSubjectTypeArray(filters.subjects);
       // Convert to string array for query
-      const subjectStrings = filters.subjects.map(s => s.toString());
+      const subjectStrings = subjectArray.map(s => s.toString());
       query = query.in('subject', subjectStrings);
     }
     
     // Apply status filter if provided
     if (filters?.status && filters.status.length > 0) {
+      // Use assertion utility to ensure proper types
+      const statusArray = assertAttendanceStatusArray(filters.status);
       // Convert to string array for query
-      const statusStrings = filters.status.map(s => s.toString());
+      const statusStrings = statusArray.map(s => s.toString());
       query = query.in('status', statusStrings);
     }
       

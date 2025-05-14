@@ -17,7 +17,7 @@ export const useSessions = (props: FilterOptions = {}) => {
     error 
   } = useFetchSessions(props);
   
-  const updateSessionStatusMutation = useUpdateSession(queryKey);
+  const updateSessionStatusMutation = useUpdateSession();
   const createBulkSessionsMutation = useCreateSessions(queryKey);
   
   // Return a unified API

@@ -22,8 +22,10 @@ export const useSessionsReport = (filters?: ReportPeriod) => {
     
     // Apply status filter if provided
     if (filters?.status && filters.status.length > 0) {
+      // Use assertion utility to ensure proper types
+      const statusArray = assertAttendanceStatusArray(filters.status);
       // Convert to string array for query
-      const statusStrings = filters.status.map(s => s.toString());
+      const statusStrings = statusArray.map(s => s.toString());
       query = query.in('status', statusStrings);
     }
       

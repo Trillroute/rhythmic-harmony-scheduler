@@ -37,40 +37,47 @@ export const useFetchSessions = (
     }
 
     if (filters.subject) {
-      // Convert to string for Supabase query
-      query = query.eq("subject", filters.subject.toString());
+      // Convert to string for Supabase query using the assertion utility
+      const subjectString = assertSubjectType(filters.subject).toString();
+      query = query.eq("subject", subjectString);
     }
 
     if (filters.subjects && filters.subjects.length > 0) {
-      // Cast to string array for the Supabase query
-      const subjectStrings = filters.subjects.map(s => s.toString());
+      // Use assertion utility to ensure proper types then cast to string array
+      const subjectArray = assertSubjectTypeArray(filters.subjects);
+      const subjectStrings = subjectArray.map(s => s.toString());
       query = query.in("subject", subjectStrings);
     }
 
     if (filters.sessionType) {
-      // Convert to string for Supabase query
-      query = query.eq("session_type", filters.sessionType.toString());
+      // Convert to string for Supabase query using the assertion utility
+      const sessionTypeString = assertSessionType(filters.sessionType).toString();
+      query = query.eq("session_type", sessionTypeString);
     }
 
     if (filters.sessionTypes && filters.sessionTypes.length > 0) {
-      // Cast to string array for Supabase query
-      const sessionTypeStrings = filters.sessionTypes.map(s => s.toString());
+      // Use assertion utility to ensure proper types then cast to string array
+      const sessionTypeArray = assertSessionTypeArray(filters.sessionTypes);
+      const sessionTypeStrings = sessionTypeArray.map(s => s.toString());
       query = query.in("session_type", sessionTypeStrings);
     }
 
     if (filters.location) {
-      // Convert to string for Supabase query
-      query = query.eq("location", filters.location.toString());
+      // Convert to string for Supabase query using the assertion utility
+      const locationString = assertLocationType(filters.location).toString();
+      query = query.eq("location", locationString);
     }
 
     if (filters.status) {
       if (Array.isArray(filters.status)) {
-        // Cast status array to string[] for Supabase query
-        const statusStrings = filters.status.map(s => s.toString());
+        // Use assertion utility to ensure proper types then cast to string array
+        const statusArray = assertAttendanceStatusArray(filters.status);
+        const statusStrings = statusArray.map(s => s.toString());
         query = query.in("status", statusStrings);
       } else {
-        // Convert to string for Supabase query
-        query = query.eq("status", filters.status.toString());
+        // Convert to string for Supabase query using the assertion utility
+        const statusString = assertAttendanceStatus(filters.status).toString();
+        query = query.eq("status", statusString);
       }
     }
 
