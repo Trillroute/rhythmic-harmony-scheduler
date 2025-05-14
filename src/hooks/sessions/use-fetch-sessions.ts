@@ -3,7 +3,6 @@ import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { SessionsProps } from "./types";
 import { transformSession, DbSession } from "./session-transformers";
-import { assertAttendanceStatusArray } from "@/lib/type-utils";
 import { SessionWithStudents } from "@/lib/types";
 
 export function useFetchSessions(props?: SessionsProps) {
@@ -55,9 +54,9 @@ export function useFetchSessions(props?: SessionsProps) {
       }
 
       if (props?.status && props.status.length > 0) {
-        // Convert to string array for proper RLS handling
-        const statusArray = props.status.map(status => status.toString());
-        query = query.in('status', statusArray);
+        // Convert status array to strings for the database query
+        const statusValues = props.status.map(status => String(status));
+        query = query.in('status', statusValues);
       }
 
       // Execute query and get data

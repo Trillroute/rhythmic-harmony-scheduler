@@ -17,14 +17,13 @@ export function useSessionTypeReport() {
     try {
       const { startDate, endDate } = getDateRangeFromPeriod(period);
       
-      // Get session type distribution
+      // Get session type distribution using aggregate count
       const { data: typeData, error: typeError } = await supabase
         .from("sessions")
-        .select("session_type, subject, count")
+        .select("session_type, subject, count(*)")
         .gte('date_time', startDate.toISOString())
         .lte('date_time', endDate.toISOString())
-        .not('status', 'in', assertStringArray(["Cancelled by Student", "Cancelled by Teacher", "Cancelled by School"]))
-        .group('session_type, subject');
+        .not('status', 'in', assertStringArray(["Cancelled by Student", "Cancelled by Teacher", "Cancelled by School"]));
       
       if (typeError) throw new Error(typeError.message);
       
@@ -32,7 +31,7 @@ export function useSessionTypeReport() {
       const distribution = typeData.map(item => ({
         type: String(item.session_type),
         subject: String(item.subject),
-        count: item.count as number
+        count: Number(item.count)
       }));
       
       setData(distribution);

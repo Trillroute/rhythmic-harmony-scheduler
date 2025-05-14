@@ -19,6 +19,7 @@ import ReportChart from '@/components/admin/reporting/ReportChart';
 import { DateRange } from 'react-day-picker';
 import { sub } from 'date-fns';
 import DashboardFilters from './reporting/DashboardFilters';
+import { SubjectType, AttendanceStatus } from '@/lib/types';
 
 const ReportingDashboard: React.FC = () => {
   const [period, setPeriod] = useState<ReportPeriod>('month');
@@ -27,6 +28,8 @@ const ReportingDashboard: React.FC = () => {
     to: new Date()
   });
   const [selectedChart, setSelectedChart] = useState<"attendance" | "sessions" | "students">("attendance");
+  const [selectedSubjects, setSelectedSubjects] = useState<SubjectType[]>([]);
+  const [selectedStatuses, setSelectedStatuses] = useState<AttendanceStatus[]>([]);
   
   const reports = useReports();
   
@@ -53,6 +56,10 @@ const ReportingDashboard: React.FC = () => {
       <DashboardFilters 
         dateRange={dateRange} 
         setDateRange={setDateRange} 
+        selectedSubjects={selectedSubjects}
+        setSelectedSubjects={setSelectedSubjects}
+        selectedStatuses={selectedStatuses}
+        setSelectedStatuses={setSelectedStatuses}
         selectedChart={selectedChart}
         setSelectedChart={setSelectedChart}
       />
