@@ -1,195 +1,116 @@
 
-import React from 'react';
-import { createBrowserRouter, useLocation } from 'react-router-dom';
-
-// Layout
-import Layout from './components/Layout';
-import ErrorBoundary from './components/ErrorBoundary';
-
-// Pages
+import { createBrowserRouter, RouterProvider } from 'react-router-dom';
+import App from './App';
+import NotFound from './pages/NotFound';
 import Index from './pages/Index';
 import Login from './pages/Login';
 import Signup from './pages/Signup';
-import NotFound from './pages/NotFound';
-
-// Admin components
-import AdminDashboard from './components/admin/AdminDashboard';
-import StudentManagement from './components/admin/StudentManagement';
-import CourseManagement from './components/admin/CourseManagement';
-import UserManagement from './components/admin/UserManagement';
-import AdvancedScheduler from './components/admin/AdvancedScheduler';
-import SessionPlans from './components/admin/SessionPlans';
-import ReportingDashboard from './components/admin/ReportingDashboard';
-import CourseMaterials from './components/admin/CourseMaterials';
-import InvoiceManagement from './components/admin/InvoiceManagement';
-import BulkUploadPage from './components/admin/BulkUploadPage';
-import SystemSettings from './components/admin/SystemSettings';
-
-// Data Population Utility
-import PopulateTestData from './scripts/populate-test-data';
-
-// Protected route
+import SeedDatabase from './pages/SeedDatabase';
 import ProtectedRoute from './components/ProtectedRoute';
-
-// Components
+import AttendanceTracker from './components/AttendanceTracker';
 import Dashboard from './components/Dashboard';
 import SessionScheduler from './components/SessionScheduler';
-import AttendanceTracker from './components/AttendanceTracker';
+import StudentPacks from './components/StudentPacks';
 
-export default createBrowserRouter([
+// Admin Components
+import AdminDashboard from './components/admin/AdminDashboard';
+import UserManagement from './components/admin/UserManagement';
+import StudentManagement from './components/admin/StudentManagement';
+import CourseManagement from './components/admin/CourseManagement';
+import CourseMaterials from './components/admin/CourseMaterials';
+import InvoiceManagement from './components/admin/InvoiceManagement';
+import ReportingDashboard from './components/admin/ReportingDashboard';
+import SystemSettings from './components/admin/SystemSettings';
+import BulkUploadPage from './components/admin/BulkUploadPage';
+import AdvancedScheduler from './components/admin/AdvancedScheduler';
+import StudentProfile from './components/admin/students/StudentProfile';
+
+const router = createBrowserRouter([
   {
-    path: '/',
-    element: <Layout />,
-    errorElement: <ErrorBoundary />,
+    path: "/",
+    element: <App />,
+    errorElement: <NotFound />,
     children: [
-      { index: true, element: <Index /> },
       {
-        path: 'dashboard',
-        element: (
-          <ProtectedRoute allowedRoles={['admin', 'teacher', 'student']}>
-            <Dashboard />
-          </ProtectedRoute>
-        ),
+        index: true,
+        element: <Index />
       },
       {
-        path: 'schedule',
-        element: (
-          <ProtectedRoute allowedRoles={['admin', 'teacher']}>
-            <SessionScheduler />
-          </ProtectedRoute>
-        ),
+        path: "login",
+        element: <Login />
       },
       {
-        path: 'attendance',
-        element: (
-          <ProtectedRoute allowedRoles={['admin', 'teacher']}>
-            <AttendanceTracker />
-          </ProtectedRoute>
-        ),
-      },
-
-      // Admin routes
-      {
-        path: 'admin',
-        children: [
-          {
-            index: true,
-            element: (
-              <ProtectedRoute allowedRoles={['admin']}>
-                <AdminDashboard />
-              </ProtectedRoute>
-            ),
-          },
-          {
-            path: 'students',
-            element: (
-              <ProtectedRoute allowedRoles={['admin']}>
-                <StudentManagement />
-              </ProtectedRoute>
-            ),
-          },
-          {
-            path: 'courses',
-            element: (
-              <ProtectedRoute allowedRoles={['admin']}>
-                <CourseManagement />
-              </ProtectedRoute>
-            ),
-          },
-          {
-            path: 'users',
-            element: (
-              <ProtectedRoute allowedRoles={['admin']}>
-                <UserManagement />
-              </ProtectedRoute>
-            ),
-          },
-          {
-            path: 'schedule',
-            element: (
-              <ProtectedRoute allowedRoles={['admin']}>
-                <AdvancedScheduler />
-              </ProtectedRoute>
-            ),
-          },
-          {
-            path: 'plans',
-            element: (
-              <ProtectedRoute allowedRoles={['admin']}>
-                <SessionPlans />
-              </ProtectedRoute>
-            ),
-          },
-          {
-            path: 'packs',
-            element: (
-              <ProtectedRoute allowedRoles={['admin']}>
-                <PopulateTestData />
-              </ProtectedRoute>
-            ),
-          },
-          {
-            path: 'reports',
-            element: (
-              <ProtectedRoute allowedRoles={['admin']}>
-                <ReportingDashboard />
-              </ProtectedRoute>
-            ),
-          },
-          {
-            path: 'materials',
-            element: (
-              <ProtectedRoute allowedRoles={['admin']}>
-                <CourseMaterials />
-              </ProtectedRoute>
-            ),
-          },
-          {
-            path: 'invoices',
-            element: (
-              <ProtectedRoute allowedRoles={['admin']}>
-                <InvoiceManagement />
-              </ProtectedRoute>
-            ),
-          },
-          {
-            path: 'bulk-upload',
-            element: (
-              <ProtectedRoute allowedRoles={['admin']}>
-                <BulkUploadPage />
-              </ProtectedRoute>
-            ),
-          },
-          {
-            path: 'settings',
-            element: (
-              <ProtectedRoute allowedRoles={['admin']}>
-                <SystemSettings />
-              </ProtectedRoute>
-            ),
-          },
-        ],
-      },
-
-      // Auth routes
-      {
-        path: 'login',
-        element: <Login />,
+        path: "signup",
+        element: <Signup />
       },
       {
-        path: 'signup',
-        element: <Signup />,
+        path: "dashboard",
+        element: <ProtectedRoute allowedRoles={["admin", "teacher", "student"]}><Dashboard /></ProtectedRoute>
       },
       {
-        path: '*',
-        element: <NotFound />,
+        path: "attendance",
+        element: <ProtectedRoute allowedRoles={["admin", "teacher"]}><AttendanceTracker /></ProtectedRoute>
       },
-    ],
-  },
+      {
+        path: "schedule",
+        element: <ProtectedRoute allowedRoles={["admin", "teacher", "student"]}><SessionScheduler /></ProtectedRoute>
+      },
+      {
+        path: "packs",
+        element: <ProtectedRoute allowedRoles={["admin", "student"]}><StudentPacks /></ProtectedRoute>
+      },
+      {
+        path: "admin/dashboard",
+        element: <ProtectedRoute allowedRoles={["admin"]}><AdminDashboard /></ProtectedRoute>
+      },
+      {
+        path: "admin/users",
+        element: <ProtectedRoute allowedRoles={["admin"]}><UserManagement /></ProtectedRoute>
+      },
+      {
+        path: "admin/students",
+        element: <ProtectedRoute allowedRoles={["admin"]}><StudentManagement /></ProtectedRoute>
+      },
+      {
+        path: "admin/students/:id",
+        element: <ProtectedRoute allowedRoles={["admin"]}><StudentProfile /></ProtectedRoute>
+      },
+      {
+        path: "admin/courses",
+        element: <ProtectedRoute allowedRoles={["admin"]}><CourseManagement /></ProtectedRoute>
+      },
+      {
+        path: "admin/materials",
+        element: <ProtectedRoute allowedRoles={["admin", "teacher"]}><CourseMaterials /></ProtectedRoute>
+      },
+      {
+        path: "admin/invoices",
+        element: <ProtectedRoute allowedRoles={["admin"]}><InvoiceManagement /></ProtectedRoute>
+      },
+      {
+        path: "admin/reports",
+        element: <ProtectedRoute allowedRoles={["admin"]}><ReportingDashboard /></ProtectedRoute>
+      },
+      {
+        path: "admin/settings",
+        element: <ProtectedRoute allowedRoles={["admin"]}><SystemSettings /></ProtectedRoute>
+      },
+      {
+        path: "admin/bulk-upload",
+        element: <ProtectedRoute allowedRoles={["admin"]}><BulkUploadPage /></ProtectedRoute>
+      },
+      {
+        path: "admin/advanced-scheduler",
+        element: <ProtectedRoute allowedRoles={["admin"]}><AdvancedScheduler /></ProtectedRoute>
+      },
+      {
+        path: "admin/seed-database",
+        element: <ProtectedRoute allowedRoles={["admin"]}><SeedDatabase /></ProtectedRoute>
+      }
+    ]
+  }
 ]);
 
-// Custom hook to access current location
-export const useCurrentLocation = () => {
-  const location = useLocation();
-  return location;
-};
+export default function Routes() {
+  return <RouterProvider router={router} />;
+}

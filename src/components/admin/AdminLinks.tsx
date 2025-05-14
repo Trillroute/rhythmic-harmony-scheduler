@@ -1,189 +1,97 @@
 
-import React from "react";
-import { NavLink } from "react-router-dom";
+import { Link, useLocation } from 'react-router-dom';
 import {
-  BarChartIcon,
-  CalendarIcon,
-  ClipboardCheckIcon,
-  FileIcon,
-  HomeIcon,
-  SettingsIcon,
-  UsersIcon,
-  GraduationCapIcon,
-  BookOpenIcon,
-  CreditCardIcon,
-  PackageIcon,
-  FileTextIcon,
-  ListTodoIcon,
-  SchoolIcon
-} from "lucide-react";
+  User2,
+  School2,
+  BookOpen,
+  FileSpreadsheet,
+  BarChart3,
+  Settings,
+  Upload,
+  Calendar,
+  Users,
+  Database
+} from 'lucide-react';
 
-const AdminLinks: React.FC = () => {
+const AdminLinks = () => {
+  const { pathname } = useLocation();
+  
+  // Helper to check if a path is active
+  const isActive = (path: string) => pathname === path;
+  
+  // Admin navigation links
+  const links = [
+    {
+      to: '/admin/dashboard',
+      icon: <BarChart3 className="h-5 w-5" />,
+      label: 'Dashboard'
+    },
+    {
+      to: '/admin/users',
+      icon: <User2 className="h-5 w-5" />,
+      label: 'User Management'
+    },
+    {
+      to: '/admin/students',
+      icon: <Users className="h-5 w-5" />,
+      label: 'Student Management'
+    },
+    {
+      to: '/admin/courses',
+      icon: <School2 className="h-5 w-5" />,
+      label: 'Course Management'
+    },
+    {
+      to: '/admin/materials',
+      icon: <BookOpen className="h-5 w-5" />,
+      label: 'Course Materials'
+    },
+    {
+      to: '/admin/invoices',
+      icon: <FileSpreadsheet className="h-5 w-5" />,
+      label: 'Invoice Management'
+    },
+    {
+      to: '/admin/reports',
+      icon: <BarChart3 className="h-5 w-5" />,
+      label: 'Reporting'
+    },
+    {
+      to: '/admin/settings',
+      icon: <Settings className="h-5 w-5" />,
+      label: 'System Settings'
+    },
+    {
+      to: '/admin/bulk-upload',
+      icon: <Upload className="h-5 w-5" />,
+      label: 'Bulk Upload'
+    },
+    {
+      to: '/admin/advanced-scheduler',
+      icon: <Calendar className="h-5 w-5" />,
+      label: 'Advanced Scheduler'
+    },
+    {
+      to: '/admin/seed-database',
+      icon: <Database className="h-5 w-5" />,
+      label: 'Seed Database'
+    }
+  ];
+
   return (
     <div className="space-y-1">
-      <NavLink
-        to="/admin/dashboard"
-        className={({ isActive }) =>
-          `flex items-center px-3 py-2 text-sm rounded-md ${
-            isActive ? "bg-primary text-primary-foreground" : "hover:bg-secondary"
-          }`
-        }
-      >
-        <HomeIcon className="mr-2 h-4 w-4" />
-        Dashboard
-      </NavLink>
-      
-      <NavLink
-        to="/admin/users"
-        className={({ isActive }) =>
-          `flex items-center px-3 py-2 text-sm rounded-md ${
-            isActive ? "bg-primary text-primary-foreground" : "hover:bg-secondary"
-          }`
-        }
-      >
-        <UsersIcon className="mr-2 h-4 w-4" />
-        User Management
-      </NavLink>
-      
-      <NavLink
-        to="/admin/reports"
-        className={({ isActive }) =>
-          `flex items-center px-3 py-2 text-sm rounded-md ${
-            isActive ? "bg-primary text-primary-foreground" : "hover:bg-secondary"
-          }`
-        }
-      >
-        <BarChartIcon className="mr-2 h-4 w-4" />
-        Reports
-      </NavLink>
-      
-      <NavLink
-        to="/admin/scheduler"
-        className={({ isActive }) =>
-          `flex items-center px-3 py-2 text-sm rounded-md ${
-            isActive ? "bg-primary text-primary-foreground" : "hover:bg-secondary"
-          }`
-        }
-      >
-        <CalendarIcon className="mr-2 h-4 w-4" />
-        Advanced Scheduler
-      </NavLink>
-      
-      <NavLink
-        to="/admin/attendance"
-        className={({ isActive }) =>
-          `flex items-center px-3 py-2 text-sm rounded-md ${
-            isActive ? "bg-primary text-primary-foreground" : "hover:bg-secondary"
-          }`
-        }
-      >
-        <ClipboardCheckIcon className="mr-2 h-4 w-4" />
-        Attendance Tracker
-      </NavLink>
-      
-      <div className="pt-4 pb-2">
-        <div className="px-3 text-xs font-semibold text-muted-foreground">Academic</div>
-      </div>
-      
-      <NavLink
-        to="/admin/students"
-        className={({ isActive }) =>
-          `flex items-center px-3 py-2 text-sm rounded-md ${
-            isActive ? "bg-primary text-primary-foreground" : "hover:bg-secondary"
-          }`
-        }
-      >
-        <GraduationCapIcon className="mr-2 h-4 w-4" />
-        Student Management
-      </NavLink>
-      
-      <NavLink
-        to="/admin/packs"
-        className={({ isActive }) =>
-          `flex items-center px-3 py-2 text-sm rounded-md ${
-            isActive ? "bg-primary text-primary-foreground" : "hover:bg-secondary"
-          }`
-        }
-      >
-        <PackageIcon className="mr-2 h-4 w-4" />
-        Session Packs
-      </NavLink>
-      
-      <NavLink
-        to="/admin/courses"
-        className={({ isActive }) =>
-          `flex items-center px-3 py-2 text-sm rounded-md ${
-            isActive ? "bg-primary text-primary-foreground" : "hover:bg-secondary"
-          }`
-        }
-      >
-        <BookOpenIcon className="mr-2 h-4 w-4" />
-        Course Management
-      </NavLink>
-      
-      <NavLink
-        to="/admin/session-plans"
-        className={({ isActive }) =>
-          `flex items-center px-3 py-2 text-sm rounded-md ${
-            isActive ? "bg-primary text-primary-foreground" : "hover:bg-secondary"
-          }`
-        }
-      >
-        <ListTodoIcon className="mr-2 h-4 w-4" />
-        Session Plans
-      </NavLink>
-      
-      <NavLink
-        to="/admin/materials"
-        className={({ isActive }) =>
-          `flex items-center px-3 py-2 text-sm rounded-md ${
-            isActive ? "bg-primary text-primary-foreground" : "hover:bg-secondary"
-          }`
-        }
-      >
-        <FileIcon className="mr-2 h-4 w-4" />
-        Course Materials
-      </NavLink>
-      
-      <NavLink
-        to="/admin/invoices"
-        className={({ isActive }) =>
-          `flex items-center px-3 py-2 text-sm rounded-md ${
-            isActive ? "bg-primary text-primary-foreground" : "hover:bg-secondary"
-          }`
-        }
-      >
-        <CreditCardIcon className="mr-2 h-4 w-4" />
-        Invoice Management
-      </NavLink>
-      
-      <div className="pt-4 pb-2">
-        <div className="px-3 text-xs font-semibold text-muted-foreground">System</div>
-      </div>
-      
-      <NavLink
-        to="/admin/export"
-        className={({ isActive }) =>
-          `flex items-center px-3 py-2 text-sm rounded-md ${
-            isActive ? "bg-primary text-primary-foreground" : "hover:bg-secondary"
-          }`
-        }
-      >
-        <FileIcon className="mr-2 h-4 w-4" />
-        Data Export
-      </NavLink>
-      
-      <NavLink
-        to="/admin/settings"
-        className={({ isActive }) =>
-          `flex items-center px-3 py-2 text-sm rounded-md ${
-            isActive ? "bg-primary text-primary-foreground" : "hover:bg-secondary"
-          }`
-        }
-      >
-        <SettingsIcon className="mr-2 h-4 w-4" />
-        System Settings
-      </NavLink>
+      {links.map((link) => (
+        <Link
+          key={link.to}
+          to={link.to}
+          className={`flex items-center px-3 py-2 text-sm rounded-md transition-colors hover:bg-accent hover:text-accent-foreground ${
+            isActive(link.to) ? 'bg-accent text-accent-foreground' : 'text-muted-foreground'
+          }`}
+        >
+          <span className="mr-3">{link.icon}</span>
+          {link.label}
+        </Link>
+      ))}
     </div>
   );
 };
