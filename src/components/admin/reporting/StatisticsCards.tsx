@@ -51,7 +51,7 @@ export function StatisticsCards({
     let highestCount = 0;
     
     subjectKeys.forEach(key => {
-      const count = subjects[key as keyof SubjectDistributionData] as number || 0;
+      const count = subjects[key] as number || 0;
       if (count > highestCount) {
         highestCount = count;
         highestSubject = key;
@@ -76,7 +76,7 @@ export function StatisticsCards({
     let highestCount = 0;
     
     sessionTypeKeys.forEach(key => {
-      const item = sessionTypes[key as keyof SessionTypeData] as SessionTypeItem;
+      const item = sessionTypes[key];
       if (item && item.count > highestCount) {
         highestCount = item.count;
         highestType = key;

@@ -53,7 +53,9 @@ export function StudentAttendanceTab({ studentId }: StudentAttendanceTabProps) {
     
     const total = sessionsData.length;
     const present = sessionsData.filter(s => s.status === 'Present').length;
-    const absent = sessionsData.filter(s => s.status === 'Absent' || s.status === 'No Show').length;
+    const absent = sessionsData.filter(s => 
+      s.status === 'Absent' || s.status === 'No Show'
+    ).length;
     const cancelled = sessionsData.filter(s => 
       s.status === 'Cancelled by Student' || 
       s.status === 'Cancelled by Teacher' || 

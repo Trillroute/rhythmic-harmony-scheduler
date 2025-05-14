@@ -52,7 +52,22 @@ export const usePacks = (studentId?: string) => {
         throw new Error(error.message);
       }
       
-      return data as SessionPack[];
+      // Transform the database result to match our interface
+      return data.map((pack): SessionPack => ({
+        id: pack.id,
+        student_id: pack.student_id,
+        subject: pack.subject as SubjectType,
+        session_type: pack.session_type as 'Solo' | 'Duo' | 'Focus',
+        location: pack.location as LocationType,
+        size: Number(pack.size) as PackSize,
+        purchased_date: pack.purchased_date,
+        expiry_date: pack.expiry_date,
+        remaining_sessions: pack.remaining_sessions,
+        weekly_frequency: pack.weekly_frequency as WeeklyFrequency,
+        is_active: pack.is_active,
+        created_at: pack.created_at,
+        updated_at: pack.updated_at
+      }));
     },
     enabled: !!studentId
   });
@@ -76,7 +91,7 @@ export const usePacks = (studentId?: string) => {
       
       const { data, error } = await supabase
         .from('session_packs')
-        .insert([{
+        .insert({
           student_id: packData.studentId,
           subject: packData.subject,
           session_type: packData.sessionType,
@@ -87,7 +102,7 @@ export const usePacks = (studentId?: string) => {
           remaining_sessions: packData.remainingSessions,
           weekly_frequency: packData.weeklyFrequency,
           is_active: packData.isActive ?? true
-        }])
+        })
         .select()
         .single();
       
@@ -95,7 +110,22 @@ export const usePacks = (studentId?: string) => {
         throw error;
       }
       
-      return data as SessionPack;
+      // Transform the database result to match our interface
+      return {
+        id: data.id,
+        student_id: data.student_id,
+        subject: data.subject as SubjectType,
+        session_type: data.session_type as 'Solo' | 'Duo' | 'Focus',
+        location: data.location as LocationType,
+        size: Number(data.size) as PackSize,
+        purchased_date: data.purchased_date,
+        expiry_date: data.expiry_date,
+        remaining_sessions: data.remaining_sessions,
+        weekly_frequency: data.weekly_frequency as WeeklyFrequency,
+        is_active: data.is_active,
+        created_at: data.created_at,
+        updated_at: data.updated_at
+      } as SessionPack;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['session-packs'] });

@@ -2,9 +2,8 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { transformSessionsResult } from "./session-transformers";
-import { SessionWithStudents } from "../reports/types";
-import { AttendanceStatus, SubjectType } from "@/lib/types";
-import { assertAttendanceStatusArray, assertSubjectType } from "@/lib/type-utils";
+import { AttendanceStatus, SessionWithStudents, SubjectType } from "@/lib/types";
+import { assertAttendanceStatusArray, assertStringArray } from "@/lib/type-utils";
 
 interface UseFetchSessionsOptions {
   startDate?: Date;
@@ -70,7 +69,7 @@ export const useFetchSessions = (options: UseFetchSessionsOptions = {}) => {
         if (Array.isArray(status)) {
           if (status.length > 0) {
             // Convert status array to string array for database query
-            const statusValues = assertAttendanceStatusArray(status);
+            const statusValues = status.map(s => String(s));
             if (statusValues.length > 0) {
               query = query.in("status", assertStringArray(statusValues));
             }
@@ -81,7 +80,7 @@ export const useFetchSessions = (options: UseFetchSessionsOptions = {}) => {
       }
 
       if (subject) {
-        query = query.eq("subject", String(subject));
+        query = query.eq("subject", subject);
       }
 
       const { data, error } = await query;

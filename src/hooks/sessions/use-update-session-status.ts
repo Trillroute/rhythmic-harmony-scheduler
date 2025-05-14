@@ -1,9 +1,8 @@
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { AttendanceStatus, Session } from "@/lib/types";
+import { AttendanceStatus } from "@/lib/types";
 import { toast } from "sonner";
-import { assertAttendanceStatus, assertStringArray } from "@/lib/type-utils";
 
 interface UpdateStatusParams {
   sessionId: string;
@@ -16,11 +15,15 @@ export const useUpdateSessionStatus = () => {
 
   return useMutation({
     mutationFn: async ({ sessionId, newStatus, notes }: UpdateStatusParams) => {
-      // Update the session status
+      if (!sessionId) throw new Error('Session ID is required');
+      
+      // Convert AttendanceStatus to string for database compatibility
+      const statusString = String(newStatus);
+      
       const { data, error } = await supabase
         .from("sessions")
         .update({ 
-          status: assertAttendanceStatus(String(newStatus)),
+          status: statusString,
           notes: notes 
         })
         .eq("id", sessionId)
@@ -40,9 +43,9 @@ export const useUpdateSessionStatus = () => {
           .from("attendance_events")
           .insert({
             session_id: sessionId,
-            status: assertAttendanceStatus(String(newStatus)),
+            status: statusString,
             marked_by_user_id: userId,
-            notes: notes || `Status updated to ${newStatus}`,
+            notes: notes || `Status updated to ${newStatus}`
           });
 
         if (attendanceError) {
@@ -50,7 +53,7 @@ export const useUpdateSessionStatus = () => {
         }
       }
 
-      return data as Session;
+      return data;
     },
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: ["sessions"] });
@@ -63,6 +66,7 @@ export const useUpdateSessionStatus = () => {
         "Cancelled by Teacher": "Cancelled by teacher",
         "Cancelled by School": "Cancelled by school",
         "Scheduled": "Rescheduled",
+        "No Show": "Marked as no show"
       }[variables.newStatus] || "Status updated";
       
       toast.success(`Session ${statusMessage}`);

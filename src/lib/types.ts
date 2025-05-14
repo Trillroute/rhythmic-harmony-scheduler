@@ -1,4 +1,3 @@
-
 export type UserRole = 'admin' | 'teacher' | 'student';
 
 // Ensure these match exactly with the database enum values
@@ -140,7 +139,7 @@ export interface Reminder {
   created_at: string | Date;
 }
 
-// Add SessionWithStudents interface
+// SessionWithStudents interface moved here from sessions/types.ts
 export interface SessionWithStudents {
   id: string;
   teacherId: string;
@@ -161,6 +160,7 @@ export interface SessionWithStudents {
   recurrenceRule?: string;
   originalSessionId?: string;
   rescheduledFrom?: string;
+  students?: any[];
 }
 
 export interface BulkUpload {

@@ -31,10 +31,7 @@ export interface AttendanceData {
 }
 
 export interface SubjectDistributionData {
-  [index: number]: { subject: string; count: number; name: string; value: number };
-  length?: number;
-  map?: (callback: any) => any;
-  reduce?: (callback: any, initialValue: any) => any;
+  [subject: string]: number;
   Guitar?: number;
   Piano?: number;
   Drums?: number;
@@ -57,13 +54,13 @@ export interface SessionTypeItem {
 }
 
 export interface SessionTypeData {
-  [index: number]: SessionTypeItem;
-  length?: number;
-  map?: (callback: any) => any;
-  push?: (item: any) => number;
   Solo?: SessionTypeItem;
   Duo?: SessionTypeItem;
   Focus?: SessionTypeItem;
+  [key: string]: SessionTypeItem | undefined;
+  length?: number;
+  map?: (callback: any) => any;
+  push?: (item: any) => number;
 }
 
 export interface SessionsDataItem {
@@ -72,11 +69,11 @@ export interface SessionsDataItem {
 }
 
 export interface SessionsReportData {
-  total?: number;
-  scheduled?: number;
-  completed?: number;
-  cancelled?: number;
-  data?: SessionsDataItem[];
+  total: number;
+  scheduled: number;
+  completed: number;
+  cancelled: number;
+  data: SessionsDataItem[];
   months?: string[]; // For backward compatibility
   counts?: number[]; // For backward compatibility
 }
@@ -98,8 +95,8 @@ export interface StudentProgressItem {
 }
 
 export interface StudentProgressData {
-  averageCompletion?: number;
-  students?: StudentProgressItem[];
-  [index: number]: any;
+  averageCompletion: number;
+  students: StudentProgressItem[];
+  [index: number]: StudentProgressItem;
   map?: (callback: any) => any;
 }
