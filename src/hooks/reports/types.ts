@@ -1,17 +1,21 @@
 
-import { AttendanceStatus, SubjectType, SessionType } from '@/lib/types';
+export type ReportPeriod = 'this_week' | 'this_month' | 'last_month' | 'last_30days' | 'last_90days' | 'year_to_date' | 'custom';
 
-export type ReportPeriod = 'today' | 'week' | 'month' | 'year';
-
-export interface AttendanceDataItem {
-  status: string;
-  count: number;
+export interface DateRangeSelection {
+  startDate: Date;
+  endDate: Date;
 }
 
-export interface AttendanceChartDataItem {
-  date: string;
+export interface AttendanceDistribution {
   present: number;
-  total: number;
+  absent: number;
+  cancelled: number;
+  noShow: number;
+}
+
+export interface AttendanceChartData {
+  categories: string[];
+  data: number[];
 }
 
 export interface AttendanceData {
@@ -20,58 +24,63 @@ export interface AttendanceData {
   absent: number;
   cancelled: number;
   noShow: number;
-  distribution: AttendanceDataItem[];
-  chartData: AttendanceChartDataItem[];
-  categories: string[];
-  data: number[];
+  distribution: AttendanceDistribution;
+  chartData: AttendanceChartData;
 }
 
-export interface SubjectDistributionItem {
-  subject: string;
-  count: number;
-  name?: string; // For compatibility with chart library
-  value?: number; // For compatibility with chart library
+export interface SubjectDistributionData {
+  Guitar: number;
+  Piano: number;
+  Drums: number;
+  Ukulele: number;
+  Vocal: number;
+  chartData: {
+    labels: string[];
+    data: number[];
+  };
 }
 
-export type SubjectDistributionData = SubjectDistributionItem[];
+export interface SessionTypeSubjects {
+  Guitar: number;
+  Piano: number;
+  Drums: number;
+  Ukulele: number;
+  Vocal: number;
+}
 
 export interface SessionTypeItem {
-  type: SessionType;
-  subjects: Record<SubjectType, number>;
+  type: string;
   count: number;
+  subjects: SessionTypeSubjects;
 }
 
-export type SessionTypeData = SessionTypeItem[];
+export interface SessionTypeData {
+  Solo: SessionTypeItem;
+  Duo: SessionTypeItem;
+  Focus: SessionTypeItem;
+}
 
 export interface SessionsDataItem {
   date: string;
+  label: string;
   count: number;
 }
 
-export type SessionsReportData = SessionsDataItem[];
+export interface SessionsReportData {
+  total: number;
+  scheduled: number;
+  completed: number;
+  cancelled: number;
+  data: SessionsDataItem[];
+}
 
 export interface StudentProgressItem {
-  student: {
-    id: string;
-    name: string;
-  };
-  progress: {
-    id: string;
-    courseName: string;
-    instrument: string;
-    completionPercentage: number;
-  };
-  id?: string; // For compatibility
-  studentName?: string; // For compatibility
-  courseName?: string; // For compatibility
-  instrument?: string; // For compatibility
-  completionPercentage?: number; // For compatibility
+  studentId: string;
+  studentName: string;
+  completionPercentage: number;
 }
 
-export type StudentProgressData = StudentProgressItem[];
-
-export interface ReportingDashboardProps {
-  period: ReportPeriod;
-  setPeriod: (period: ReportPeriod) => void;
+export interface StudentProgressData {
+  averageCompletion: number;
+  students: StudentProgressItem[];
 }
-

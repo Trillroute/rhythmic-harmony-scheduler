@@ -8,5 +8,12 @@ export type {
   SubjectDistributionData, 
   SessionTypeData, 
   SessionsReportData, 
-  StudentProgressData 
+  StudentProgressData,
+  DateRangeSelection,
+  AttendanceDistribution,
+  AttendanceChartData,
+  SessionTypeSubjects,
+  SessionTypeItem,
+  SessionsDataItem,
+  StudentProgressItem
 } from "./reports/types";

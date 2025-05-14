@@ -18,7 +18,11 @@ export const AppRoutes = () => {
       <Route element={<Layout />}>
         {/* Protected routes */}
         <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
-        <Route path="/admin/seed-database" element={<ProtectedRoute requiredRole="admin"><SeedDatabase /></ProtectedRoute>} />
+        <Route path="/admin/seed-database" element={
+          <ProtectedRoute requiredRole="admin">
+            <SeedDatabase />
+          </ProtectedRoute>
+        } />
       </Route>
 
       {/* Fallback routes */}

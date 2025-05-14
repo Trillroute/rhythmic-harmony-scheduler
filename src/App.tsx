@@ -3,7 +3,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Outlet } from 'react-router-dom';
 import { Toaster } from 'sonner';
 import Layout from './components/Layout';
-import ErrorBoundary from './components/ErrorBoundary';
+import { ErrorBoundary } from './components/ErrorBoundary';
 
 import './App.css';
 import { AuthProvider } from './contexts/AuthContext';
