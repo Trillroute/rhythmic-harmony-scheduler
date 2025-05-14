@@ -13,7 +13,7 @@ export interface SessionWithStudents {
   duration: number;
   notes?: string;
   status: AttendanceStatus;
-  rescheduleCount?: number;
+  rescheduleCount: number; // Changed from optional to required
   createdAt: string;
   updatedAt: string;
   studentIds: string[];

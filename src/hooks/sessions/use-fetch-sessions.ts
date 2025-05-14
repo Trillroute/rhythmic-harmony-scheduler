@@ -4,6 +4,15 @@ import { supabase } from "@/integrations/supabase/client";
 import { FilterOptions } from "@/lib/types";
 import { transformSessionsFromDB } from "./session-transformers";
 import { Session } from "@/lib/types";
+import { 
+  assertSubjectType, 
+  assertSubjectTypeArray, 
+  assertSessionType, 
+  assertSessionTypeArray, 
+  assertLocationType, 
+  assertAttendanceStatus, 
+  assertAttendanceStatusArray 
+} from "@/lib/type-utils";
 
 export const useFetchSessions = (
   filters: FilterOptions = {},
@@ -33,7 +42,8 @@ export const useFetchSessions = (
 
     if (filters.subjects && filters.subjects.length > 0) {
       // Cast to string array for the Supabase query
-      query = query.in("subject", filters.subjects.map(s => s.toString()));
+      const subjectStrings = filters.subjects.map(s => s.toString());
+      query = query.in("subject", subjectStrings);
     }
 
     if (filters.sessionType) {
@@ -41,7 +51,8 @@ export const useFetchSessions = (
     }
 
     if (filters.sessionTypes && filters.sessionTypes.length > 0) {
-      query = query.in("session_type", filters.sessionTypes.map(s => s.toString()));
+      const sessionTypeStrings = filters.sessionTypes.map(s => s.toString());
+      query = query.in("session_type", sessionTypeStrings);
     }
 
     if (filters.location) {
@@ -51,7 +62,8 @@ export const useFetchSessions = (
     if (filters.status) {
       if (Array.isArray(filters.status)) {
         // Cast status array to string[] for Supabase query
-        query = query.in("status", filters.status.map(s => s.toString()));
+        const statusStrings = filters.status.map(s => s.toString());
+        query = query.in("status", statusStrings);
       } else {
         query = query.eq("status", filters.status.toString());
       }
@@ -68,7 +80,8 @@ export const useFetchSessions = (
 
     if (!data) return [];
 
-    return transformSessionsFromDB(data);
+    // Transform to Session type
+    return transformSessionsFromDB(data) as Session[];
   };
 
   return useQuery({

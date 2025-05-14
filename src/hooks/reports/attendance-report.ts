@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { format, startOfMonth, endOfMonth, subMonths } from "date-fns";
 import { AttendanceData, ReportPeriod } from "./types";
 import { AttendanceStatus, SubjectType } from "@/lib/types";
+import { assertAttendanceStatusArray, assertSubjectTypeArray } from "@/lib/type-utils";
 
 // Fetch attendance data for reports
 export const useAttendanceReport = (period: 'week' | 'month' | 'quarter' = 'month', filters?: ReportPeriod) => {
@@ -36,14 +37,16 @@ export const useAttendanceReport = (period: 'week' | 'month' | 'quarter' = 'mont
     
     // Apply subject filter if provided  
     if (filters?.subjects && filters.subjects.length > 0) {
-      // Cast to string array for the query
-      query = query.in('subject', filters.subjects.map(s => s.toString()));
+      // Cast array values to string for database query
+      const subjectStrings = filters.subjects.map(s => s.toString());
+      query = query.in('subject', subjectStrings);
     }
     
     // Apply status filter if provided
     if (filters?.status && filters.status.length > 0) {
-      // Cast to string array for the query
-      query = query.in('status', filters.status.map(s => s.toString()));
+      // Cast array values to string for database query
+      const statusStrings = filters.status.map(s => s.toString());
+      query = query.in('status', statusStrings);
     }
       
     const { data, error } = await query;

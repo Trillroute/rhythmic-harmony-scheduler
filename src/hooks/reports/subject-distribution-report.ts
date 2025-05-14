@@ -2,6 +2,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { ReportPeriod, SubjectDistributionData } from "./types";
+import { assertAttendanceStatusArray } from "@/lib/type-utils";
 
 // Fetch subject distribution data for reports
 export const useSubjectDistributionReport = (filters?: ReportPeriod) => {
@@ -21,8 +22,9 @@ export const useSubjectDistributionReport = (filters?: ReportPeriod) => {
     
     // Apply status filter if provided
     if (filters?.status && filters.status.length > 0) {
-      // Cast to string array for the query
-      query = query.in('status', filters.status.map(s => s.toString()));
+      // Cast array values to string for database query
+      const statusStrings = filters.status.map(s => s.toString());
+      query = query.in('status', statusStrings);
     }
       
     const { data, error } = await query;

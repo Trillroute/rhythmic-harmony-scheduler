@@ -1,6 +1,12 @@
 
 import { SessionWithStudents } from "./types";
-import { AttendanceStatus, LocationType, SessionType, SubjectType } from "@/lib/types";
+import { AttendanceStatus, LocationType, SessionType, SubjectType, Session } from "@/lib/types";
+import { 
+  assertAttendanceStatus, 
+  assertLocationType, 
+  assertSessionType, 
+  assertSubjectType 
+} from "@/lib/type-utils";
 
 // Transform raw database data to the SessionWithStudents format
 export const transformSessionData = (data: any[]): SessionWithStudents[] => {
@@ -13,14 +19,14 @@ export const transformSessionData = (data: any[]): SessionWithStudents[] => {
       id: session.id,
       teacherId: session.teacher_id,
       packId: session.pack_id,
-      subject: session.subject as SubjectType,
-      sessionType: session.session_type as SessionType,
-      location: session.location as LocationType,
+      subject: assertSubjectType(session.subject),
+      sessionType: assertSessionType(session.session_type),
+      location: assertLocationType(session.location),
       dateTime: session.date_time,
       duration: session.duration,
       notes: session.notes,
-      status: session.status as AttendanceStatus,
-      rescheduleCount: session.reschedule_count,
+      status: assertAttendanceStatus(session.status),
+      rescheduleCount: session.reschedule_count || 0, // Ensure it's not undefined
       createdAt: session.created_at,
       updatedAt: session.updated_at,
       studentIds
@@ -28,5 +34,12 @@ export const transformSessionData = (data: any[]): SessionWithStudents[] => {
   });
 };
 
-// Alias for backward compatibility
-export const transformSessionsFromDB = transformSessionData;
+// Transform sessions for compatibility with Session type
+export const transformSessionsFromDB = (data: any[]): Session[] => {
+  return transformSessionData(data).map(session => ({
+    ...session,
+    rescheduleCount: session.rescheduleCount || 0, // Ensure required property is present
+    createdAt: session.createdAt,
+    updatedAt: session.updatedAt
+  }));
+};

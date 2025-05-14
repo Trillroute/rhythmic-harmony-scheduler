@@ -19,6 +19,22 @@ interface RemindersFilterOptions {
   type?: string[];
 }
 
+// Transform database reminder to frontend reminder type
+const transformReminderFromDB = (reminder: any): Reminder => {
+  return {
+    id: reminder.id,
+    type: reminder.type as "session" | "payment" | "enrollment" | "other",
+    recipient_id: reminder.recipient_id,
+    related_id: reminder.related_id || undefined,
+    message: reminder.message,
+    send_at: reminder.send_at,
+    sent_at: reminder.sent_at || undefined,
+    status: reminder.status as "pending" | "sent" | "failed" | "cancelled",
+    channel: reminder.channel as "email" | "in_app" | "sms" | "push",
+    created_at: reminder.created_at
+  };
+};
+
 // Fetch reminders with optional filters
 export const useFetchReminders = (filters?: RemindersFilterOptions) => {
   return useQuery({
@@ -45,20 +61,7 @@ export const useFetchReminders = (filters?: RemindersFilterOptions) => {
       if (error) throw error;
       
       // Map to our Reminder interface
-      const reminders: Reminder[] = data.map(item => ({
-        id: item.id,
-        type: item.type,
-        recipient_id: item.recipient_id,
-        related_id: item.related_id || undefined,
-        message: item.message,
-        send_at: item.send_at,
-        sent_at: item.sent_at || undefined,
-        status: item.status,
-        channel: item.channel,
-        created_at: item.created_at
-      }));
-      
-      return reminders;
+      return data.map(transformReminderFromDB);
     }
   });
 };
@@ -88,7 +91,7 @@ export const useCreateReminder = () => {
       
       if (error) throw error;
       
-      return data[0];
+      return transformReminderFromDB(data[0]);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['reminders'] });
@@ -114,7 +117,7 @@ export const useCancelReminder = () => {
       
       if (error) throw error;
       
-      return data[0];
+      return transformReminderFromDB(data[0]);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['reminders'] });

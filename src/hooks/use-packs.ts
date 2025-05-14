@@ -3,21 +3,22 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { SessionPack, SubjectType, SessionType, LocationType, WeeklyFrequency, PackSize } from "@/lib/types";
+import { assertLocationType, assertSessionType, assertSubjectType, assertWeeklyFrequency } from "@/lib/type-utils";
 
 // Transform database pack to frontend pack
 const transformPackFromDB = (dbPack: any): SessionPack => {
   return {
     id: dbPack.id,
     studentId: dbPack.student_id,
-    size: dbPack.size as PackSize,
-    subject: dbPack.subject as SubjectType,
-    sessionType: dbPack.session_type as SessionType,
-    location: dbPack.location as LocationType,
+    size: parseInt(dbPack.size) as PackSize,
+    subject: assertSubjectType(dbPack.subject),
+    sessionType: assertSessionType(dbPack.session_type),
+    location: assertLocationType(dbPack.location),
     purchasedDate: dbPack.purchased_date,
     expiryDate: dbPack.expiry_date,
     remainingSessions: dbPack.remaining_sessions,
     isActive: dbPack.is_active,
-    weeklyFrequency: dbPack.weekly_frequency as WeeklyFrequency,
+    weeklyFrequency: assertWeeklyFrequency(dbPack.weekly_frequency),
     createdAt: dbPack.created_at,
     updatedAt: dbPack.updated_at
   };
