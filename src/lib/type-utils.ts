@@ -4,7 +4,8 @@ import {
   SessionType, 
   LocationType, 
   AttendanceStatus, 
-  WeeklyFrequency 
+  WeeklyFrequency,
+  PackSize
 } from "./types";
 
 /**
@@ -59,6 +60,15 @@ export function assertWeeklyFrequency(value: string): WeeklyFrequency {
   }
   console.warn(`Invalid weekly frequency: ${value}, defaulting to once`);
   return "once";
+}
+
+export function assertPackSize(value: string): PackSize {
+  if (!value) return "4"; // Default safe value
+  if (["4", "10", "20", "30"].includes(value)) {
+    return value as PackSize;
+  }
+  console.warn(`Invalid pack size: ${value}, defaulting to 4`);
+  return "4";
 }
 
 // Helper function to safely cast array of strings to enum array types

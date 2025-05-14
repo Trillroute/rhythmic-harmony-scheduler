@@ -1,255 +1,167 @@
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { toast } from '@/hooks/use-toast';
-import { Student, SubjectType, UserRole } from '@/lib/types';
+import { SubjectType, Student } from '@/lib/types';
+import { toast } from 'sonner';
 
-export interface StudentDetail extends Student {
-  assignedTeacherName?: string;
-  activePacks?: number;
-  enrolledCourses?: string[];
-  isActive?: boolean;
-  createdAt?: Date;
+interface StudentsQueryParams {
+  searchTerm?: string;
+  subject?: SubjectType | "all";
+  limit?: number;
 }
 
-export const useStudentsManagement = (filters?: {
-  search?: string;
-  subject?: SubjectType;
-  teacherId?: string;
-  isActive?: boolean;
-  page?: number;
-  pageSize?: number;
-}) => {
+export const useStudentsManagement = (params: StudentsQueryParams = {}) => {
   const queryClient = useQueryClient();
-  const pageSize = filters?.pageSize || 10;
-  const page = filters?.page || 1;
+  const { searchTerm = '', subject = 'all', limit } = params;
 
-  const fetchStudents = async () => {
-    try {
-      // Start with the base query for student profiles
+  // Fetch students with optional filtering
+  const studentsQuery = useQuery({
+    queryKey: ['students-management', searchTerm, subject, limit],
+    queryFn: async () => {
+      // Start by joining profiles with students to get all student data
       let query = supabase
-        .from('students')
+        .from('profiles')
         .select(`
-          id,
-          preferred_subjects,
-          preferred_teachers,
-          notes,
-          profiles!inner (
+          *,
+          students (
             id,
-            name,
-            email,
-            role,
-            created_at,
-            updated_at
+            preferred_subjects,
+            preferred_teachers,
+            notes
           )
-        `);
+        `)
+        .eq('role', 'student');
 
-      // Apply search filter if provided
-      if (filters?.search) {
-        query = query.or(`name.ilike.%${filters.search}%,email.ilike.%${filters.search}%`);
+      // Apply search term filter if provided
+      if (searchTerm) {
+        query = query.ilike('name', `%${searchTerm}%`);
       }
 
-      // Apply subject filter if provided
-      if (filters?.subject && filters.subject !== 'all') {
-        query = query.contains('preferred_subjects', [filters.subject]);
+      // Apply subject filter if provided and not "all"
+      if (subject && subject !== "all") {
+        query = query.filter('students.preferred_subjects', 'cs', `{${subject}}`);
       }
 
-      // Apply teacher filter if provided
-      if (filters?.teacherId && filters.teacherId !== 'all') {
-        query = query.contains('preferred_teachers', [filters.teacherId]);
+      // Apply limit if provided
+      if (limit) {
+        query = query.limit(limit);
       }
 
-      // Apply pagination
-      query = query.range((page - 1) * pageSize, page * pageSize - 1);
-
-      const { data: studentsData, error, count } = await query.order('id');
+      const { data, error } = await query;
 
       if (error) {
-        toast({
-          title: "Error fetching students",
-          description: error.message,
-          variant: "destructive",
-        });
         throw error;
       }
 
-      // Transform data to match StudentDetail type
-      const studentDetails: StudentDetail[] = [];
-      
-      for (const item of studentsData) {
-        // Get active packs count
-        const { data: packsData } = await supabase
-          .from('session_packs')
-          .select('id')
-          .eq('student_id', item.id)
-          .eq('is_active', true);
-        
-        // Get enrolled courses
-        const { data: enrollmentsData } = await supabase
-          .from('enrollments')
-          .select(`
-            course_id,
-            courses(name)
-          `)
-          .eq('student_id', item.id)
-          .in('status', ['active', 'on_hold']);
+      // Transform the data into a format that matches the Student interface
+      return data.map(profile => ({
+        id: profile.id,
+        name: profile.name,
+        email: profile.email,
+        preferredSubjects: profile.students?.[0]?.preferred_subjects || [],
+        preferredTeachers: profile.students?.[0]?.preferred_teachers || [],
+        notes: profile.students?.[0]?.notes || '',
+        status: profile.students?.[0]?.status || 'active'
+      }));
+    }
+  });
 
-        // Get assigned teacher if they have a primary preferred teacher
-        let teacherName = undefined;
-        if (item.preferred_teachers && item.preferred_teachers.length > 0) {
-          const { data: teacherData } = await supabase
-            .from('profiles')
-            .select('name')
-            .eq('id', item.preferred_teachers[0])
-            .single();
-          
-          teacherName = teacherData?.name;
+  // Create a new student
+  const createStudentMutation = useMutation({
+    mutationFn: async (studentData: Omit<Student, 'id'>) => {
+      // First, create a profile in auth.users
+      const { data: authData, error: authError } = await supabase.auth.signUp({
+        email: studentData.email,
+        password: Math.random().toString(36).slice(-8), // Generate a random password
+        options: {
+          data: {
+            name: studentData.name,
+            role: 'student'
+          }
         }
+      });
 
-        studentDetails.push({
-          id: item.id,
-          name: item.profiles.name,
-          email: item.profiles.email,
-          preferredSubjects: item.preferred_subjects,
-          preferredTeachers: item.preferred_teachers,
-          notes: item.notes,
-          createdAt: item.profiles.created_at ? new Date(item.profiles.created_at) : undefined,
-          assignedTeacherName: teacherName,
-          activePacks: packsData?.length || 0,
-          enrolledCourses: enrollmentsData?.map(e => e.courses?.name).filter(Boolean) || [],
-          isActive: true // Assuming all users are active by default
+      if (authError) throw authError;
+      
+      const userId = authData.user?.id;
+      if (!userId) throw new Error('Failed to create user account');
+
+      // Then insert the student-specific data
+      const { error: studentError } = await supabase
+        .from('students')
+        .insert({
+          id: userId,
+          preferred_subjects: studentData.preferredSubjects || [],
+          preferred_teachers: studentData.preferredTeachers || [],
+          notes: studentData.notes
         });
-      }
+
+      if (studentError) throw studentError;
 
       return {
-        students: studentDetails,
-        totalCount: count || studentDetails.length,
-        pageCount: Math.ceil((count || studentDetails.length) / pageSize)
+        id: userId,
+        ...studentData
       };
-    } catch (error) {
-      console.error("Error in fetchStudents:", error);
-      throw error;
-    }
-  };
-
-  const { data, isLoading, error, refetch } = useQuery({
-    queryKey: ['students', 'management', filters],
-    queryFn: fetchStudents,
-  });
-
-  const updateStudent = useMutation({
-    mutationFn: async (studentData: Partial<StudentDetail> & { id: string }) => {
-      const { id, name, email, preferredSubjects, preferredTeachers, notes, ...rest } = studentData;
-      
-      // Update the main profile information if provided
-      if (name || email) {
-        const { error: profileError } = await supabase
-          .from('profiles')
-          .update({ 
-            name: name,
-            email: email,
-            updated_at: new Date().toISOString() 
-          })
-          .eq('id', id);
-        
-        if (profileError) {
-          toast({
-            title: "Error updating profile",
-            description: profileError.message,
-            variant: "destructive",
-          });
-          throw profileError;
-        }
-      }
-      
-      // Update student-specific data - convert camelCase to snake_case for Supabase
-      const updateData: any = {};
-      if (preferredSubjects !== undefined) updateData.preferred_subjects = preferredSubjects;
-      if (preferredTeachers !== undefined) updateData.preferred_teachers = preferredTeachers;
-      if (notes !== undefined) updateData.notes = notes;
-      
-      if (Object.keys(updateData).length > 0) {
-        const { error: studentError } = await supabase
-          .from('students')
-          .update(updateData)
-          .eq('id', id);
-          
-        if (studentError) {
-          toast({
-            title: "Error updating student",
-            description: studentError.message,
-            variant: "destructive",
-          });
-          throw studentError;
-        }
-      }
-      
-      return { id };
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['students', 'management'] });
-      toast({
-        title: "Success",
-        description: "Student updated successfully",
-      });
+      queryClient.invalidateQueries({ queryKey: ['students-management'] });
+      toast.success('Student created successfully');
     },
-    onError: (error: Error) => {
-      toast({
-        title: "Error updating student",
-        description: error.message,
-        variant: "destructive",
-      });
+    onError: (error) => {
+      console.error('Error creating student:', error);
+      toast.error(`Failed to create student: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   });
 
-  const deactivateStudent = useMutation({
-    mutationFn: async (studentId: string) => {
-      // In a real system, we would set an 'is_active' flag to false
-      // For now we'll just simulate this operation
-      await new Promise(resolve => setTimeout(resolve, 500));
-      
-      toast({
-        title: "Student deactivated",
-        description: "Student account has been deactivated",
-      });
-      
-      return { id: studentId, isActive: false };
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['students', 'management'] });
-    }
-  });
+  // Update an existing student
+  const updateStudentMutation = useMutation({
+    mutationFn: async ({ id, ...studentData }: Student) => {
+      // Update profile data (name, email)
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .update({
+          name: studentData.name,
+          email: studentData.email
+        })
+        .eq('id', id);
 
-  const reactivateStudent = useMutation({
-    mutationFn: async (studentId: string) => {
-      // In a real system, we would set an 'is_active' flag to true
-      // For now we'll just simulate this operation
-      await new Promise(resolve => setTimeout(resolve, 500));
-      
-      toast({
-        title: "Student reactivated",
-        description: "Student account has been reactivated",
-      });
-      
-      return { id: studentId, isActive: true };
+      if (profileError) throw profileError;
+
+      // Update student-specific data
+      const { error: studentError } = await supabase
+        .from('students')
+        .update({
+          preferred_subjects: studentData.preferredSubjects || [],
+          preferred_teachers: studentData.preferredTeachers || [],
+          notes: studentData.notes,
+          status: studentData.status
+        })
+        .eq('id', id);
+
+      if (studentError) throw studentError;
+
+      return {
+        id,
+        ...studentData
+      };
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['students', 'management'] });
+      queryClient.invalidateQueries({ queryKey: ['students-management'] });
+      toast.success('Student updated successfully');
+    },
+    onError: (error) => {
+      console.error('Error updating student:', error);
+      toast.error(`Failed to update student: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   });
 
   return {
-    students: data?.students || [],
-    totalCount: data?.totalCount || 0,
-    pageCount: data?.pageCount || 1,
-    isLoading,
-    error,
-    refetch,
-    updateStudent: updateStudent.mutate,
-    deactivateStudent: deactivateStudent.mutate,
-    reactivateStudent: reactivateStudent.mutate,
-    isPendingUpdate: updateStudent.isPending,
-    isPendingDeactivate: deactivateStudent.isPending,
-    isPendingReactivate: reactivateStudent.isPending,
+    students: studentsQuery.data || [],
+    isLoading: studentsQuery.isLoading,
+    error: studentsQuery.error,
+    createStudent: createStudentMutation.mutateAsync,
+    updateStudent: updateStudentMutation.mutateAsync,
+    isPendingCreate: createStudentMutation.isPending,
+    isPendingUpdate: updateStudentMutation.isPending
   };
 };

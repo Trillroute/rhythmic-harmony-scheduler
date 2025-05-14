@@ -8,7 +8,6 @@ import {
   StudentProgressData,
   ReportPeriod,
   SessionTypeItem,
-  StudentProgressItem
 } from './types';
 
 /**
@@ -83,18 +82,18 @@ export const generateSubjectDistributionReport = (sessions: any[]): SubjectDistr
     Drums: 0,
     Ukulele: 0,
     Vocal: 0,
-    chartData: {
-      labels: [],
-      data: []
-    }
   };
   
   // Add counts to the result object
   subjectCounts.forEach((count, subject) => {
     result[subject] = count;
-    result.chartData?.labels.push(subject);
-    result.chartData?.data.push(count);
   });
+  
+  // Add chartData separately
+  result.chartData = {
+    labels: Array.from(subjectCounts.keys()),
+    data: Array.from(subjectCounts.values()) as number[]
+  };
   
   return result;
 };
@@ -216,11 +215,8 @@ export const generateStudentProgressReport = (progressData: any[]): StudentProgr
         completionPercentage: item.completion_percentage || 0
       },
       // For backward compatibility
-      id: item.id,
       studentId: item.enrollment?.profiles?.id || 'unknown',
       studentName: item.enrollment?.profiles?.name || 'Unknown Student',
-      courseName: item.enrollment?.courses?.name || 'Unknown Course',
-      instrument: item.enrollment?.courses?.instrument || 'Unknown',
       completionPercentage: item.completion_percentage || 0
     };
   });
@@ -274,17 +270,21 @@ export const fetchAttendanceData = async (period: ReportPeriod): Promise<Attenda
 export const fetchSubjectDistributionData = async (period: ReportPeriod): Promise<SubjectDistributionData> => {
   try {
     // Return data in the correct format
-    return {
+    const result: SubjectDistributionData = {
       Guitar: 40,
       Piano: 35,
       Drums: 15,
       Vocal: 8,
-      Ukulele: 2,
-      chartData: {
-        labels: ['Guitar', 'Piano', 'Drums', 'Vocal', 'Ukulele'],
-        data: [40, 35, 15, 8, 2]
-      }
+      Ukulele: 2
     };
+    
+    // Add chartData separately
+    result.chartData = {
+      labels: ['Guitar', 'Piano', 'Drums', 'Vocal', 'Ukulele'],
+      data: [40, 35, 15, 8, 2]
+    };
+    
+    return result;
   } catch (error) {
     console.error('Error fetching subject distribution data:', error);
     throw error;
@@ -341,51 +341,36 @@ export const fetchStudentProgressData = async (period: ReportPeriod): Promise<St
       { 
         student: { id: '1', name: 'Alice Johnson' },
         progress: { id: '1', courseName: 'Piano Basics', instrument: 'Piano', completionPercentage: 80 },
-        id: '1',
         studentId: '1',
         studentName: 'Alice Johnson',
-        courseName: 'Piano Basics',
-        instrument: 'Piano',
         completionPercentage: 80
       },
       { 
         student: { id: '2', name: 'Bob Smith' },
         progress: { id: '2', courseName: 'Guitar Fundamentals', instrument: 'Guitar', completionPercentage: 60 },
-        id: '2',
         studentId: '2',
         studentName: 'Bob Smith',
-        courseName: 'Guitar Fundamentals',
-        instrument: 'Guitar',
         completionPercentage: 60
       },
       { 
         student: { id: '3', name: 'Charlie Brown' },
         progress: { id: '3', courseName: 'Drum Introduction', instrument: 'Drums', completionPercentage: 50 },
-        id: '3',
         studentId: '3',
         studentName: 'Charlie Brown',
-        courseName: 'Drum Introduction',
-        instrument: 'Drums',
         completionPercentage: 50
       },
       { 
         student: { id: '4', name: 'Diana White' },
         progress: { id: '4', courseName: 'Vocal Training', instrument: 'Vocal', completionPercentage: 40 },
-        id: '4',
         studentId: '4',
         studentName: 'Diana White',
-        courseName: 'Vocal Training',
-        instrument: 'Vocal',
         completionPercentage: 40
       },
       { 
         student: { id: '5', name: 'Ethan Miller' },
         progress: { id: '5', courseName: 'Ukulele Basics', instrument: 'Ukulele', completionPercentage: 30 },
-        id: '5',
         studentId: '5',
         studentName: 'Ethan Miller',
-        courseName: 'Ukulele Basics',
-        instrument: 'Ukulele',
         completionPercentage: 30
       }
     ];

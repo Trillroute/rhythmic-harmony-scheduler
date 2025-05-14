@@ -1,8 +1,7 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { AttendanceStatus, Session } from "@/lib/types";
-import { SessionWithStudents } from "./sessions/types";
+import { AttendanceStatus } from "@/lib/types";
 
 export interface UseSessionsByStudentOptions {
   status?: AttendanceStatus | AttendanceStatus[];
@@ -45,9 +44,12 @@ export const useSessionsByStudent = (
       // Filter by status if provided
       if (status) {
         if (Array.isArray(status)) {
-          query = query.in("status", status);
+          // Convert to array of strings to avoid enum mismatch
+          const statusStrings = status.map(s => String(s));
+          query = query.in("status", statusStrings);
         } else {
-          query = query.eq("status", status);
+          // Convert to string to avoid enum mismatch
+          query = query.eq("status", String(status));
         }
       }
 
@@ -81,7 +83,7 @@ export const useSessionsByStudent = (
 // Add a type guard for backward compatibility
 export const isSessionsQueryResult = (
   result: unknown
-): result is { data: SessionWithStudents[] } => {
+): result is { data: any[] } => {
   return (
     typeof result === "object" &&
     result !== null &&

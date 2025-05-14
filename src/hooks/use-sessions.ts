@@ -44,7 +44,7 @@ export const useSessions = (filters: FilterOptions = {}) => {
   
   // Return a unified API
   return {
-    sessions: fetchSessionsQuery.data?.sessions || [],
+    sessions: fetchSessionsQuery.data || [],
     isLoading: fetchSessionsQuery.isLoading,
     error: fetchSessionsQuery.error,
     refetchSessions: fetchSessionsQuery.refetch,

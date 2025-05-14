@@ -3,7 +3,6 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { AttendanceStatus } from '@/lib/types';
-import { assertAttendanceStatus } from '@/lib/type-utils';
 
 interface UpdateSessionStatusParams {
   sessionId: string;
@@ -18,7 +17,7 @@ export const useUpdateSessionStatus = (queryKeysToInvalidate: string[] = []) => 
       if (!sessionId) throw new Error('Session ID is required');
       
       // Convert AttendanceStatus to string for database compatibility
-      const statusString = status.toString();
+      const statusString = String(status);
       
       const { error } = await supabase
         .from('sessions')

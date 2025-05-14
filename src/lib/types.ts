@@ -1,3 +1,4 @@
+
 export type UserRole = 'admin' | 'teacher' | 'student';
 
 // Ensure these match exactly with the database enum values
@@ -10,9 +11,33 @@ export type SessionType = 'Solo' | 'Duo' | 'Focus';
 
 export type LocationType = 'Online' | 'Offline';
 
-export type PackSize = 4 | 10 | 20 | 30;
+// Modified to use string literals to match database values
+export type PackSize = '4' | '10' | '20' | '30';
 
 export type WeeklyFrequency = 'once' | 'twice';
+
+// Adding missing types for data.ts
+export interface Admin {
+  id: string;
+  permissions?: string[];
+}
+
+export interface User {
+  id: string;
+  name: string;
+  email: string;
+  role: UserRole;
+}
+
+export interface TimeSlot {
+  id: string;
+  teacherId: string;
+  day: number;
+  startTime: string;
+  endTime: string;
+  location: LocationType;
+  isRecurring: boolean;
+}
 
 export interface Teacher {
   id: string;
@@ -139,7 +164,7 @@ export interface Reminder {
   created_at: string | Date;
 }
 
-// SessionWithStudents interface moved here from sessions/types.ts
+// SessionWithStudents interface 
 export interface SessionWithStudents {
   id: string;
   teacherId: string;

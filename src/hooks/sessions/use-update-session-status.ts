@@ -3,6 +3,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { AttendanceStatus } from "@/lib/types";
 import { toast } from "sonner";
+import { assertAttendanceStatus } from "@/lib/type-utils";
 
 interface UpdateStatusParams {
   sessionId: string;

@@ -26,33 +26,29 @@ export const useSubjectDistributionReport = () => {
           return acc;
         }, {});
 
-        // Convert to array format
+        // Convert to structured format format
         const result: SubjectDistributionData = {
           Guitar: sessionsBySubject['Guitar'] || 0,
           Piano: sessionsBySubject['Piano'] || 0,
           Drums: sessionsBySubject['Drums'] || 0,
           Ukulele: sessionsBySubject['Ukulele'] || 0,
           Vocal: sessionsBySubject['Vocal'] || 0,
-          chartData: {
-            labels: Object.keys(sessionsBySubject),
-            data: Object.values(sessionsBySubject)
-          }
         };
         
-        // Add array-like properties for backward compatibility
-        const subjectItems = Object.keys(sessionsBySubject).map((subject, index) => {
+        // Add chartData separately (not part of index signature)
+        result.chartData = {
+          labels: Object.keys(sessionsBySubject),
+          data: Object.values(sessionsBySubject) as number[]
+        };
+        
+        // Store item data directly on the keys
+        Object.keys(sessionsBySubject).forEach((subject, index) => {
           const count = sessionsBySubject[subject];
-          const item = {
-            subject,
-            count,
-            name: subject,
-            value: count
-          };
-          result[index] = item;
-          return item;
+          result[subject] = count;
+          result[index] = count;
         });
         
-        result.length = subjectItems.length;
+        result.length = Object.keys(sessionsBySubject).length;
         
         return result;
       } catch (error) {

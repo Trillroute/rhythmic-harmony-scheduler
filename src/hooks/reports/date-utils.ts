@@ -1,56 +1,58 @@
 
-import { ReportPeriod } from "./types";
-import { startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfYear, endOfYear, subDays } from "date-fns";
+import { addDays, endOfMonth, endOfWeek, startOfMonth, startOfWeek, subDays, subMonths } from "date-fns";
+import { ReportPeriod, DateRangeSelection } from "./types";
 
-export function getPeriodDateRange(period: ReportPeriod) {
+export function getDateRangeFromPeriod(period: ReportPeriod): DateRangeSelection {
   const now = new Date();
   
-  switch (period) {
-    case 'this_week':
+  switch(period) {
+    case 'this_week': {
       return {
-        startDate: startOfWeek(now, { weekStartsOn: 1 }), // Monday
-        endDate: endOfWeek(now, { weekStartsOn: 1 }) // Sunday
+        startDate: startOfWeek(now),
+        endDate: endOfWeek(now)
       };
-    case 'this_month':
+    }
+    case 'this_month': {
       return {
         startDate: startOfMonth(now),
         endDate: endOfMonth(now)
       };
+    }
     case 'last_month': {
-      const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+      const lastMonth = subMonths(now, 1);
       return {
         startDate: startOfMonth(lastMonth),
         endDate: endOfMonth(lastMonth)
       };
     }
-    case 'year_to_date':
-      return {
-        startDate: startOfYear(now),
-        endDate: now
-      };
-    case 'last_30days':
+    case 'last_30days': {
       return {
         startDate: subDays(now, 30),
         endDate: now
       };
-    case 'last_90days':
+    }
+    case 'last_90days': {
       return {
         startDate: subDays(now, 90),
         endDate: now
       };
-    case 'custom':
-      // For custom, we expect the date range to be provided separately
+    }
+    case 'year_to_date': {
       return {
-        startDate: now,
+        startDate: new Date(now.getFullYear(), 0, 1), // Jan 1st of current year
         endDate: now
       };
-    default:
+    }
+    case 'custom': 
+    default: {
+      // Default to last 7 days if custom is selected without specifying dates
       return {
-        startDate: startOfMonth(now),
-        endDate: endOfMonth(now)
+        startDate: subDays(now, 7),
+        endDate: now
       };
+    }
   }
 }
 
-// Alias to maintain backward compatibility
-export const getDateRangeFromPeriod = getPeriodDateRange;
+// Alias function for backward compatibility
+export const getPeriodDateRange = getDateRangeFromPeriod;

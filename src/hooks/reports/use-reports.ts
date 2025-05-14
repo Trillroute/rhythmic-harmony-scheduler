@@ -76,15 +76,11 @@ export function useReports() {
       Piano: 0,
       Drums: 0,
       Ukulele: 0,
-      Vocal: 0,
-      chartData: {
-        labels: [],
-        data: []
-      }
+      Vocal: 0
     };
     
     // Process the data
-    (data || []).forEach((item, index) => {
+    (data || []).forEach((item: any, index: number) => {
       const subject = item.subject;
       const count = Number(item.count);
       
@@ -93,19 +89,14 @@ export function useReports() {
         result[subject] = count;
       }
       
-      // Add to array-like format for backward compatibility
-      result[index] = {
-        subject,
-        count,
-        name: subject,
-        value: count
-      };
+      // Add to numeric index properties for backward compatibility
+      result[index] = count;
     });
     
-    // Prepare chart data
+    // Prepare chart data separately from index signature
     result.chartData = {
-      labels: Object.keys(data || {}).map(i => data[i].subject),
-      data: Object.keys(data || {}).map(i => Number(data[i].count))
+      labels: Object.keys(data || {}).map((i: any) => data[i].subject),
+      data: Object.keys(data || {}).map((i: any) => Number(data[i].count))
     };
     
     result.length = data?.length || 0;
@@ -132,26 +123,19 @@ export function useReports() {
     };
     
     // Process the data
-    data?.forEach((item, index) => {
+    data?.forEach((item: any, index: number) => {
       const sessionType = item.session_type;
       const subject = item.subject;
       const count = Number(item.count);
       
       // Add to structured format
       if (sessionType in result) {
-        result[sessionType].count += count;
-        if (typeof result[sessionType].subjects === 'object') {
-          const subjects = result[sessionType].subjects as Record<string, number>;
+        result[sessionType]!.count += count;
+        if (typeof result[sessionType]!.subjects === 'object') {
+          const subjects = result[sessionType]!.subjects as Record<string, number>;
           subjects[subject] = count;
         }
       }
-      
-      // Add to array-like format for backward compatibility
-      result[index] = {
-        type: sessionType,
-        count,
-        subjects: {}
-      };
     });
     
     result.length = data?.length || 0;
@@ -171,7 +155,7 @@ export function useReports() {
     if (error) throw error;
     
     // Format dates and counts for display
-    const reportData = data?.map(item => ({
+    const reportData = data?.map((item: any) => ({
       date: item.month_name, 
       count: Number(item.count)
     })) || [];
@@ -207,7 +191,7 @@ export function useReports() {
     if (error) throw error;
     
     // Transform the data
-    const students = data?.map(item => ({
+    const students = data?.map((item: any) => ({
       studentId: item.student_id,
       studentName: item.student_name || 'Unknown Student',
       completionPercentage: item.completion_percentage || 0,

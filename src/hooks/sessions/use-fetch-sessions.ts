@@ -71,7 +71,7 @@ export const useFetchSessions = (options: UseFetchSessionsOptions = {}) => {
             // Convert status array to string array for database query
             const statusValues = status.map(s => String(s));
             if (statusValues.length > 0) {
-              query = query.in("status", assertStringArray(statusValues));
+              query = query.in("status", statusValues);
             }
           }
         } else {

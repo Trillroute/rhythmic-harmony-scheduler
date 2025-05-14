@@ -30,13 +30,14 @@ export interface AttendanceData {
   data: number[]; // Added for backward compatibility
 }
 
+// Modified to avoid string indexing issues
 export interface SubjectDistributionData {
-  [subject: string]: number;
-  Guitar?: number;
-  Piano?: number;
-  Drums?: number;
-  Ukulele?: number;
-  Vocal?: number;
+  Guitar: number;
+  Piano: number;
+  Drums: number;
+  Ukulele: number;
+  Vocal: number;
+  [key: string]: number | { labels: string[]; data: number[] } | undefined; // Allow both number and chartData
   chartData?: {
     labels: string[];
     data: number[];
@@ -53,11 +54,12 @@ export interface SessionTypeItem {
   subjects: SessionTypeSubjects | { subject: string; count: number }[];
 }
 
+// Modified to avoid string indexing issues
 export interface SessionTypeData {
   Solo?: SessionTypeItem;
   Duo?: SessionTypeItem;
   Focus?: SessionTypeItem;
-  [key: string]: SessionTypeItem | undefined;
+  [key: string]: SessionTypeItem | number | ((callback: any) => any) | ((item: any) => number) | undefined;
   length?: number;
   map?: (callback: any) => any;
   push?: (item: any) => number;
