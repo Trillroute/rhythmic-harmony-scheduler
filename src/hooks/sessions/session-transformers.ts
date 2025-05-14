@@ -1,4 +1,3 @@
-
 import { SessionWithStudents } from '@/lib/types';
 
 /**
@@ -44,3 +43,38 @@ export const transformSessionWithStudents = (rawSession: any): SessionWithStuden
     rescheduledFrom: rawSession.rescheduled_from,
   };
 };
+
+/**
+ * Transforms session update data from frontend model to API format
+ */
+export function transformSessionUpdate(updates: {
+  status?: string;
+  notes?: string;
+  dateTime?: Date;
+  teacherId?: string;
+  duration?: number;
+}) {
+  const apiUpdates: Record<string, any> = {};
+  
+  if (updates.status !== undefined) {
+    apiUpdates.status = updates.status;
+  }
+  
+  if (updates.notes !== undefined) {
+    apiUpdates.notes = updates.notes;
+  }
+  
+  if (updates.dateTime !== undefined) {
+    apiUpdates.date_time = updates.dateTime.toISOString();
+  }
+  
+  if (updates.teacherId !== undefined) {
+    apiUpdates.teacher_id = updates.teacherId;
+  }
+  
+  if (updates.duration !== undefined) {
+    apiUpdates.duration = updates.duration;
+  }
+  
+  return apiUpdates;
+}

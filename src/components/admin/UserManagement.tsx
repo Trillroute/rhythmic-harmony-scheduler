@@ -46,6 +46,8 @@ import { format } from "date-fns";
 import { toast } from "sonner";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { useAuth } from "@/contexts/AuthContext";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { SkeletonCard } from "@/components/ui/skeleton-card";
 
 const formSchema = z.object({
   name: z.string().min(2, {
@@ -160,208 +162,214 @@ const UserManagement = () => {
   // Handle the role filter safely
   const handleRoleFilterChange = (value: string | undefined) => {
     // Only set the role filter if it's a valid role or unset it if empty
-    setRoleFilter(value as UserRole | undefined);
+    if (value === 'all') {
+      setRoleFilter(undefined);
+    } else {
+      setRoleFilter(value as UserRole | undefined);
+    }
   };
 
   return (
-    <div className="container py-6">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold">User Management</h1>
-        <Dialog open={open} onOpenChange={setOpen}>
-          <DialogTrigger asChild>
-            <Button onClick={() => setEditingUser(null)}>Add User</Button>
-          </DialogTrigger>
-          <DialogContent className="sm:max-w-[425px]">
-            <DialogHeader>
-              <DialogTitle>{editingUser ? "Edit User" : "Add New User"}</DialogTitle>
-              <DialogDescription>
-                {editingUser ? "Update user details." : "Enter the details for the new user."}
-              </DialogDescription>
-            </DialogHeader>
-            <Form {...form}>
-              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-                <FormField
-                  control={form.control}
-                  name="name"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Name</FormLabel>
-                      <FormControl>
-                        <Input placeholder="John Doe" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="email"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Email</FormLabel>
-                      <FormControl>
-                        <Input placeholder="john@example.com" type="email" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="role"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Role</FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value}>
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select a role" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          <SelectItem value="admin">Admin</SelectItem>
-                          <SelectItem value="teacher">Teacher</SelectItem>
-                          <SelectItem value="student">Student</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                {form.watch("role") === "student" && (
+    <ErrorBoundary>
+      <div className="container py-6">
+        <div className="flex justify-between items-center mb-6">
+          <h1 className="text-2xl font-bold">User Management</h1>
+          <Dialog open={open} onOpenChange={setOpen}>
+            <DialogTrigger asChild>
+              <Button onClick={() => setEditingUser(null)}>Add User</Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-[425px]">
+              <DialogHeader>
+                <DialogTitle>{editingUser ? "Edit User" : "Add New User"}</DialogTitle>
+                <DialogDescription>
+                  {editingUser ? "Update user details." : "Enter the details for the new user."}
+                </DialogDescription>
+              </DialogHeader>
+              <Form {...form}>
+                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
                   <FormField
                     control={form.control}
-                    name="notes"
+                    name="name"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Notes (Optional)</FormLabel>
+                        <FormLabel>Name</FormLabel>
                         <FormControl>
-                          <Input {...field} />
+                          <Input placeholder="John Doe" {...field} />
                         </FormControl>
-                        <FormDescription>Additional notes about this student.</FormDescription>
                         <FormMessage />
                       </FormItem>
                     )}
                   />
-                )}
-                <DialogFooter className="mt-6">
-                  <Button type="submit" disabled={isPendingUpdate}>
-                    {isPendingUpdate ? "Saving..." : "Save"}
-                  </Button>
-                </DialogFooter>
-              </form>
-            </Form>
-          </DialogContent>
-        </Dialog>
-      </div>
-
-      <div className="flex flex-col sm:flex-row gap-4 mb-6">
-        <div className="sm:w-2/3">
-          <Input
-            placeholder="Search by email..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-          />
+                  <FormField
+                    control={form.control}
+                    name="email"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Email</FormLabel>
+                        <FormControl>
+                          <Input placeholder="john@example.com" type="email" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="role"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Role</FormLabel>
+                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select a role" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="admin">Admin</SelectItem>
+                            <SelectItem value="teacher">Teacher</SelectItem>
+                            <SelectItem value="student">Student</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  {form.watch("role") === "student" && (
+                    <FormField
+                      control={form.control}
+                      name="notes"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Notes (Optional)</FormLabel>
+                          <FormControl>
+                            <Input {...field} />
+                          </FormControl>
+                          <FormDescription>Additional notes about this student.</FormDescription>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  )}
+                  <DialogFooter className="mt-6">
+                    <Button type="submit" disabled={isPendingUpdate}>
+                      {isPendingUpdate ? "Saving..." : "Save"}
+                    </Button>
+                  </DialogFooter>
+                </form>
+              </Form>
+            </DialogContent>
+          </Dialog>
         </div>
-        <div className="sm:w-1/3">
-          <Select
-            value={roleFilter}
-            onValueChange={handleRoleFilterChange}
-          >
-            <SelectTrigger>
-              <SelectValue placeholder="Filter by role" />
-            </SelectTrigger>
-            <SelectContent>
-              {/* Fixed this line - using "all" instead of empty string */}
-              <SelectItem value="all">All roles</SelectItem>
-              <SelectItem value="admin">Admins</SelectItem>
-              <SelectItem value="teacher">Teachers</SelectItem>
-              <SelectItem value="student">Students</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-      </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Users</CardTitle>
-          <CardDescription>Manage users and their roles</CardDescription>
-        </CardHeader>
-        <CardContent>
-          {isLoading ? (
-            <p className="text-center py-4">Loading users...</p>
-          ) : !users || users.length === 0 ? (
-            <p className="text-center py-4">No users found</p>
-          ) : (
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Name</TableHead>
-                    <TableHead>Email</TableHead>
-                    <TableHead>Role</TableHead>
-                    <TableHead>Created</TableHead>
-                    <TableHead>Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {users?.map((user) => (
-                    <TableRow key={user.id}>
-                      <TableCell className="font-medium">{user.name || "Unnamed User"}</TableCell>
-                      <TableCell>{user.email || "No Email"}</TableCell>
-                      <TableCell>
-                        <Badge
-                          variant={
-                            user.role === "admin" ? "default" :
-                            user.role === "teacher" ? "secondary" : "outline"
-                          }
-                        >
-                          {user.role}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        {typeof user.createdAt === 'string' 
-                          ? format(new Date(user.createdAt), "MMM d, yyyy")
-                          : user.createdAt instanceof Date
-                          ? format(user.createdAt, "MMM d, yyyy")
-                          : "Unknown Date"}
-                      </TableCell>
-                      <TableCell className="space-x-2">
-                        <Button variant="outline" size="sm" onClick={() => handleEditUser(user)}>Edit</Button>
-                        <AlertDialog>
-                          <AlertDialogTrigger asChild>
-                            <Button variant="outline" size="sm" className="text-destructive hover:bg-destructive/10">Delete</Button>
-                          </AlertDialogTrigger>
-                          <AlertDialogContent>
-                            <AlertDialogHeader>
-                              <AlertDialogTitle>Are you sure you want to delete this user?</AlertDialogTitle>
-                              <AlertDialogDescription>
-                                This action cannot be undone. This will permanently delete the user account
-                                and all associated data.
-                              </AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter>
-                              <AlertDialogCancel>Cancel</AlertDialogCancel>
-                              <AlertDialogAction 
-                                onClick={() => deleteUser(user.id)}
-                                disabled={isPendingDelete}
-                                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                              >
-                                {isPendingDelete ? "Deleting..." : "Delete"}
-                              </AlertDialogAction>
-                            </AlertDialogFooter>
-                          </AlertDialogContent>
-                        </AlertDialog>
-                      </TableCell>
+        <div className="flex flex-col sm:flex-row gap-4 mb-6">
+          <div className="sm:w-2/3">
+            <Input
+              placeholder="Search by email..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+          </div>
+          <div className="sm:w-1/3">
+            <Select
+              value={roleFilter || "all"}
+              onValueChange={handleRoleFilterChange}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Filter by role" />
+              </SelectTrigger>
+              <SelectContent>
+                {/* Fixed: Use "all" instead of empty string */}
+                <SelectItem value="all">All roles</SelectItem>
+                <SelectItem value="admin">Admins</SelectItem>
+                <SelectItem value="teacher">Teachers</SelectItem>
+                <SelectItem value="student">Students</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Users</CardTitle>
+            <CardDescription>Manage users and their roles</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {isLoading ? (
+              <SkeletonCard variant="table" rows={8} />
+            ) : !users || users.length === 0 ? (
+              <p className="text-center py-4">No users found</p>
+            ) : (
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Name</TableHead>
+                      <TableHead>Email</TableHead>
+                      <TableHead>Role</TableHead>
+                      <TableHead>Created</TableHead>
+                      <TableHead>Actions</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-          )}
-        </CardContent>
-      </Card>
-    </div>
+                  </TableHeader>
+                  <TableBody>
+                    {users?.map((user) => (
+                      <TableRow key={user.id}>
+                        <TableCell className="font-medium">{user.name || "Unnamed User"}</TableCell>
+                        <TableCell>{user.email || "No Email"}</TableCell>
+                        <TableCell>
+                          <Badge
+                            variant={
+                              user.role === "admin" ? "default" :
+                              user.role === "teacher" ? "secondary" : "outline"
+                            }
+                          >
+                            {user.role}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          {typeof user.createdAt === 'string' 
+                            ? format(new Date(user.createdAt), "MMM d, yyyy")
+                            : user.createdAt instanceof Date
+                            ? format(user.createdAt, "MMM d, yyyy")
+                            : "Unknown Date"}
+                        </TableCell>
+                        <TableCell className="space-x-2">
+                          <Button variant="outline" size="sm" onClick={() => handleEditUser(user)}>Edit</Button>
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button variant="outline" size="sm" className="text-destructive hover:bg-destructive/10">Delete</Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>Are you sure you want to delete this user?</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  This action cannot be undone. This will permanently delete the user account
+                                  and all associated data.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                <AlertDialogAction 
+                                  onClick={() => deleteUser(user.id)}
+                                  disabled={isPendingDelete}
+                                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                >
+                                  {isPendingDelete ? "Deleting..." : "Delete"}
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+    </ErrorBoundary>
   );
 };
 

@@ -13,6 +13,7 @@ import { SessionRecurrenceSelector } from "./SessionRecurrenceSelector";
 import { toast } from "sonner";
 import { useSessions } from "@/hooks/use-sessions";
 import { SubjectType, SessionType, LocationType } from "@/lib/types";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 
 interface SessionFormProps {
   onSuccess?: (data: any) => void;
@@ -58,7 +59,7 @@ export const SessionForm: React.FC<SessionFormProps> = ({ onSuccess }) => {
       // Create session(s)
       const data = await createBulkSessions([sessionData]);
       
-      // Success notification
+      // Success notification - Ensure we're passing a string
       const sessionText = isRecurring ? `${recurrenceCount} recurring sessions` : "session";
       toast.success(`${sessionText} scheduled successfully`);
       
@@ -80,73 +81,76 @@ export const SessionForm: React.FC<SessionFormProps> = ({ onSuccess }) => {
       }
     } catch (error) {
       console.error("Error creating session:", error);
+      // Ensure we're passing a string to toast.error
       toast.error(`Failed to schedule session: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   };
   
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <SessionTeacherSelector 
-          selectedTeacher={selectedTeacher} 
-          onSelectTeacher={setSelectedTeacher} 
+    <ErrorBoundary>
+      <form onSubmit={handleSubmit} className="space-y-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <SessionTeacherSelector 
+            selectedTeacher={selectedTeacher} 
+            onSelectTeacher={setSelectedTeacher} 
+          />
+          
+          <SessionPackSelector 
+            selectedPack={selectedPack} 
+            onSelectPack={setSelectedPack} 
+          />
+        </div>
+        
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <SessionSubjectSelector 
+            selectedSubject={selectedSubject} 
+            onSelectSubject={setSelectedSubject} 
+          />
+          
+          <SessionTypeSelector 
+            selectedType={selectedType} 
+            onSelectType={setSelectedType} 
+          />
+          
+          <SessionLocationSelector 
+            selectedLocation={selectedLocation} 
+            onSelectLocation={setSelectedLocation} 
+            sessionType={selectedType}  
+          />
+        </div>
+        
+        <div className="grid grid-cols-1 gap-4">
+          <SessionDatePicker 
+            selectedDate={selectedDate} 
+            onSelectDate={setSelectedDate} 
+          />
+        </div>
+        
+        <SessionRecurrenceSelector
+          enabled={isRecurring}
+          setEnabled={setIsRecurring}
+          recurrenceCount={recurrenceCount}
+          setRecurrenceCount={setRecurrenceCount}
         />
         
-        <SessionPackSelector 
-          selectedPack={selectedPack} 
-          onSelectPack={setSelectedPack} 
-        />
-      </div>
-      
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <SessionSubjectSelector 
-          selectedSubject={selectedSubject} 
-          onSelectSubject={setSelectedSubject} 
+        <SessionStudentSelector 
+          selectedStudents={selectedStudents} 
+          onSelectStudents={setSelectedStudents} 
         />
         
-        <SessionTypeSelector 
-          selectedType={selectedType} 
-          onSelectType={setSelectedType} 
-        />
+        <div>
+          <Textarea 
+            placeholder="Session notes (optional)" 
+            value={notes} 
+            onChange={(e) => setNotes(e.target.value)}
+            className="resize-none h-20"
+          />
+        </div>
         
-        <SessionLocationSelector 
-          selectedLocation={selectedLocation} 
-          onSelectLocation={setSelectedLocation} 
-          sessionType={selectedType}  
-        />
-      </div>
-      
-      <div className="grid grid-cols-1 gap-4">
-        <SessionDatePicker 
-          selectedDate={selectedDate} 
-          onSelectDate={setSelectedDate} 
-        />
-      </div>
-      
-      <SessionRecurrenceSelector
-        enabled={isRecurring}
-        setEnabled={setIsRecurring}
-        recurrenceCount={recurrenceCount}
-        setRecurrenceCount={setRecurrenceCount}
-      />
-      
-      <SessionStudentSelector 
-        selectedStudents={selectedStudents} 
-        onSelectStudents={setSelectedStudents} 
-      />
-      
-      <div>
-        <Textarea 
-          placeholder="Session notes (optional)" 
-          value={notes} 
-          onChange={(e) => setNotes(e.target.value)}
-          className="resize-none h-20"
-        />
-      </div>
-      
-      <Button type="submit" className="w-full" disabled={isPendingCreate}>
-        {isPendingCreate ? "Scheduling..." : `Schedule ${isRecurring ? 'Recurring Sessions' : 'Session'}`}
-      </Button>
-    </form>
+        <Button type="submit" className="w-full" disabled={isPendingCreate}>
+          {isPendingCreate ? "Scheduling..." : `Schedule ${isRecurring ? 'Recurring Sessions' : 'Session'}`}
+        </Button>
+      </form>
+    </ErrorBoundary>
   );
 };

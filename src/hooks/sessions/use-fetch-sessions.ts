@@ -19,7 +19,9 @@ export const useFetchSessions = ({
   const [sessions, setSessions] = useState<SessionWithStudents[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<Error | null>(null);
-  const { userId, userRole } = useAuth();
+  const { user } = useAuth();
+  const userId = user?.id;
+  const userRole = user?.role;
   
   // Reset error when filter props change
   useEffect(() => {
@@ -54,21 +56,28 @@ export const useFetchSessions = ({
       }
       
       // Filter by status if provided
-      if (status && status.length > 0) {
-        // Handle "all" filter which means don't filter by status
-        if (!(status.length === 1 && (status[0] === 'all' || status[0] === ''))) {
-          // Convert AttendanceStatus[] to string[] for the IN operation
-          const statusValues = status.filter(s => s !== 'all' && s !== '') as string[];
-          if (statusValues.length > 0) {
-            query = query.in('status', statusValues);
+      if (status && Array.isArray(status) && status.length > 0) {
+        // Check if the 'all' option is included or no filter is applied
+        const hasAllOption = status.some(s => s === 'all' || s === '');
+        
+        if (!hasAllOption) {
+          // Filter out any invalid status values
+          const validStatuses = status.filter(s => 
+            s !== 'all' && 
+            s !== '' && 
+            ['Present', 'Scheduled', 'Absent', 'No Show', 'Cancelled by Student', 'Cancelled by Teacher', 'Cancelled by School'].includes(s)
+          );
+          
+          if (validStatuses.length > 0) {
+            query = query.in('status', validStatuses);
           }
         }
       }
       
       // Apply role-based filters
-      if (userRole === 'teacher' && !teacherId) {
+      if (userRole === 'teacher' && !teacherId && userId) {
         query = query.eq('teacher_id', userId);
-      } else if (userRole === 'student' && !studentId) {
+      } else if (userRole === 'student' && !studentId && userId) {
         query = query.eq('session_students.student_id', userId);
       }
       

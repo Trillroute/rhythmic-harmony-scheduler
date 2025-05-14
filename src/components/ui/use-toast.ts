@@ -1,6 +1,6 @@
 
-// Import from sonner directly
-import { toast as sonnerToast } from "sonner";
+// Re-export from sonner directly
+import { toast as sonnerToast, ToastT } from "sonner";
 
 // Create a function to ensure only strings are passed to toast
 const safeToast = (options: {
@@ -22,9 +22,9 @@ const safeToast = (options: {
 };
 
 // Export our safe toast function
-export const toast = safeToast;
+export const toast = sonnerToast;
 
 // Export the useToast hook to maintain API compatibility
 export const useToast = () => {
-  return { toast: safeToast };
+  return { toast: sonnerToast };
 };
