@@ -1,54 +1,47 @@
 
-import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
-import { AttendanceStatus } from "@/lib/types";
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
+import { AttendanceStatus } from '@/lib/types';
+import { transformSessionUpdate } from './session-transformers';
 
-interface UpdateSessionStatusParams {
+interface UpdateSessionStatusProps {
   sessionId: string;
   status: AttendanceStatus;
+  notes?: string;
 }
 
-const updateSessionStatus = async ({ sessionId, status }: UpdateSessionStatusParams) => {
-  // Validate the status value to ensure it matches Supabase expectations
-  const validStatuses = [
-    'Present', 'Absent', 'Scheduled', 
-    'Cancelled by Student', 'Cancelled by Teacher', 
-    'Cancelled by School', 'No Show'
-  ];
+const updateSessionStatus = async ({ sessionId, status, notes }: UpdateSessionStatusProps) => {
+  // Create the update payload
+  const updates = transformSessionUpdate({
+    status,
+    notes
+  });
 
-  if (!validStatuses.includes(status)) {
-    throw new Error(`Invalid status: ${status}. Must be one of: ${validStatuses.join(', ')}`);
-  }
-
+  // Update the session
   const { data, error } = await supabase
     .from('sessions')
-    .update({ status }) // Use status directly, no need for casting
+    .update(updates)
     .eq('id', sessionId)
-    .select()
-    .single();
+    .select();
 
   if (error) {
-    throw new Error(`Failed to update session status: ${error.message}`);
+    console.error('Error updating session status:', error);
+    throw error;
   }
 
   return data;
 };
 
-export default function useUpdateSessionStatus(invalidateQueries: string[] = []) {
+export default function useUpdateSessionStatus(queryKeysToInvalidate: string[] = []) {
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: updateSessionStatus,
-    onSuccess: (data) => {
-      // Invalidate queries that depend on this data
-      invalidateQueries.forEach(queryKey => {
-        queryClient.invalidateQueries({ queryKey: [queryKey] });
+    onSuccess: () => {
+      // Invalidate relevant queries to refresh the data
+      queryKeysToInvalidate.forEach(key => {
+        queryClient.invalidateQueries({ queryKey: [key] });
       });
-      toast.success(`Session status updated to ${data.status}`);
-    },
-    onError: (error: Error) => {
-      toast.error(error.message);
     }
   });
 }

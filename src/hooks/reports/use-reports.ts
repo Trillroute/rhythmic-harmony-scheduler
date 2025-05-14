@@ -1,144 +1,57 @@
 
-import { useState, useEffect } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import {
-  fetchAttendanceData,
-  fetchSubjectDistributionData,
-  fetchSessionTypeData,
-  fetchSessionsOverTimeData,
-  fetchStudentProgressData
-} from './utils';
+import { useQuery } from "@tanstack/react-query";
+import { ReportPeriod, AttendanceData, SubjectDistributionData, SessionTypeData, SessionsReportData, StudentProgressData } from "./types";
 import { 
-  ReportPeriod, 
-  AttendanceData, 
-  SubjectDistributionData,
-  SessionTypeData,
-  SessionsReportData,
-  StudentProgressData 
-} from './types';
+  fetchAttendanceData, 
+  fetchSubjectDistributionData, 
+  fetchSessionTypeData, 
+  fetchSessionsOverTimeData,
+  fetchStudentProgressData 
+} from "./utils";
 
-export function useReports() {
-  const [currentPeriod, setCurrentPeriod] = useState<ReportPeriod>('month');
-  const [attendanceData, setAttendanceData] = useState<{
-    isLoading: boolean;
-    error: string;
-    data: AttendanceData;
-  }>({
-    isLoading: true,
-    error: '',
-    data: {
-      total: 0,
-      present: 0,
-      absent: 0,
-      cancelled: 0,
-      noShow: 0,
-      distribution: [],
-      chartData: []
-    }
+export const useReports = (period: ReportPeriod = 'month') => {
+  const attendanceQuery = useQuery({
+    queryKey: ['reports', 'attendance', period],
+    queryFn: () => fetchAttendanceData(period),
   });
-  
-  const [sessionTypeData, setSessionTypeData] = useState<{
-    isLoading: boolean;
-    error: string;
-    data: SessionTypeData;
-  }>({
-    isLoading: true,
-    error: '',
-    data: []
+
+  const subjectDistributionQuery = useQuery({
+    queryKey: ['reports', 'subjects', period],
+    queryFn: () => fetchSubjectDistributionData(period),
   });
-  
-  const [sessionsData, setSessionsData] = useState<{
-    isLoading: boolean;
-    error: string;
-    data: SessionsReportData;
-  }>({
-    isLoading: true,
-    error: '',
-    data: []
+
+  const sessionTypeQuery = useQuery({
+    queryKey: ['reports', 'sessionTypes', period],
+    queryFn: () => fetchSessionTypeData(period),
   });
-  
-  const subjectDistribution = useQuery<SubjectDistributionData>({
-    queryKey: ['subjectDistribution', currentPeriod],
-    queryFn: () => fetchSubjectDistributionData(currentPeriod)
+
+  const sessionsOverTimeQuery = useQuery({
+    queryKey: ['reports', 'sessionsOverTime', period],
+    queryFn: () => fetchSessionsOverTimeData(period),
   });
-  
-  const studentProgress = useQuery<StudentProgressData>({
-    queryKey: ['studentProgress', currentPeriod],
-    queryFn: () => fetchStudentProgressData(currentPeriod)
+
+  const studentProgressQuery = useQuery({
+    queryKey: ['reports', 'studentProgress', period],
+    queryFn: () => fetchStudentProgressData(period),
   });
-  
-  const fetchAttendanceReportData = async () => {
-    setAttendanceData(prev => ({ ...prev, isLoading: true, error: '' }));
-    try {
-      const data = await fetchAttendanceData(currentPeriod);
-      setAttendanceData({ isLoading: false, error: '', data });
-    } catch (error) {
-      setAttendanceData(prev => ({ 
-        ...prev, 
-        isLoading: false, 
-        error: error instanceof Error ? error.message : 'Failed to fetch attendance data' 
-      }));
-    }
-  };
-  
-  const fetchSessionTypeReportData = async () => {
-    setSessionTypeData(prev => ({ ...prev, isLoading: true, error: '' }));
-    try {
-      const data = await fetchSessionTypeData(currentPeriod);
-      setSessionTypeData({ isLoading: false, error: '', data });
-    } catch (error) {
-      setSessionTypeData(prev => ({ 
-        ...prev, 
-        isLoading: false, 
-        error: error instanceof Error ? error.message : 'Failed to fetch session type data' 
-      }));
-    }
-  };
-  
-  const fetchSessionsReportData = async () => {
-    setSessionsData(prev => ({ ...prev, isLoading: true, error: '' }));
-    try {
-      const data = await fetchSessionsOverTimeData(currentPeriod);
-      setSessionsData({ isLoading: false, error: '', data });
-    } catch (error) {
-      setSessionsData(prev => ({ 
-        ...prev, 
-        isLoading: false, 
-        error: error instanceof Error ? error.message : 'Failed to fetch sessions data' 
-      }));
-    }
-  };
-  
-  const refetch = () => {
-    fetchAttendanceReportData();
-    fetchSessionTypeReportData();
-    fetchSessionsReportData();
-    subjectDistribution.refetch();
-    studentProgress.refetch();
-  };
-  
-  useEffect(() => {
-    fetchAttendanceReportData();
-    fetchSessionTypeReportData();
-    fetchSessionsReportData();
-  }, [currentPeriod]);
-  
+
   return {
-    attendance: attendanceData,
-    subjectDistribution,
-    sessionType: sessionTypeData,
-    sessions: sessionsData,
-    studentProgress,
-    isLoading: attendanceData.isLoading || 
-               subjectDistribution.isLoading || 
-               sessionTypeData.isLoading || 
-               sessionsData.isLoading || 
-               studentProgress.isLoading,
-    isError: !!attendanceData.error || 
-             !!subjectDistribution.error || 
-             !!sessionTypeData.error || 
-             !!sessionsData.error || 
-             !!studentProgress.error,
-    refetch
+    attendanceData: attendanceQuery.data,
+    subjectDistribution: subjectDistributionQuery.data,
+    sessionTypeData: sessionTypeQuery.data,
+    sessionsOverTime: sessionsOverTimeQuery.data,
+    studentProgress: studentProgressQuery.data,
+    isLoading: 
+      attendanceQuery.isLoading || 
+      subjectDistributionQuery.isLoading || 
+      sessionTypeQuery.isLoading || 
+      sessionsOverTimeQuery.isLoading || 
+      studentProgressQuery.isLoading,
+    isError: 
+      attendanceQuery.isError || 
+      subjectDistributionQuery.isError || 
+      sessionTypeQuery.isError || 
+      sessionsOverTimeQuery.isError || 
+      studentProgressQuery.isError,
   };
-}
+};

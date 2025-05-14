@@ -1,6 +1,8 @@
+
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Session } from "@/lib/types";
+import { transformSessionWithStudents } from "./sessions/session-transformers";
 
 interface Filters {
   studentId?: string;
@@ -10,21 +12,30 @@ interface Filters {
 
 export const useSessionsByStudent = (filters: Filters) => {
   const fetchSessions = async () => {
+    if (!filters.studentId) {
+      return [];
+    }
+    
     let query = supabase
       .from('sessions')
-      .select('*')
-      .eq('student_id', filters.studentId);
+      .select(`
+        *,
+        profiles:teacher_id(*),
+        session_students(student_id, profiles(*))
+      `)
+      .eq('session_students.student_id', filters.studentId);
 
     query = buildQueryFilters(query, filters);
 
-    const { data: sessions, error } = await query;
+    const { data: rawSessions, error } = await query;
 
     if (error) {
       console.error("Error fetching sessions:", error);
       throw error;
     }
 
-    return sessions as Session[];
+    // Transform the raw sessions to match our Session type
+    return rawSessions.map((session: any) => transformSessionWithStudents(session));
   };
 
   return useQuery({
@@ -37,8 +48,8 @@ export const useSessionsByStudent = (filters: Filters) => {
 // Function to build query filters dynamically
 function buildQueryFilters(query: any, filters: Filters) {
   if (filters.dateRange) {
-    query = query.gte('date', filters.dateRange.from);
-    query = query.lte('date', filters.dateRange.to);
+    query = query.gte('date_time', filters.dateRange.from);
+    query = query.lte('date_time', filters.dateRange.to);
   }
 
   // Modify the buildQueryFilters function to properly cast status values

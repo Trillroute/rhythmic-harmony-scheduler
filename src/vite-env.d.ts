@@ -13,7 +13,7 @@ declare type Json =
 // Add PaymentStatus type since it's missing
 declare type PaymentStatus = "paid" | "pending" | "overdue" | "partial";
 
-// Add FeePlanSummary interface to match what's used in FeePlanDetails
+// Updated FeePlanSummary interface to match what's used in FeePlanDetails
 interface FeePlanSummary {
   paid_amount: number;
   due_amount: number;
@@ -24,4 +24,3 @@ interface FeePlanSummary {
   } | null;
   status: PaymentStatus;
 }
-

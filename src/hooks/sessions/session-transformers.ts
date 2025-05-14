@@ -80,3 +80,6 @@ export function transformSessionUpdate(updates: {
   
   return apiUpdates;
 }
+
+// Explicitly export the transformSessionUpdate function to fix build error
+export { transformSessionUpdate };
