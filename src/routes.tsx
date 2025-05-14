@@ -1,98 +1,195 @@
 
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import Layout from "./components/Layout";
-import Index from "./pages/Index";
-import Login from "./pages/Login";
-import Signup from "./pages/Signup";
-import NotFound from "./pages/NotFound";
-import ProtectedRoute from "./components/ProtectedRoute";
-import Dashboard from "./components/Dashboard";
-import SessionScheduler from "./components/SessionScheduler";
-import AttendanceTracker from "./components/AttendanceTracker";
-import StudentPacks from "./components/StudentPacks";
-import AdminDashboard from "./components/admin/AdminDashboard";
-import UserManagement from "./components/admin/UserManagement";
-import StudentManagement from "./components/admin/StudentManagement";
-import StudentProfile from "./components/admin/students/StudentProfile";
-import CourseManagement from "./components/admin/CourseManagement";
-import SessionPlans from "./components/admin/SessionPlans";
-import ReportingDashboard from "./components/admin/ReportingDashboard";
-import AdvancedScheduler from "./components/admin/AdvancedScheduler";
-import InvoiceManagement from "./components/admin/InvoiceManagement";
-import CourseMaterials from "./components/admin/CourseMaterials";
-import DataExport from "./components/admin/DataExport";
-import SystemSettings from "./components/admin/SystemSettings";
-import BulkUploadPage from "./components/admin/BulkUploadPage";
-import { ErrorBoundary } from "./components/ErrorBoundary";
+import React from 'react';
+import { createBrowserRouter, useLocation } from 'react-router-dom';
 
-// Create a wrapper component that applies ErrorBoundary with component name
-const withErrorBoundary = (Component: React.ComponentType<any>, componentName: string) => {
-  return (props: any) => (
-    <ErrorBoundary componentName={componentName}>
-      <Component {...props} />
-    </ErrorBoundary>
-  );
+// Layout
+import Layout from './components/Layout';
+import ErrorBoundary from './components/ErrorBoundary';
+
+// Pages
+import Index from './pages/Index';
+import Login from './pages/Login';
+import Signup from './pages/Signup';
+import NotFound from './pages/NotFound';
+
+// Admin components
+import AdminDashboard from './components/admin/AdminDashboard';
+import StudentManagement from './components/admin/StudentManagement';
+import CourseManagement from './components/admin/CourseManagement';
+import UserManagement from './components/admin/UserManagement';
+import AdvancedScheduler from './components/admin/AdvancedScheduler';
+import SessionPlans from './components/admin/SessionPlans';
+import ReportingDashboard from './components/admin/ReportingDashboard';
+import CourseMaterials from './components/admin/CourseMaterials';
+import InvoiceManagement from './components/admin/InvoiceManagement';
+import BulkUploadPage from './components/admin/BulkUploadPage';
+import SystemSettings from './components/admin/SystemSettings';
+
+// Data Population Utility
+import PopulateTestData from './scripts/populate-test-data';
+
+// Protected route
+import ProtectedRoute from './components/ProtectedRoute';
+
+// Components
+import Dashboard from './components/Dashboard';
+import SessionScheduler from './components/SessionScheduler';
+import AttendanceTracker from './components/AttendanceTracker';
+
+export default createBrowserRouter([
+  {
+    path: '/',
+    element: <Layout />,
+    errorElement: <ErrorBoundary />,
+    children: [
+      { index: true, element: <Index /> },
+      {
+        path: 'dashboard',
+        element: (
+          <ProtectedRoute allowedRoles={['admin', 'teacher', 'student']}>
+            <Dashboard />
+          </ProtectedRoute>
+        ),
+      },
+      {
+        path: 'schedule',
+        element: (
+          <ProtectedRoute allowedRoles={['admin', 'teacher']}>
+            <SessionScheduler />
+          </ProtectedRoute>
+        ),
+      },
+      {
+        path: 'attendance',
+        element: (
+          <ProtectedRoute allowedRoles={['admin', 'teacher']}>
+            <AttendanceTracker />
+          </ProtectedRoute>
+        ),
+      },
+
+      // Admin routes
+      {
+        path: 'admin',
+        children: [
+          {
+            index: true,
+            element: (
+              <ProtectedRoute allowedRoles={['admin']}>
+                <AdminDashboard />
+              </ProtectedRoute>
+            ),
+          },
+          {
+            path: 'students',
+            element: (
+              <ProtectedRoute allowedRoles={['admin']}>
+                <StudentManagement />
+              </ProtectedRoute>
+            ),
+          },
+          {
+            path: 'courses',
+            element: (
+              <ProtectedRoute allowedRoles={['admin']}>
+                <CourseManagement />
+              </ProtectedRoute>
+            ),
+          },
+          {
+            path: 'users',
+            element: (
+              <ProtectedRoute allowedRoles={['admin']}>
+                <UserManagement />
+              </ProtectedRoute>
+            ),
+          },
+          {
+            path: 'schedule',
+            element: (
+              <ProtectedRoute allowedRoles={['admin']}>
+                <AdvancedScheduler />
+              </ProtectedRoute>
+            ),
+          },
+          {
+            path: 'plans',
+            element: (
+              <ProtectedRoute allowedRoles={['admin']}>
+                <SessionPlans />
+              </ProtectedRoute>
+            ),
+          },
+          {
+            path: 'packs',
+            element: (
+              <ProtectedRoute allowedRoles={['admin']}>
+                <PopulateTestData />
+              </ProtectedRoute>
+            ),
+          },
+          {
+            path: 'reports',
+            element: (
+              <ProtectedRoute allowedRoles={['admin']}>
+                <ReportingDashboard />
+              </ProtectedRoute>
+            ),
+          },
+          {
+            path: 'materials',
+            element: (
+              <ProtectedRoute allowedRoles={['admin']}>
+                <CourseMaterials />
+              </ProtectedRoute>
+            ),
+          },
+          {
+            path: 'invoices',
+            element: (
+              <ProtectedRoute allowedRoles={['admin']}>
+                <InvoiceManagement />
+              </ProtectedRoute>
+            ),
+          },
+          {
+            path: 'bulk-upload',
+            element: (
+              <ProtectedRoute allowedRoles={['admin']}>
+                <BulkUploadPage />
+              </ProtectedRoute>
+            ),
+          },
+          {
+            path: 'settings',
+            element: (
+              <ProtectedRoute allowedRoles={['admin']}>
+                <SystemSettings />
+              </ProtectedRoute>
+            ),
+          },
+        ],
+      },
+
+      // Auth routes
+      {
+        path: 'login',
+        element: <Login />,
+      },
+      {
+        path: 'signup',
+        element: <Signup />,
+      },
+      {
+        path: '*',
+        element: <NotFound />,
+      },
+    ],
+  },
+]);
+
+// Custom hook to access current location
+export const useCurrentLocation = () => {
+  const location = useLocation();
+  return location;
 };
-
-// Main Routes component
-export default function Router() {
-  return (
-    <BrowserRouter>
-      <Routes>
-        <Route path="/login" element={<Login />} />
-        <Route path="/signup" element={<Signup />} />
-        
-        <Route path="/" element={<Layout />}>
-          <Route index element={<Index />} />
-          
-          <Route path="dashboard" element={
-            <ProtectedRoute>
-              {withErrorBoundary(Dashboard, "Dashboard")({})}
-            </ProtectedRoute>
-          } />
-          
-          <Route path="scheduler" element={
-            <ProtectedRoute>
-              {withErrorBoundary(SessionScheduler, "Session Scheduler")({})}
-            </ProtectedRoute>
-          } />
-          
-          <Route path="attendance" element={
-            <ProtectedRoute>
-              {withErrorBoundary(AttendanceTracker, "Attendance Tracker")({})}
-            </ProtectedRoute>
-          } />
-          
-          <Route path="packs" element={
-            <ProtectedRoute>
-              {withErrorBoundary(StudentPacks, "Student Packs")({})}
-            </ProtectedRoute>
-          } />
-          
-          <Route path="admin" element={
-            <ProtectedRoute>
-              {withErrorBoundary(AdminDashboard, "Admin Dashboard")({})}
-            </ProtectedRoute>
-          }>
-            <Route index element={withErrorBoundary(ReportingDashboard, "Reporting Dashboard")({})} />
-            <Route path="users" element={withErrorBoundary(UserManagement, "User Management")({})} />
-            <Route path="students" element={withErrorBoundary(StudentManagement, "Student Management")({})} />
-            <Route path="students/:studentId" element={withErrorBoundary(StudentProfile, "Student Profile")({})} />
-            <Route path="courses" element={withErrorBoundary(CourseManagement, "Course Management")({})} />
-            <Route path="plans" element={withErrorBoundary(SessionPlans, "Session Plans")({})} />
-            <Route path="reports" element={withErrorBoundary(ReportingDashboard, "Reporting Dashboard")({})} />
-            <Route path="scheduler" element={withErrorBoundary(AdvancedScheduler, "Advanced Scheduler")({})} />
-            <Route path="invoices" element={withErrorBoundary(InvoiceManagement, "Invoice Management")({})} />
-            <Route path="materials" element={withErrorBoundary(CourseMaterials, "Course Materials")({})} />
-            <Route path="export" element={withErrorBoundary(DataExport, "Data Export")({})} />
-            <Route path="settings" element={withErrorBoundary(SystemSettings, "System Settings")({})} />
-            <Route path="bulk-upload" element={withErrorBoundary(BulkUploadPage, "Bulk Upload")({})} />
-            <Route path="session-plans" element={<Navigate to="/admin/plans" replace />} />
-          </Route>
-        </Route>
-        
-        <Route path="*" element={<NotFound />} />
-      </Routes>
-    </BrowserRouter>
-  );
-}
