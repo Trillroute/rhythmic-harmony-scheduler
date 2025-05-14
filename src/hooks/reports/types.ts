@@ -26,6 +26,8 @@ export interface AttendanceData {
   noShow: number;
   distribution: AttendanceDistribution;
   chartData: AttendanceChartData;
+  categories: string[]; // Added for backward compatibility
+  data: number[]; // Added for backward compatibility
 }
 
 export interface SubjectDistributionData {
@@ -38,6 +40,10 @@ export interface SubjectDistributionData {
     labels: string[];
     data: number[];
   };
+  length?: number; // Added for backward compatibility
+  reduce?: (callback: any, initialValue: any) => any; // Added for backward compatibility
+  map?: (callback: any) => any; // Added for backward compatibility
+  [index: number]: any; // Added for backward compatibility
 }
 
 export interface SessionTypeSubjects {
@@ -58,6 +64,10 @@ export interface SessionTypeData {
   Solo: SessionTypeItem;
   Duo: SessionTypeItem;
   Focus: SessionTypeItem;
+  [index: number]: any; // Added for backward compatibility
+  length?: number; // Added for backward compatibility
+  map?: (callback: any) => any; // Added for backward compatibility
+  push?: (item: any) => number; // Added for backward compatibility
 }
 
 export interface SessionsDataItem {
@@ -72,6 +82,8 @@ export interface SessionsReportData {
   completed: number;
   cancelled: number;
   data: SessionsDataItem[];
+  months?: string[]; // Added for backward compatibility
+  counts?: number[]; // Added for backward compatibility
 }
 
 export interface StudentProgressItem {
@@ -83,4 +95,6 @@ export interface StudentProgressItem {
 export interface StudentProgressData {
   averageCompletion: number;
   students: StudentProgressItem[];
+  map?: (callback: any) => any; // Added for backward compatibility
+  [index: number]: any; // Added for backward compatibility
 }
