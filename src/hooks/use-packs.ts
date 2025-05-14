@@ -1,7 +1,7 @@
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { SessionPack, LocationType, SubjectType, SessionType, WeeklyFrequency } from "@/lib/types";
+import { SessionPack, LocationType, SubjectType, SessionType, WeeklyFrequency, PackSize } from "@/lib/types";
 import { assertLocationType, assertSubjectType, assertSessionType, assertWeeklyFrequency } from "@/lib/type-utils";
 
 export const useSessionPacks = (studentId?: string) => {
@@ -17,22 +17,27 @@ export const useSessionPacks = (studentId?: string) => {
 
       if (error) throw error;
       
-      // Transform database representation to SessionPack type
-      return data.map(pack => ({
-        id: pack.id,
-        studentId: pack.student_id,
-        size: pack.size,
-        subject: assertSubjectType(pack.subject),
-        sessionType: assertSessionType(pack.session_type),
-        location: assertLocationType(pack.location),
-        purchasedDate: pack.purchased_date,
-        expiryDate: pack.expiry_date,
-        remainingSessions: pack.remaining_sessions,
-        isActive: pack.is_active,
-        weeklyFrequency: assertWeeklyFrequency(pack.weekly_frequency),
-        createdAt: pack.created_at,
-        updatedAt: pack.updated_at
-      })) as SessionPack[];
+      // Transform database representation to SessionPack type with proper casting
+      return data.map(pack => {
+        // Handle PackSize conversion
+        const size = Number(pack.size) as PackSize;
+        
+        return {
+          id: pack.id,
+          studentId: pack.student_id,
+          size: size,
+          subject: assertSubjectType(pack.subject),
+          sessionType: assertSessionType(pack.session_type),
+          location: assertLocationType(pack.location),
+          purchasedDate: pack.purchased_date,
+          expiryDate: pack.expiry_date,
+          remainingSessions: pack.remaining_sessions,
+          isActive: pack.is_active,
+          weeklyFrequency: assertWeeklyFrequency(pack.weekly_frequency),
+          createdAt: pack.created_at,
+          updatedAt: pack.updated_at
+        };
+      }) as unknown as SessionPack[];
     },
     enabled: !!studentId,
   });
@@ -40,7 +45,7 @@ export const useSessionPacks = (studentId?: string) => {
 
 interface CreateSessionPackInput {
   studentId: string;
-  size: number;
+  size: PackSize;  // Changed from number to PackSize
   subject: string;
   sessionType: string;
   location: string;
@@ -58,7 +63,7 @@ export const useCreateSessionPack = () => {
       // Convert to snake_case for the API and ensure proper type conversion
       const apiData = {
         student_id: packData.studentId,
-        size: packData.size,
+        size: String(packData.size), // Convert to string for Supabase
         subject: assertSubjectType(packData.subject),
         session_type: assertSessionType(packData.sessionType),
         location: assertLocationType(packData.location),

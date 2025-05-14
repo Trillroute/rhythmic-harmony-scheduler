@@ -17,3 +17,26 @@ export interface PaginationState {
   pageSize: number;
   totalCount: number;
 }
+
+// Add SessionData type which was missing
+export interface SessionData {
+  id: string;
+  teacherId: string;
+  teacherName?: string;
+  packId: string;
+  subject: SubjectType;
+  sessionType: SessionType;
+  location: LocationType;
+  dateTime: string | Date;
+  duration: number;
+  status: AttendanceStatus;
+  notes?: string;
+  rescheduleCount: number;
+  studentIds: string[];
+  studentNames?: string[];
+  createdAt: string | Date;
+  updatedAt: string | Date;
+  recurrenceRule?: string;
+  originalSessionId?: string;
+  rescheduledFrom?: string;
+}

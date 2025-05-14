@@ -3,7 +3,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { AttendanceStatus } from '@/lib/types';
-import { assertStringArray } from '@/lib/type-utils';
+import { assertAttendanceStatus } from '@/lib/type-utils';
 
 interface UpdateSessionStatusParams {
   sessionId: string;
@@ -17,25 +17,17 @@ export const useUpdateSessionStatus = (queryKeysToInvalidate: string[] = []) => 
     mutationFn: async ({ sessionId, status }: UpdateSessionStatusParams) => {
       if (!sessionId) throw new Error('Session ID is required');
       
-      // Ensure status is a valid attendance status
-      const validStatuses: string[] = [
-        'Present', 'Absent', 'Scheduled', 'Cancelled by Student', 
-        'Cancelled by Teacher', 'Cancelled by School', 'No Show'
-      ];
+      // Validate and convert status using our type utility
+      const safeStatus = assertAttendanceStatus(status);
       
-      if (!validStatuses.includes(status)) {
-        throw new Error(`Invalid status: ${status}`);
-      }
-      
-      // Use status directly as it's already in the correct format for Supabase
       const { error } = await supabase
         .from('sessions')
-        .update({ status })
+        .update({ status: safeStatus })
         .eq('id', sessionId);
 
       if (error) throw error;
 
-      return { sessionId, status };
+      return { sessionId, status: safeStatus };
     },
     onSuccess: () => {
       // Invalidate queries to refresh data

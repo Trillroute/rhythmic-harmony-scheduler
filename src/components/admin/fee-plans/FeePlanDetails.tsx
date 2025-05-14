@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -69,6 +68,8 @@ export const FeePlanDetails: React.FC<FeePlanDetailsProps> = ({ studentId }) => 
   const isPending = isPendingCreate || isPendingUpdate || isPendingDelete;
   
   return (
+    
+
     <div className="space-y-4">
       <div className="flex justify-between items-center">
         <h3 className="text-lg font-medium">Fee Plans</h3>

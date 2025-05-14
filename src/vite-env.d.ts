@@ -10,8 +10,8 @@ declare type Json =
   | { [key: string]: Json | undefined }
   | Json[];
 
-// Add PaymentStatus type since it's missing
-declare type PaymentStatus = "paid" | "pending" | "overdue" | "partial";
+// Update PaymentStatus type to include 'warning' for use in getStatusBadgeVariant function
+declare type PaymentStatus = "paid" | "pending" | "overdue" | "partial" | "warning";
 
 // Updated FeePlanSummary interface to match what's used in FeePlanDetails
 interface FeePlanSummary {
@@ -23,7 +23,7 @@ interface FeePlanSummary {
     amount: number;
   } | null;
   status: PaymentStatus;
-  // Add these properties to match usage in FeePlanDetails
+  // Add these properties with camelCase naming
   paidAmount: number;
   dueAmount: number;
   paymentPercentage: number;

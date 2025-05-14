@@ -1,67 +1,100 @@
 
-import { useQuery } from "@tanstack/react-query";
-import { ReportPeriod, AttendanceData, SubjectDistributionData, SessionTypeData, SessionsReportData, StudentProgressData } from "./types";
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
 import { 
-  fetchAttendanceData, 
-  fetchSubjectDistributionData, 
-  fetchSessionTypeData, 
-  fetchSessionsOverTimeData,
-  fetchStudentProgressData 
-} from "./utils";
+  generateAttendanceReport, 
+  generateSubjectDistributionReport, 
+  generateSessionTypeReport,
+  generateSessionsReport,
+  generateStudentProgressReport
+} from './utils';
+import { 
+  AttendanceData, 
+  SubjectDistributionData, 
+  SessionTypeData, 
+  SessionsReportData,
+  StudentProgressData,
+  ReportPeriod
+} from './types';
+import { getDateRangeForPeriod } from './date-utils';
 
 export const useReports = (period: ReportPeriod = 'month') => {
-  const attendanceQuery = useQuery({
-    queryKey: ['reports', 'attendance', period],
-    queryFn: () => fetchAttendanceData(period),
-  });
+  const { startDate, endDate } = getDateRangeForPeriod(period);
 
-  const subjectDistributionQuery = useQuery({
-    queryKey: ['reports', 'subjects', period],
-    queryFn: () => fetchSubjectDistributionData(period),
-  });
+  const fetchReportData = async () => {
+    try {
+      // Attendance data
+      const { data: attendanceData, error: attendanceError } = await supabase
+        .from('sessions')
+        .select('*')
+        .gte('date_time', startDate.toISOString())
+        .lte('date_time', endDate.toISOString());
 
-  const sessionTypeQuery = useQuery({
-    queryKey: ['reports', 'sessionTypes', period],
-    queryFn: () => fetchSessionTypeData(period),
-  });
+      if (attendanceError) throw new Error(attendanceError.message);
 
-  const sessionsOverTimeQuery = useQuery({
-    queryKey: ['reports', 'sessionsOverTime', period],
-    queryFn: () => fetchSessionsOverTimeData(period),
-  });
+      // Student progress data
+      const { data: progressData, error: progressError } = await supabase
+        .from('student_progress')
+        .select(`
+          *,
+          enrollment:enrollment_id(
+            student_id,
+            course_id,
+            profiles:student_id(name),
+            courses:course_id(name, instrument)
+          )
+        `)
+        .gte('updated_at', startDate.toISOString())
+        .lte('updated_at', endDate.toISOString());
 
-  const studentProgressQuery = useQuery({
-    queryKey: ['reports', 'studentProgress', period],
-    queryFn: () => fetchStudentProgressData(period),
-  });
+      if (progressError) throw new Error(progressError.message);
 
-  const refetch = () => {
-    attendanceQuery.refetch();
-    subjectDistributionQuery.refetch();
-    sessionTypeQuery.refetch();
-    sessionsOverTimeQuery.refetch();
-    studentProgressQuery.refetch();
+      return {
+        attendanceData: generateAttendanceReport(attendanceData || []),
+        subjectDistribution: generateSubjectDistributionReport(attendanceData || []),
+        sessionTypeData: generateSessionTypeReport(attendanceData || []),
+        sessionsOverTime: generateSessionsReport(attendanceData || [], startDate, endDate),
+        studentProgress: generateStudentProgressReport(progressData || [])
+      };
+    } catch (error) {
+      console.error('Error fetching report data:', error);
+      throw error;
+    }
   };
 
+  const { data, isLoading, isError, refetch } = useQuery({
+    queryKey: ['reports', period],
+    queryFn: fetchReportData
+  });
+
+  // Return transformed data structure with correct property names used in ReportingDashboard
   return {
-    attendanceData: attendanceQuery.data,
-    attendance: { data: attendanceQuery.data }, // Add this alias for backward compatibility
-    subjectDistribution: { data: subjectDistributionQuery.data }, // Return data within object
-    sessionType: { data: sessionTypeQuery.data }, // Return data within object
-    sessions: { data: sessionsOverTimeQuery.data }, // Return data within object
-    studentProgress: { data: studentProgressQuery.data }, // Return data within object
-    isLoading: 
-      attendanceQuery.isLoading || 
-      subjectDistributionQuery.isLoading || 
-      sessionTypeQuery.isLoading || 
-      sessionsOverTimeQuery.isLoading || 
-      studentProgressQuery.isLoading,
-    isError: 
-      attendanceQuery.isError || 
-      subjectDistributionQuery.isError || 
-      sessionTypeQuery.isError || 
-      sessionsOverTimeQuery.isError || 
-      studentProgressQuery.isError,
-    refetch // Add the refetch method
+    // Map to the property names used in ReportingDashboard
+    attendance: {
+      data: data?.attendanceData || {
+        total: 0,
+        present: 0,
+        absent: 0,
+        cancelled: 0,
+        noShow: 0,
+        distribution: [],
+        chartData: []
+      }
+    },
+    subjectDistribution: {
+      data: data?.subjectDistribution || []
+    },
+    sessionType: {
+      data: data?.sessionTypeData || []
+    },
+    sessions: {
+      data: data?.sessionsOverTime || []
+    },
+    studentProgress: {
+      data: data?.studentProgress || []
+    },
+    isLoading,
+    isError,
+    refetch  // Add refetch method
   };
 };
