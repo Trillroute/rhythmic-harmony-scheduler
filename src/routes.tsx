@@ -1,257 +1,80 @@
 
-import React, { Suspense } from 'react';
-import { Routes, Route, useNavigate } from 'react-router-dom';
-import { useAuth } from '@/contexts/AuthContext';
-import { ErrorBoundary } from '@/components/ErrorBoundary';
-import ProtectedRoute from '@/components/ProtectedRoute';
+import { createBrowserRouter, RouterProvider } from "react-router-dom";
+import Layout from "./components/Layout";
+import Index from "./pages/Index";
+import Login from "./pages/Login";
+import Signup from "./pages/Signup";
+import NotFound from "./pages/NotFound";
+import ProtectedRoute from "./components/ProtectedRoute";
+import Dashboard from "./components/Dashboard";
+import SessionScheduler from "./components/SessionScheduler";
+import AttendanceTracker from "./components/AttendanceTracker";
+import StudentPacks from "./components/StudentPacks";
+import AdminDashboard from "./components/admin/AdminDashboard";
+import UserManagement from "./components/admin/UserManagement";
+import StudentManagement from "./components/admin/StudentManagement";
+import StudentProfile from "./components/admin/students/StudentProfile";
+import CourseManagement from "./components/admin/CourseManagement";
+import SessionPlans from "./components/admin/SessionPlans";
+import ReportingDashboard from "./components/admin/ReportingDashboard";
+import AdvancedScheduler from "./components/admin/AdvancedScheduler";
+import InvoiceManagement from "./components/admin/InvoiceManagement";
+import CourseMaterials from "./components/admin/CourseMaterials";
+import DataExport from "./components/admin/DataExport";
+import SystemSettings from "./components/admin/SystemSettings";
 
-// Lazy load components to improve initial load time
-const Login = React.lazy(() => import('@/pages/Login'));
-const Signup = React.lazy(() => import('@/pages/Signup'));
-const NotFound = React.lazy(() => import('@/pages/NotFound'));
-const Index = React.lazy(() => import('@/pages/Index'));
-const Layout = React.lazy(() => import('@/components/Layout'));
-const AdminDashboard = React.lazy(() => import('@/components/admin/AdminDashboard'));
-const UserManagement = React.lazy(() => import('@/components/admin/UserManagement'));
-const SystemSettings = React.lazy(() => import('@/components/admin/SystemSettings'));
-const ReportingDashboard = React.lazy(() => import('@/components/admin/ReportingDashboard'));
-const DataExport = React.lazy(() => import('@/components/admin/DataExport'));
-const Dashboard = React.lazy(() => import('@/components/Dashboard'));
-const SessionScheduler = React.lazy(() => import('@/components/SessionScheduler'));
-const AttendanceTracker = React.lazy(() => import('@/components/AttendanceTracker'));
-const StudentPacks = React.lazy(() => import('@/components/StudentPacks'));
-const CourseManagement = React.lazy(() => import('@/components/admin/CourseManagement'));
-const SessionPlans = React.lazy(() => import('@/components/admin/SessionPlans'));
-const InvoiceManagement = React.lazy(() => import('@/components/admin/InvoiceManagement'));
-const CourseMaterials = React.lazy(() => import('@/components/admin/CourseMaterials'));
-const AdvancedScheduler = React.lazy(() => import('@/components/admin/AdvancedScheduler'));
-const StudentManagement = React.lazy(() => import('@/components/admin/StudentManagement'));
+export const router = createBrowserRouter([
+  {
+    path: "/",
+    element: <Layout />,
+    errorElement: <NotFound />,
+    children: [
+      { index: true, element: <Index /> },
+      {
+        path: "dashboard",
+        element: <ProtectedRoute><Dashboard /></ProtectedRoute>,
+      },
+      {
+        path: "scheduler",
+        element: <ProtectedRoute><SessionScheduler /></ProtectedRoute>,
+      },
+      {
+        path: "attendance",
+        element: <ProtectedRoute><AttendanceTracker /></ProtectedRoute>,
+      },
+      {
+        path: "packs",
+        element: <ProtectedRoute><StudentPacks /></ProtectedRoute>,
+      },
+      {
+        path: "admin",
+        element: <ProtectedRoute adminOnly><AdminDashboard /></ProtectedRoute>,
+        children: [
+          { index: true, element: <ReportingDashboard /> },
+          { path: "users", element: <UserManagement /> },
+          { path: "students", element: <StudentManagement /> },
+          { path: "students/:studentId", element: <StudentProfile /> },
+          { path: "courses", element: <CourseManagement /> },
+          { path: "plans", element: <SessionPlans /> },
+          { path: "scheduler", element: <AdvancedScheduler /> },
+          { path: "invoices", element: <InvoiceManagement /> },
+          { path: "materials", element: <CourseMaterials /> },
+          { path: "export", element: <DataExport /> },
+          { path: "settings", element: <SystemSettings /> },
+        ]
+      }
+    ],
+  },
+  {
+    path: "/login",
+    element: <Login />,
+  },
+  {
+    path: "/signup",
+    element: <Signup />,
+  },
+]);
 
-// Loading component for lazy-loaded routes
-const RouteLoading = () => (
-  <div className="flex items-center justify-center min-h-screen">
-    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
-  </div>
-);
-
-// Use Routes directly instead of createBrowserRouter
-export default function Router() {
-  const { user } = useAuth();
-  
-  return (
-    <ErrorBoundary>
-      <Suspense fallback={<RouteLoading />}>
-        <Routes>
-          {/* Public routes */}
-          <Route path="/login" element={<Login />} />
-          <Route path="/signup" element={<Signup />} />
-          <Route path="/verify" element={<Login />} /> {/* Redirect verification to login page */}
-          
-          {/* Main layout routes */}
-          <Route path="/" element={<Layout />}>
-            <Route index element={<Index />} />
-            
-            {/* Admin routes */}
-            <Route path="admin">
-              <Route 
-                path="dashboard" 
-                element={
-                  <ProtectedRoute requiredRole="admin">
-                    <AdminDashboard />
-                  </ProtectedRoute>
-                } 
-              />
-              <Route 
-                path="users" 
-                element={
-                  <ProtectedRoute requiredRole="admin">
-                    <UserManagement />
-                  </ProtectedRoute>
-                }
-              />
-              <Route 
-                path="settings" 
-                element={
-                  <ProtectedRoute requiredRole="admin">
-                    <SystemSettings />
-                  </ProtectedRoute>
-                }
-              />
-              <Route 
-                path="reports" 
-                element={
-                  <ProtectedRoute requiredRole="admin">
-                    <ReportingDashboard />
-                  </ProtectedRoute>
-                }
-              />
-              <Route 
-                path="export" 
-                element={
-                  <ProtectedRoute requiredRole="admin">
-                    <DataExport />
-                  </ProtectedRoute>
-                }
-              />
-              <Route 
-                path="scheduler" 
-                element={
-                  <ProtectedRoute requiredRole="admin">
-                    <AdvancedScheduler />
-                  </ProtectedRoute>
-                }
-              />
-              <Route 
-                path="attendance" 
-                element={
-                  <ProtectedRoute requiredRole="admin">
-                    <AttendanceTracker teacherId={user?.id} />
-                  </ProtectedRoute>
-                }
-              />
-              <Route 
-                path="packs" 
-                element={
-                  <ProtectedRoute requiredRole="admin">
-                    <StudentPacks studentId={user?.id} />
-                  </ProtectedRoute>
-                }
-              />
-              <Route 
-                path="courses" 
-                element={
-                  <ProtectedRoute requiredRole="admin">
-                    <CourseManagement />
-                  </ProtectedRoute>
-                }
-              />
-              <Route 
-                path="session-plans" 
-                element={
-                  <ProtectedRoute requiredRole="admin">
-                    <SessionPlans />
-                  </ProtectedRoute>
-                }
-              />
-              <Route 
-                path="invoices" 
-                element={
-                  <ProtectedRoute requiredRole="admin">
-                    <InvoiceManagement />
-                  </ProtectedRoute>
-                }
-              />
-              <Route 
-                path="materials" 
-                element={
-                  <ProtectedRoute requiredRole="admin">
-                    <CourseMaterials />
-                  </ProtectedRoute>
-                }
-              />
-              <Route 
-                path="students" 
-                element={
-                  <ProtectedRoute requiredRole="admin">
-                    <StudentManagement />
-                  </ProtectedRoute>
-                }
-              />
-            </Route>
-            
-            {/* Teacher routes */}
-            <Route path="teacher">
-              <Route 
-                path="dashboard" 
-                element={
-                  <ProtectedRoute requiredRole="teacher">
-                    <Dashboard userRole="teacher" />
-                  </ProtectedRoute>
-                }
-              />
-              <Route 
-                path="scheduler" 
-                element={
-                  <ProtectedRoute requiredRole="teacher">
-                    <SessionScheduler />
-                  </ProtectedRoute>
-                }
-              />
-              <Route 
-                path="attendance" 
-                element={
-                  <ProtectedRoute requiredRole="teacher">
-                    <AttendanceTracker teacherId={user?.id} />
-                  </ProtectedRoute>
-                }
-              />
-              <Route 
-                path="students" 
-                element={
-                  <ProtectedRoute requiredRole="teacher">
-                    <StudentManagement />
-                  </ProtectedRoute>
-                }
-              />
-              <Route 
-                path="materials" 
-                element={
-                  <ProtectedRoute requiredRole="teacher">
-                    <CourseMaterials />
-                  </ProtectedRoute>
-                }
-              />
-            </Route>
-            
-            {/* Student routes */}
-            <Route path="student">
-              <Route 
-                path="dashboard" 
-                element={
-                  <ProtectedRoute requiredRole="student">
-                    <Dashboard userRole="student" />
-                  </ProtectedRoute>
-                }
-              />
-              <Route 
-                path="packs" 
-                element={
-                  <ProtectedRoute requiredRole="student">
-                    <StudentPacks studentId={user?.id} />
-                  </ProtectedRoute>
-                }
-              />
-              <Route 
-                path="courses" 
-                element={
-                  <ProtectedRoute requiredRole="student">
-                    <CourseManagement />
-                  </ProtectedRoute>
-                }
-              />
-              <Route 
-                path="resources" 
-                element={
-                  <ProtectedRoute requiredRole="student">
-                    <CourseMaterials />
-                  </ProtectedRoute>
-                }
-              />
-              <Route 
-                path="payments" 
-                element={
-                  <ProtectedRoute requiredRole="student">
-                    <InvoiceManagement />
-                  </ProtectedRoute>
-                }
-              />
-            </Route>
-          </Route>
-          
-          {/* Fallback route */}
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-      </Suspense>
-    </ErrorBoundary>
-  );
+export default function Routes() {
+  return <RouterProvider router={router} />;
 }

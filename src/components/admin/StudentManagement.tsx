@@ -23,7 +23,8 @@ import {
   SearchIcon,
   LoaderIcon,
   UsersIcon,
-  AlertTriangleIcon
+  AlertTriangleIcon,
+  ExternalLinkIcon
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -41,6 +42,7 @@ import { SubjectType } from '@/lib/types';
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from '@/components/ui/pagination';
 import { assertSubjectTypeArray } from '@/lib/type-utils';
+import { Link } from 'react-router-dom';
 
 const StudentManagement: React.FC = () => {
   // Filters and pagination state
@@ -261,6 +263,13 @@ const StudentManagement: React.FC = () => {
                               <DropdownMenuItem onClick={() => handleEdit(student)}>
                                 <EditIcon className="mr-2 h-4 w-4" />
                                 Edit Details
+                              </DropdownMenuItem>
+                              <DropdownMenuItem asChild>
+                                <Link to={`/admin/students/${student.id}`} className="flex items-center">
+                                  <UserIcon className="mr-2 h-4 w-4" />
+                                  Full Profile
+                                  <ExternalLinkIcon className="ml-auto h-4 w-4" />
+                                </Link>
                               </DropdownMenuItem>
                               <DropdownMenuItem>
                                 <PackageIcon className="mr-2 h-4 w-4" />

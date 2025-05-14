@@ -223,6 +223,7 @@ export type Database = {
       }
       enrollments: {
         Row: {
+          completion_percentage: number
           course_id: string
           created_at: string
           end_date: string | null
@@ -235,6 +236,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          completion_percentage?: number
           course_id: string
           created_at?: string
           end_date?: string | null
@@ -247,6 +249,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          completion_percentage?: number
           course_id?: string
           created_at?: string
           end_date?: string | null
@@ -734,6 +737,61 @@ export type Database = {
           },
           {
             foreignKeyName: "sessions_teacher_id_fkey"
+            columns: ["teacher_id"]
+            isOneToOne: false
+            referencedRelation: "teachers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      student_feedback: {
+        Row: {
+          created_at: string
+          feedback_text: string
+          id: string
+          rating: number | null
+          session_id: string | null
+          student_id: string
+          teacher_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          feedback_text: string
+          id?: string
+          rating?: number | null
+          session_id?: string | null
+          student_id: string
+          teacher_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          feedback_text?: string
+          id?: string
+          rating?: number | null
+          session_id?: string | null
+          student_id?: string
+          teacher_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "student_feedback_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "sessions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "student_feedback_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "students"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "student_feedback_teacher_id_fkey"
             columns: ["teacher_id"]
             isOneToOne: false
             referencedRelation: "teachers"
