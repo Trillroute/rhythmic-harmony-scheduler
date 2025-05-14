@@ -20,7 +20,7 @@ import {
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { useFetchSessions } from '@/hooks/sessions/use-fetch-sessions';
-import { useUpdateSessionStatus } from '@/hooks/sessions/use-update-session-status';
+import useUpdateSessionStatus from '@/hooks/sessions/use-update-session-status';
 import { AttendanceStatus, SessionWithStudents } from '@/lib/types';
 import { toast } from 'sonner';
 import { DateRangePicker } from '@/components/ui/date-range-picker';
@@ -36,13 +36,13 @@ const AttendanceTracker = () => {
   
   const [statusFilter, setStatusFilter] = useState<AttendanceStatus | undefined>();
   
-  const { sessions, loading, error, refreshSessions } = useFetchSessions({
-    fromDate: dateRange.from,
-    toDate: dateRange.to,
+  const { data, isLoading, error, refetch } = useFetchSessions({
+    dateFrom: dateRange.from,
+    dateTo: dateRange.to,
     status: statusFilter ? [statusFilter] : undefined
   });
   
-  const { updateSessionStatus, isPending } = useUpdateSessionStatus(['sessions']);
+  const { mutate: updateSessionStatus, isPending } = useUpdateSessionStatus(['sessions']);
   
   const handleMarkAttendance = async (session: SessionWithStudents, status: AttendanceStatus) => {
     try {
@@ -52,19 +52,21 @@ const AttendanceTracker = () => {
       });
       
       toast.success(`Session marked as ${status}`);
-      refreshSessions();
+      refetch();
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : "An unknown error occurred";
       toast.error(`Failed to update attendance: ${errorMessage}`);
     }
   };
   
-  const handleDateRangeChange = (range: DateRange) => {
-    // Ensure that we always have a to date (use from date if to is not provided)
-    if (range.from && !range.to) {
-      range.to = range.from;
+  const handleDateRangeChange = (range: DateRange | undefined) => {
+    if (range?.from) {
+      // Ensure that we always have a to date (use from date if to is not provided)
+      setDateRange({
+        from: range.from,
+        to: range.to || range.from
+      });
     }
-    setDateRange(range);
   };
 
   if (error) {
@@ -76,6 +78,8 @@ const AttendanceTracker = () => {
     );
   }
   
+  const sessions = data?.sessions || [];
+
   return (
     <ErrorBoundary>
       <div className="space-y-4">
@@ -113,7 +117,7 @@ const AttendanceTracker = () => {
               </Select>
             </div>
             
-            {loading ? (
+            {isLoading ? (
               <div className="flex justify-center items-center py-8">
                 <LoaderIcon className="h-8 w-8 animate-spin text-primary" />
               </div>

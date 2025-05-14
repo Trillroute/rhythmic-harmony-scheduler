@@ -1,3 +1,4 @@
+
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Session, SessionStatus } from "@/lib/types";
@@ -40,11 +41,11 @@ export const useFetchSessions = (filters: SessionFilters = {}) => {
     }
 
     if (filters.dateFrom) {
-      query = query.gte('scheduled_at', format(filters.dateFrom, "yyyy-MM-dd"));
+      query = query.gte('date_time', format(filters.dateFrom, "yyyy-MM-dd"));
     }
 
     if (filters.dateTo) {
-      query = query.lte('scheduled_at', format(filters.dateTo, "yyyy-MM-dd"));
+      query = query.lte('date_time', format(filters.dateTo, "yyyy-MM-dd"));
     }
 
     if (filters.search) {
@@ -63,7 +64,7 @@ export const useFetchSessions = (filters: SessionFilters = {}) => {
         .select(`
           *,
           teachers:teacher_id(id, name),
-          students:student_id(id, name)
+          students:session_students(student_id)
         `);
 
       // Apply filters
@@ -80,7 +81,7 @@ export const useFetchSessions = (filters: SessionFilters = {}) => {
 
       // Execute the query with pagination
       const { data, error } = await query
-        .order('scheduled_at', { ascending: false })
+        .order('date_time', { ascending: false })
         .range(from, to);
 
       if (error) {
@@ -89,20 +90,25 @@ export const useFetchSessions = (filters: SessionFilters = {}) => {
       }
 
       // Transform the data to match our Session type
-      const sessions: Session[] = data.map(item => ({
+      const sessions = data.map(item => ({
         id: item.id,
         teacherId: item.teacher_id,
         teacherName: item.teachers?.name || 'Unknown',
-        studentId: item.student_id,
-        studentName: item.students?.name || 'Unknown',
+        studentIds: item.students?.map((s: any) => s.student_id) || [],
         subject: item.subject,
-        status: item.status as SessionStatus,
-        scheduledAt: parseISO(item.scheduled_at),
-        duration: item.duration,
+        sessionType: item.session_type,
         location: item.location,
+        dateTime: parseISO(item.date_time),
+        duration: item.duration,
+        status: item.status,
         notes: item.notes,
+        packId: item.pack_id,
+        rescheduleCount: item.reschedule_count,
         createdAt: parseISO(item.created_at),
         updatedAt: parseISO(item.updated_at),
+        recurrenceRule: item.recurrence_rule,
+        originalSessionId: item.original_session_id,
+        rescheduledFrom: item.rescheduled_from
       }));
 
       return {

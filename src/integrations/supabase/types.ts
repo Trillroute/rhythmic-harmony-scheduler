@@ -1186,8 +1186,16 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: boolean
       }
+      is_student_in_session: {
+        Args: { session_id: string }
+        Returns: boolean
+      }
       is_teacher: {
         Args: Record<PropertyKey, never>
+        Returns: boolean
+      }
+      is_teacher_owner: {
+        Args: { teacher_id: string }
         Returns: boolean
       }
       reschedule_session: {

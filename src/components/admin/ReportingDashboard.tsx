@@ -20,7 +20,7 @@ const ReportingDashboard: React.FC = () => {
   const reports = useReports();
   
   useEffect(() => {
-    reports.fetchReports(period);
+    reports.refetch();
   }, [period]);
   
   return (
@@ -41,9 +41,9 @@ const ReportingDashboard: React.FC = () => {
       
       {reports.isLoading ? (
         <div className="text-center py-10">Loading reports...</div>
-      ) : reports.error ? (
+      ) : reports.isError ? (
         <div className="text-center text-destructive py-10">
-          Error loading reports: {typeof reports.error === 'string' ? reports.error : 'Unknown error'} 
+          Error loading reports: {reports.isError ? "Failed to load reports" : 'Unknown error'} 
         </div>
       ) : (
         <div className="grid gap-6 md:grid-cols-2">

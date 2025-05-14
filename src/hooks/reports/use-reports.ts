@@ -1,74 +1,144 @@
 
-import { startOfWeek, startOfMonth, subMonths } from 'date-fns';
+import { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import {
+  fetchAttendanceData,
+  fetchSubjectDistributionData,
+  fetchSessionTypeData,
+  fetchSessionsOverTimeData,
+  fetchStudentProgressData
+} from './utils';
+import { 
+  ReportPeriod, 
+  AttendanceData, 
+  SubjectDistributionData,
+  SessionTypeData,
+  SessionsReportData,
+  StudentProgressData 
+} from './types';
 
-import { useAttendanceReport } from './attendance-report';
-import { useSessionTypeReport } from './session-type-report';
-import { useSessionsReport } from './sessions-report';
-import { useSubjectDistributionReport } from './subject-distribution-report';
-import { useStudentProgressReport } from './student-progress-report';
-import type { ReportPeriod } from './types';
-
-export const useReports = (period: ReportPeriod = 'week') => {
-  // Get start date based on period
-  const getStartDate = () => {
-    const now = new Date();
-    switch (period) {
-      case 'week':
-        return startOfWeek(now);
-      case 'month':
-        return startOfMonth(now);
-      case 'quarter':
-        return subMonths(now, 3);
-      case 'year':
-        return subMonths(now, 12);
-      default:
-        return startOfWeek(now);
+export function useReports() {
+  const [currentPeriod, setCurrentPeriod] = useState<ReportPeriod>('month');
+  const [attendanceData, setAttendanceData] = useState<{
+    isLoading: boolean;
+    error: string;
+    data: AttendanceData;
+  }>({
+    isLoading: true,
+    error: '',
+    data: {
+      total: 0,
+      present: 0,
+      absent: 0,
+      cancelled: 0,
+      noShow: 0,
+      distribution: [],
+      chartData: []
+    }
+  });
+  
+  const [sessionTypeData, setSessionTypeData] = useState<{
+    isLoading: boolean;
+    error: string;
+    data: SessionTypeData;
+  }>({
+    isLoading: true,
+    error: '',
+    data: []
+  });
+  
+  const [sessionsData, setSessionsData] = useState<{
+    isLoading: boolean;
+    error: string;
+    data: SessionsReportData;
+  }>({
+    isLoading: true,
+    error: '',
+    data: []
+  });
+  
+  const subjectDistribution = useQuery<SubjectDistributionData>({
+    queryKey: ['subjectDistribution', currentPeriod],
+    queryFn: () => fetchSubjectDistributionData(currentPeriod)
+  });
+  
+  const studentProgress = useQuery<StudentProgressData>({
+    queryKey: ['studentProgress', currentPeriod],
+    queryFn: () => fetchStudentProgressData(currentPeriod)
+  });
+  
+  const fetchAttendanceReportData = async () => {
+    setAttendanceData(prev => ({ ...prev, isLoading: true, error: '' }));
+    try {
+      const data = await fetchAttendanceData(currentPeriod);
+      setAttendanceData({ isLoading: false, error: '', data });
+    } catch (error) {
+      setAttendanceData(prev => ({ 
+        ...prev, 
+        isLoading: false, 
+        error: error instanceof Error ? error.message : 'Failed to fetch attendance data' 
+      }));
     }
   };
-
-  // Attendance data
-  const attendance = useAttendanceReport(getStartDate());
   
-  // Subject distribution data
-  const subjectDistribution = useSubjectDistributionReport();
+  const fetchSessionTypeReportData = async () => {
+    setSessionTypeData(prev => ({ ...prev, isLoading: true, error: '' }));
+    try {
+      const data = await fetchSessionTypeData(currentPeriod);
+      setSessionTypeData({ isLoading: false, error: '', data });
+    } catch (error) {
+      setSessionTypeData(prev => ({ 
+        ...prev, 
+        isLoading: false, 
+        error: error instanceof Error ? error.message : 'Failed to fetch session type data' 
+      }));
+    }
+  };
   
-  // Student progress data
-  const studentProgress = useStudentProgressReport();
+  const fetchSessionsReportData = async () => {
+    setSessionsData(prev => ({ ...prev, isLoading: true, error: '' }));
+    try {
+      const data = await fetchSessionsOverTimeData(currentPeriod);
+      setSessionsData({ isLoading: false, error: '', data });
+    } catch (error) {
+      setSessionsData(prev => ({ 
+        ...prev, 
+        isLoading: false, 
+        error: error instanceof Error ? error.message : 'Failed to fetch sessions data' 
+      }));
+    }
+  };
   
-  // Session type data
-  const sessionType = useSessionTypeReport(getStartDate());
+  const refetch = () => {
+    fetchAttendanceReportData();
+    fetchSessionTypeReportData();
+    fetchSessionsReportData();
+    subjectDistribution.refetch();
+    studentProgress.refetch();
+  };
   
-  // Sessions over time data
-  const sessions = useSessionsReport(getStartDate(), period);
-
+  useEffect(() => {
+    fetchAttendanceReportData();
+    fetchSessionTypeReportData();
+    fetchSessionsReportData();
+  }, [currentPeriod]);
+  
   return {
-    attendance,
+    attendance: attendanceData,
     subjectDistribution,
+    sessionType: sessionTypeData,
+    sessions: sessionsData,
     studentProgress,
-    sessionType,
-    sessions,
-    isLoading: 
-      attendance.isLoading || 
-      subjectDistribution.isLoading || 
-      studentProgress.isLoading || 
-      sessionType.isLoading || 
-      sessions.isLoading,
-    isError:
-      attendance.isError ||
-      subjectDistribution.isError ||
-      studentProgress.isError ||
-      sessionType.isError ||
-      sessions.isError,
-    refetch: () => {
-      attendance.refetch();
-      subjectDistribution.refetch();
-      studentProgress.refetch();
-      sessionType.refetch();
-      sessions.refetch();
-    }
+    isLoading: attendanceData.isLoading || 
+               subjectDistribution.isLoading || 
+               sessionTypeData.isLoading || 
+               sessionsData.isLoading || 
+               studentProgress.isLoading,
+    isError: !!attendanceData.error || 
+             !!subjectDistribution.error || 
+             !!sessionTypeData.error || 
+             !!sessionsData.error || 
+             !!studentProgress.error,
+    refetch
   };
-};
-
-// Re-export types for backward compatibility
-export type { ReportPeriod, AttendanceData, SubjectDistributionData, SessionTypeData, SessionsReportData, StudentProgressData } from "./types";
+}

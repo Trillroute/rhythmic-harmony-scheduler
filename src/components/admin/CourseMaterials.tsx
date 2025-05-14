@@ -12,32 +12,59 @@ import {
 } from '@/components/ui/table';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import { Plus, Eye, Pencil, Trash2, Loader2 } from 'lucide-react';
 import { format } from 'date-fns';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
 
-// Mock data - in a real implementation, this would come from your API
-const mockMaterials = [
-  { id: '1', title: 'Guitar Chord Basics', course: 'Guitar Fundamentals', type: 'PDF', public: true, uploadDate: new Date(2025, 3, 15), module: 1 },
-  { id: '2', title: 'Piano Scales Video', course: 'Piano Mastery', type: 'Video', public: false, uploadDate: new Date(2025, 4, 3), module: 2 },
-  { id: '3', title: 'Drum Notation Guide', course: 'Drum Basics', type: 'PDF', public: true, uploadDate: new Date(2025, 2, 20), module: 1 },
-  { id: '4', title: 'Vocal Warm-up Exercises', course: 'Vocal Training', type: 'Audio', public: false, uploadDate: new Date(2025, 4, 10), module: 3 },
-];
+interface CourseMaterial {
+  id: string;
+  title: string;
+  course_id: string;
+  module_number: number | null;
+  file_type: string;
+  is_public: boolean;
+  uploaded_by: string;
+  created_at: string;
+  course: {
+    name: string;
+  };
+}
 
-const CourseMaterials: React.FC = () => {
+const CourseMaterials = () => {
   const [searchQuery, setSearchQuery] = useState('');
-  const [materials, setMaterials] = useState(mockMaterials);
+  
+  const { data: materials, isLoading, error } = useQuery({
+    queryKey: ['course_materials'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('course_materials')
+        .select(`
+          *,
+          course: course_id (name)
+        `)
+        .order('created_at', { ascending: false });
+        
+      if (error) throw new Error(`Error fetching course materials: ${error.message}`);
+      return data as CourseMaterial[];
+    }
+  });
 
   // Filter materials based on search query
-  const filteredMaterials = materials.filter(material => 
+  const filteredMaterials = materials?.filter(material => 
     material.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    material.course.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    material.type.toLowerCase().includes(searchQuery.toLowerCase())
+    material.course?.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    material.file_type.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-bold tracking-tight">Course Materials</h1>
-        <Button>Upload Material</Button>
+        <Button>
+          <Plus className="mr-2 h-4 w-4" />
+          Upload Material
+        </Button>
       </div>
       
       <Card>
@@ -54,48 +81,68 @@ const CourseMaterials: React.FC = () => {
               onChange={(e) => setSearchQuery(e.target.value)}
             />
           </div>
-          <div className="rounded-md border">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Title</TableHead>
-                  <TableHead>Course</TableHead>
-                  <TableHead>Module</TableHead>
-                  <TableHead>Type</TableHead>
-                  <TableHead>Visibility</TableHead>
-                  <TableHead>Upload Date</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredMaterials.length > 0 ? (
-                  filteredMaterials.map((material) => (
-                    <TableRow key={material.id}>
-                      <TableCell className="font-medium">{material.title}</TableCell>
-                      <TableCell>{material.course}</TableCell>
-                      <TableCell>Module {material.module}</TableCell>
-                      <TableCell>{material.type}</TableCell>
-                      <TableCell>
-                        <Badge variant={material.public ? 'default' : 'secondary'}>
-                          {material.public ? 'Public' : 'Private'}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>{format(material.uploadDate, 'MMM d, yyyy')}</TableCell>
-                      <TableCell className="text-right space-x-2">
-                        <Button variant="outline" size="sm" className="mr-2">View</Button>
-                        <Button variant="outline" size="sm" className="mr-2">Edit</Button>
-                        <Button variant="outline" size="sm" className="text-destructive">Delete</Button>
-                      </TableCell>
-                    </TableRow>
-                  ))
-                ) : (
+          
+          {isLoading ? (
+            <div className="flex justify-center items-center py-8">
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            </div>
+          ) : error ? (
+            <div className="p-4 text-destructive bg-destructive/10 rounded-md">
+              {error instanceof Error ? error.message : "Failed to load materials"}
+            </div>
+          ) : (
+            <div className="rounded-md border">
+              <Table>
+                <TableHeader>
                   <TableRow>
-                    <TableCell colSpan={7} className="text-center py-4">No materials found</TableCell>
+                    <TableHead>Title</TableHead>
+                    <TableHead>Course</TableHead>
+                    <TableHead>Module</TableHead>
+                    <TableHead>Type</TableHead>
+                    <TableHead>Visibility</TableHead>
+                    <TableHead>Upload Date</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
-                )}
-              </TableBody>
-            </Table>
-          </div>
+                </TableHeader>
+                <TableBody>
+                  {filteredMaterials && filteredMaterials.length > 0 ? (
+                    filteredMaterials.map((material) => (
+                      <TableRow key={material.id}>
+                        <TableCell className="font-medium">{material.title}</TableCell>
+                        <TableCell>{material.course?.name || 'Unknown'}</TableCell>
+                        <TableCell>{material.module_number ? `Module ${material.module_number}` : 'N/A'}</TableCell>
+                        <TableCell>{material.file_type}</TableCell>
+                        <TableCell>
+                          <Badge variant={material.is_public ? 'default' : 'secondary'}>
+                            {material.is_public ? 'Public' : 'Private'}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>{format(new Date(material.created_at), 'MMM d, yyyy')}</TableCell>
+                        <TableCell className="text-right space-x-2">
+                          <Button variant="outline" size="sm" className="mr-2">
+                            <Eye className="h-4 w-4 mr-1" />
+                            View
+                          </Button>
+                          <Button variant="outline" size="sm" className="mr-2">
+                            <Pencil className="h-4 w-4 mr-1" />
+                            Edit
+                          </Button>
+                          <Button variant="outline" size="sm" className="text-destructive">
+                            <Trash2 className="h-4 w-4 mr-1" />
+                            Delete
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  ) : (
+                    <TableRow>
+                      <TableCell colSpan={7} className="text-center py-4">No materials found</TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>
