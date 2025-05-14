@@ -3,7 +3,7 @@ import React, { useEffect } from 'react';
 import { Navigate, useLocation, Outlet } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { UserRole } from '@/lib/types';
-import { toast } from 'sonner';
+import { toast } from '@/hooks/use-toast';
 
 interface ProtectedRouteProps {
   children?: React.ReactNode;
@@ -25,10 +25,15 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   useEffect(() => {
     // If user is authenticated but doesn't have the required role, show a toast
     if (user && userRole && effectiveRoles && !effectiveRoles.includes(userRole)) {
-      toast.error(`Access Denied: You don't have permission to access this page.`);
+      toast({
+        title: "Access Denied",
+        description: "You don't have permission to access this page.",
+        variant: "destructive"
+      });
     }
   }, [user, userRole, effectiveRoles]);
   
+  // Show loading state instead of early redirect
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">

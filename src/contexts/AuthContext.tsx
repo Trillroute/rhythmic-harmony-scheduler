@@ -20,15 +20,9 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 const cleanupAuthState = () => {
   // Only remove expired or temporary auth state items
-  // We're more selective now to avoid removing active sessions
-  
-  // Remove items related to one-time tokens or errors
   localStorage.removeItem('supabase.auth.token');
   
-  // Only clear specific auth-related temporary storage
-  // This is safer than clearing all auth keys
   const keysToRemove = ['errorMessage', 'inviteToken', 'tempAuthState'];
-  
   keysToRemove.forEach(key => {
     localStorage.removeItem(key);
   });
@@ -49,7 +43,7 @@ const getRoleBasedRedirectPath = (role: UserRole | null): string => {
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
-  const [isLoading, setIsLoading] = useState(false); // Initialize to false
+  const [isLoading, setIsLoading] = useState(true); // Start with loading true
   const [initialLoadComplete, setInitialLoadComplete] = useState(false);
   const [userRole, setUserRole] = useState<UserRole | null>(null);
   const navigate = useNavigate();
@@ -58,10 +52,37 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     const initializeAuth = async () => {
       try {
-        // Only set loading true for the initial auth check
-        setIsLoading(true);
         console.log('Starting auth initialization');
         
+        // Set up auth state listener FIRST to avoid missing events
+        const { data: { subscription } } = supabase.auth.onAuthStateChange(
+          async (event, session) => {
+            console.log('Auth state changed:', event);
+            setSession(session);
+            setUser(session?.user || null);
+            
+            if (event === 'SIGNED_OUT' || event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED') {
+              console.log(`Auth event ${event} detected`);
+              
+              if (!session) {
+                // Session expired or user signed out
+                setUserRole(null);
+                return;
+              }
+            }
+            
+            if (session?.user) {
+              // Defer fetching user role to prevent potential deadlocks
+              setTimeout(async () => {
+                await fetchUserRole(session.user.id);
+              }, 0);
+            } else {
+              setUserRole(null);
+            }
+          }
+        );
+
+        // THEN check for existing session
         const { data, error } = await supabase.auth.getSession();
         
         if (error) {
@@ -71,14 +92,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             description: 'Could not retrieve your session. Please try again.',
             variant: 'destructive',
           });
+        } else {
+          setSession(data?.session || null);
+          setUser(data?.session?.user || null);
+          
+          if (data?.session?.user) {
+            await fetchUserRole(data.session.user.id);
+          }
         }
-        
-        setSession(data?.session || null);
-        setUser(data?.session?.user || null);
-        
-        if (data?.session?.user) {
-          await fetchUserRole(data.session.user.id);
-        }
+
+        return () => subscription.unsubscribe();
       } catch (err) {
         console.error('Unexpected error during auth initialization:', err);
       } finally {
@@ -90,44 +113,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
     
     initializeAuth();
-    
-    // Set up auth state listener
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        console.log('Auth state changed:', event);
-        setSession(session);
-        setUser(session?.user || null);
-        
-        // Handle session expiration events
-        if (event === 'SIGNED_OUT' || event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED') {
-          console.log(`Auth event ${event} detected`);
-          
-          if (!session) {
-            // Session expired or user signed out
-            setUserRole(null);
-            toast({
-              title: 'Session ended',
-              description: 'Your session has ended. Please sign in again.',
-            });
-            navigate('/login');
-            return;
-          }
-        }
-        
-        if (session?.user) {
-          // Defer fetching user role to prevent potential deadlocks
-          setTimeout(async () => {
-            await fetchUserRole(session.user.id);
-          }, 0);
-        } else {
-          setUserRole(null);
-        }
-      }
-    );
-    
-    return () => {
-      subscription.unsubscribe();
-    };
   }, [navigate]);
   
   // Fetch user role from profiles table

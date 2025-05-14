@@ -1,26 +1,32 @@
 
-import React from 'react';
-import { Routes, Route, Navigate } from 'react-router-dom';
+import React, { Suspense } from 'react';
 import { AuthProvider } from '@/contexts/AuthContext';
 import { Toaster } from '@/components/ui/toaster';
-import Index from '@/pages/Index';
-import Login from '@/pages/Login';
-import Signup from '@/pages/Signup';
-import NotFound from '@/pages/NotFound';
-import ProtectedRoute from '@/components/ProtectedRoute';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
 import Router from './routes';
 
 // Main App component
 function App() {
   return (
-    <AuthProvider>
-      {/* Use Router component that defines all routes */}
-      <Router />
-      {/* Toaster should be placed here, outside of routes but inside AuthProvider */}
-      <Toaster />
-    </AuthProvider>
+    <ErrorBoundary>
+      <AuthProvider>
+        <Suspense fallback={<AppLoading />}>
+          <Router />
+          <Toaster />
+        </Suspense>
+      </AuthProvider>
+    </ErrorBoundary>
   );
 }
+
+// Simple loading component
+const AppLoading = () => (
+  <div className="flex items-center justify-center min-h-screen">
+    <div className="flex flex-col items-center gap-4">
+      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+      <p className="text-muted-foreground">Loading application...</p>
+    </div>
+  </div>
+);
 
 export default App;
